@@ -13,9 +13,9 @@ namespace ChromaticityDotNet
     {
         public class StandardWhitePoint
         {
-            public double CIEXn { get; set; }
-            public double CIEYn { get; set; }
-            public double CIEZn { get; set; }
+            public double Xn { get; set; }
+            public double Yn { get; set; }
+            public double Zn { get; set; }
         }
         public class CIEXYZ
         {

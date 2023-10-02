@@ -50,9 +50,9 @@ namespace ChromaticityDotNet
 
             return new StandardWhitePoint
             {
-                CIEXn = Xn,
-                CIEYn = Yn,
-                CIEZn = Zn
+                Xn = Xn,
+                Yn = Yn,
+                Zn = Zn
             };
         }
 
@@ -149,12 +149,14 @@ namespace ChromaticityDotNet
 
         public static CIELuv XYZtoLuv(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
         {
-            double yr = XYZ.CIEY / D65_2_WhitePoint.Yn;
+            StandardWhitePoint WhitePoint = GetStandardWhitePoint(illuminant, observer);
+
+            double yr = XYZ.CIEY / WhitePoint.Yn;
             double upai = (4 * XYZ.CIEX) / (XYZ.CIEX + 15 * XYZ.CIEY + 3 * XYZ.CIEZ);
             double vpai = (9 * XYZ.CIEY) / (XYZ.CIEX + 15 * XYZ.CIEY + 3 * XYZ.CIEZ);
 
-            double ur = (4 * D65_2_WhitePoint.Xn) / (D65_2_WhitePoint.Xn + 15 * D65_2_WhitePoint.Yn + 3 * D65_2_WhitePoint.Zn);
-            double vr = (9 * D65_2_WhitePoint.Yn) / (D65_2_WhitePoint.Xn + 15 * D65_2_WhitePoint.Yn + 3 * D65_2_WhitePoint.Zn);
+            double ur = (4 * WhitePoint.Xn) / (WhitePoint.Xn + 15 * WhitePoint.Yn + 3 * WhitePoint.Zn);
+            double vr = (9 * WhitePoint.Yn) / (WhitePoint.Xn + 15 * WhitePoint.Yn + 3 * WhitePoint.Zn);
 
             double epsilon = 216.0 / 24389.0;
             double kapa = 24389.0 / 27.0;
