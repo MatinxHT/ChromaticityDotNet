@@ -1,4 +1,6 @@
-﻿using static ChromaticityDotNet.DataClass;
+﻿using System;
+using System.Text;
+using static ChromaticityDotNet.DataClass;
 using static ChromaticityDotNet.StandardChromaticityClass;
 
 namespace ChromaticityDotNet
