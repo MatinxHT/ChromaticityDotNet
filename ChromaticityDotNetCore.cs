@@ -89,4 +89,187 @@ namespace ChromaticityDotNet
 
         }
     }
+
+    /// <summary>
+    /// 统一存放色差方程的类，且统一输入参数的颜色空间为LAB空间
+    /// 内含两条色差计算方法：定制Ecmc公式和旧版本。当方法DeltaEcmc结果不理想时，尝试使用OldEcmc计算。
+    /// </summary>
+    public class CIEdeformulations
+    {
+        /// <summary>
+        /// CIE deltaE2000方程
+        /// </summary>
+        /// <param name="standard"></param>
+        /// <param name="sample"></param>
+        /// <param name="kL"></param>
+        /// <param name="kC"></param>
+        /// <param name="kH"></param>
+        /// <returns>色差计算结果</returns>
+        public static double DeltaE2000(CIELABCH standard, CIELABCH sample,double kL,double kC,double kH)
+        {
+            double Ls = standard.CIEL;
+            double As = standard.CIEA;
+            double Bs = standard.CIEB;
+            double L = sample.CIEL;
+            double A = sample.CIEA;
+            double B = sample.CIEB;
+
+            //double kL = 1.0f;
+            //double kC = 1.0f;
+            //double kH = 1.0f;
+            double lBarPrime = 0.5f * (Ls + L);
+            double c1 = Math.Sqrt(As * As + Bs * Bs);
+            double c2 = Math.Sqrt(A * A + B * B);
+            double cBar = 0.5f * (c1 + c2);
+            double cBar7 = cBar * cBar * cBar * cBar * cBar * cBar * cBar;
+            double g = 0.5f * (1.0f - (float)Math.Sqrt(cBar7 / (cBar7 + 6103515625.0)));
+            double a1Prime = As * (1.0f + g);
+            double a2Prime = A * (1.0f + g);
+            double c1Prime = Math.Sqrt(a1Prime * a1Prime + Bs * Bs);
+            double c2Prime = Math.Sqrt(a2Prime * a2Prime + B * B);
+            double cBarPrime = 0.5f * (c1Prime + c2Prime);
+            double h1Prime = (Math.Atan2(Bs, a1Prime) * 180.0) / Math.PI;
+            double dhPrime;
+
+            if (h1Prime < 0.0)
+                h1Prime += 360.0f;
+            double h2Prime = (Math.Atan2(B, a2Prime) * 180.0) / Math.PI;
+            if (h2Prime < 0.0)
+                h2Prime += 360.0f;
+            double hBarPrime = (Math.Abs(h1Prime - h2Prime) > 180.0f)
+                ? (0.5f * (h1Prime + h2Prime + 360.0))
+                : (0.5 * (h1Prime + h2Prime));
+            double t = 1.0f -
+                       0.17f * Math.Cos(Math.PI * (hBarPrime - 30.0f) / 180.0f) +
+                       0.24f * Math.Cos(Math.PI * (2.0f * hBarPrime) / 180.0f) +
+                       0.32f * Math.Cos(Math.PI * (3.0f * hBarPrime + 6.0f) / 180.0f) -
+                       0.20f * Math.Cos(Math.PI * (4.0f * hBarPrime - 63.0f) / 180.0f);
+            if (Math.Abs(h2Prime - h1Prime) <= 180.0)
+                dhPrime = h2Prime - h1Prime;
+            else
+                dhPrime = (h2Prime <= h1Prime) ? (h2Prime - h1Prime + 360.0f) : (h2Prime - h1Prime - 360.0f);
+            double dLPrime = L - Ls;
+            double dCPrime = c2Prime - c1Prime;
+            double dHPrime = 2.0f * Math.Sqrt(c1Prime * c2Prime) * Math.Sin(Math.PI * (0.5f * dhPrime) / 180.0f);
+            double sL = 1.0f + ((0.015f * (lBarPrime - 50.0f) * (lBarPrime - 50.0f)) /
+                                Math.Sqrt(20.0f + (lBarPrime - 50.0f) * (lBarPrime - 50.0f)));
+            double sC = 1.0f + 0.045f * cBarPrime;
+            double sH = 1.0f + 0.015f * cBarPrime * t;
+            double dTheta = 30.0f * Math.Exp(-((hBarPrime - 275.0f) / 25.0f) * ((hBarPrime - 275.0f) / 25.0f));
+            double cBarPrime7 = cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime;
+            double rC = Math.Sqrt(cBarPrime7 / (cBarPrime7 + 6103515625.0f));
+            double rT = -2.0f * rC * Math.Sin(Math.PI * (2.0f * dTheta) / 180.0f);
+            //DeltaEresult result = new()
+            //{
+            //    DL = sample.L - standard.L,
+            //    DC = c2 - c1,
+            //    DH = h2Prime - h1Prime,
+            //    DeltaLonly = Math.Round(Math.Sqrt((dLPrime / (kL * sL)) * (dLPrime / (kL * sL))), 2),
+            //    DeltaConly = Math.Round(Math.Sqrt((dCPrime / (kC * sC)) * (dCPrime / (kC * sC))), 2),
+            //    DeltaHonly = Math.Round(Math.Sqrt((dHPrime / (kH * sH)) * (dHPrime / (kH * sH))), 2),
+            //    DeltaE = Math.Round(Math.Sqrt(
+            //    (dLPrime / (kL * sL)) * (dLPrime / (kL * sL)) +
+            //    (dCPrime / (kC * sC)) * (dCPrime / (kC * sC)) +
+            //    (dHPrime / (kH * sH)) * (dHPrime / (kH * sH)) +
+            //    (dCPrime / (kC * sC)) * (dHPrime / (kH * sH)) * rT
+            //), 2)
+            //};
+
+            double DeltaE = Math.Round(Math.Sqrt(
+                (dLPrime / (kL * sL)) * (dLPrime / (kL * sL)) +
+                (dCPrime / (kC * sC)) * (dCPrime / (kC * sC)) +
+                (dHPrime / (kH * sH)) * (dHPrime / (kH * sH)) +
+                (dCPrime / (kC * sC)) * (dHPrime / (kH * sH)) * rT
+            ), 2);
+
+            return DeltaE;
+        }
+
+        /// <summary>
+        /// CIEdeltaEcmc方程，参数l:C可调,纺织品采用(l:c)=(2:1)但东奥新厂采用(1:1)。本函数基于deltaE1976计算色相差
+        /// </summary>
+        /// <param name="standard">CIELAB类型的标准品LAB数据</param>
+        /// <param name="sample">CIELAB类型的样本LAB数据</param>
+        /// <param name="pl">double类型的l参数</param>
+        /// <param name="pc">double类型的c参数</param>
+        /// <returns>色差计算结果</returns>
+        public static double DeltaEcmc(CIELABCH standard, CIELABCH sample, double pl, double pc)
+        {
+
+            double Ls = standard.CIEL;
+            double As = standard.CIEA;
+            double Bs = standard.CIEB;
+            double L = sample.CIEL;
+            double A = sample.CIEA;
+            double B = sample.CIEB;
+
+            double Cab_standard = Math.Sqrt(Math.Pow(As, 2) + Math.Pow(Bs, 2));
+            double Cab_sample = Math.Sqrt(Math.Pow(A, 2) + Math.Pow(B, 2));
+            //注意角度和值的修正
+            double Hab_standrad = Math.Atan2(Bs, As) * (180.0 / Math.PI);
+            if (Hab_standrad < 0)
+            {
+                Hab_standrad += 360.0;
+            }
+            double Hab_sample = Math.Atan2(B, A) * (180.0 / Math.PI);
+            if (Hab_sample < 0)
+            {
+                Hab_sample += 360.0;
+            }
+
+            double deltaL = L - Ls;
+            double deltaC = Cab_sample - Cab_standard;
+
+            double q, p;
+            double m = Hab_sample - Hab_standrad;
+            if (m >= 0.0)
+            {
+                p = 1.0;
+            }
+            else
+            {
+                p = -1.0;
+            }
+            if (Math.Abs(m) <= 180.0)
+            {
+                q = 1.0;
+            }
+            else
+            {
+                q = -1.0;
+            }
+
+            double deltaELab_square = Math.Pow((L - Ls), 2) + Math.Pow((A - As), 2) + Math.Pow((B - Bs), 2);
+            double deltaH = p * q * Math.Sqrt(deltaELab_square - Math.Pow(deltaL, 2) - Math.Pow(deltaC, 2));
+
+            double S_L, S_C, S_H, f, T;
+            if (Ls < 16.0)
+            {
+                S_L = 0.511;
+            }
+            else
+            {
+                S_L = (0.040975 * Ls) / (1.0 + 0.01765 * Ls);
+            }
+
+            S_C = ((0.0638 * Cab_standard) / (1 + 0.0131 * Cab_standard) + 0.638);
+            f = Math.Sqrt(Math.Pow(Cab_standard, 4) / (Math.Pow(Cab_standard, 4) + 1900.0));
+
+            if (164.0 <= Hab_sample && Hab_sample <= 345.0)
+            {
+                T = 0.56 + Math.Abs(0.2 * Math.Cos((Hab_sample + 168.0) * Math.PI / 180.0));
+            }
+            else
+            {
+                T = 0.36 + Math.Abs(0.4 * Math.Cos((Hab_sample + 35.0) * Math.PI / 180.0));
+            }
+
+            S_H = ((f * T) + 1.0 - f) * S_C;
+
+            double delteEcmc = Math.Round(Math.Sqrt(Math.Pow(deltaL / (pl * S_L), 2) + Math.Pow(deltaC / (pc * S_C), 2) + Math.Pow(deltaH / S_H, 2)), 2);
+
+            return delteEcmc;
+        }
+
+    }
 }
