@@ -94,7 +94,6 @@ namespace ChromaticityDotNet
 
     /// <summary>
     /// 统一存放色差方程的类，且统一输入参数的颜色空间为LAB空间
-    /// 内含两条色差计算方法：定制Ecmc公式和旧版本。当方法DeltaEcmc结果不理想时，尝试使用OldEcmc计算。
     /// </summary>
     public class CIEdeformulations
     {
