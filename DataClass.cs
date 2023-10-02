@@ -11,6 +11,12 @@ namespace ChromaticityDotNet
     /// </summary>
     public class DataClass
     {
+        public class StandardWhitePoint
+        {
+            public double CIEXn { get; set; }
+            public double CIEYn { get; set; }
+            public double CIEZn { get; set; }
+        }
         public class CIEXYZ
         {
             public double CIEX { get; set; }
@@ -23,9 +29,24 @@ namespace ChromaticityDotNet
             public double CIEL { get; set; }
             public double CIEA { get; set; }
             public double CIEB { get; set; }
-            public double CIEC { get; set;}
-            public double CIEH { get; set;}
+            public double CIEC { get; set; }
+            public double CIEH { get; set; }
         }
+
+        public class CIExyY
+        {
+            public double CIEx { get; set; }
+            public double CIEy { get; set; }
+            public double CIEY { get; set; }
+        }
+
+        public class CIELuv
+        {
+            public double CIEL { get; set; }
+            public double CIEu { get; set; }
+            public double CIEv { get; set; }
+        }
+
     }
 
     /// <summary>
@@ -36,12 +57,44 @@ namespace ChromaticityDotNet
         /// <summary>
         /// 反射率换算时的计算所需光源条件单独存放于本类别当中
         /// </summary>
-        public class Standardilluminant
+        public class StandardilluminantClass
         {
+            public enum Standardilluminant
+            {
+                D65,
+                A,
+                CWF
+            }
+
+            public enum StandardObserver
+            {
+                Degree2,
+                Degree10
+            }
+
+
+
             /// <summary>
             /// D65 10度下的光源白点坐标
             /// </summary>
             public static double[] D65_10_WhitePoint = new double[] { 94.81, 100.00, 107.32 };
+            public class D65
+            {
+                public class Degree10
+                {
+                    public static double Xn = 94.81;
+                    public static double Yn = 100.00;
+                    public static double Zn = 107.32;
+                }
+
+                public class Degree2
+                {
+                    public static double Xn = 95.04;
+                    public static double Yn = 100.00;
+                    public static double Zn = 108.88;
+                }
+            }
+
             /// <summary>
             /// CWF 10度下的光源白点坐标
             /// </summary>

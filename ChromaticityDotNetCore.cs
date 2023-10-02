@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Text;
+using System.Xml.Linq;
 using static ChromaticityDotNet.DataClass;
 using static ChromaticityDotNet.StandardChromaticityClass;
+using static ChromaticityDotNet.StandardChromaticityClass.StandardilluminantClass;
 
 namespace ChromaticityDotNet
 {
@@ -10,6 +12,49 @@ namespace ChromaticityDotNet
         public string Version = "1.0.0.0";
 
     }
+
+    public class ChromaticityMatch
+    {
+        public static StandardWhitePoint GetStandardWhitePoint(Standardilluminant illuminant, StandardObserver observer)
+        {
+            double Xn, Yn, Zn;
+
+            switch (illuminant)
+            {
+                case (Standardilluminant.D65):
+                    switch (observer)
+                    {
+                        case(StandardObserver.Degree10):
+                            Xn = D65.Degree10.Xn;
+                            Yn = D65.Degree10.Yn;
+                            Zn = D65.Degree10.Zn;
+                            break;
+                        case(StandardObserver.Degree2):
+                            Xn = D65.Degree2.Xn;
+                            Yn = D65.Degree2.Yn;
+                            Zn = D65.Degree2.Zn;
+                            break;
+                        default:
+                            Xn = 0;
+                            Yn = 0;
+                            Zn = 0;
+                            break;
+                    }
+                    break;
+                default:
+                    Xn = 0;
+                    Yn = 0;
+                    Zn = 0;
+                    break;
+            }
+
+            return new StandardWhitePoint
+            {
+                CIEXn = Xn,
+                CIEYn = Yn,
+                CIEZn = Zn
+            };
+        }
 
     public class ChromaticityConversion
     {
@@ -90,6 +135,62 @@ namespace ChromaticityDotNet
             };
 
         }
+
+        public static CIExyY XYZtoxyY(CIEXYZ XYZ)
+        {
+            double total = XYZ.CIEX + XYZ.CIEY + XYZ.CIEZ;
+            return new CIExyY()
+            {
+                CIEx = Math.Round(XYZ.CIEX / total, 3),
+                CIEy = Math.Round(XYZ.CIEY / total, 3),
+                CIEY = Math.Round(XYZ.CIEY, 2)
+            };
+        }
+
+        public static CIELuv XYZtoLuv(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
+        {
+            double yr = XYZ.CIEY / D65_2_WhitePoint.Yn;
+            double upai = (4 * XYZ.CIEX) / (XYZ.CIEX + 15 * XYZ.CIEY + 3 * XYZ.CIEZ);
+            double vpai = (9 * XYZ.CIEY) / (XYZ.CIEX + 15 * XYZ.CIEY + 3 * XYZ.CIEZ);
+
+            double ur = (4 * D65_2_WhitePoint.Xn) / (D65_2_WhitePoint.Xn + 15 * D65_2_WhitePoint.Yn + 3 * D65_2_WhitePoint.Zn);
+            double vr = (9 * D65_2_WhitePoint.Yn) / (D65_2_WhitePoint.Xn + 15 * D65_2_WhitePoint.Yn + 3 * D65_2_WhitePoint.Zn);
+
+            double epsilon = 216.0 / 24389.0;
+            double kapa = 24389.0 / 27.0;
+
+            double L;
+            if (yr > epsilon)
+            {
+                L = (116 * Math.Pow(yr, 1.0 / 3.0)) - 16;
+            }
+            else
+            {
+                L = kapa * yr;
+            }
+
+            //double L = 116 * Math.Pow(yr, 1 / 3) - 16;
+            //double u = 13 * L * (upai - ur);
+            //double v = 13 * L * (vpai - vr);
+
+            CIELuv Luv = new CIELuv()
+            {
+                CIEL = Math.Round(L, 4),
+                CIEu = Math.Round(upai, 4),
+                CIEv = Math.Round(vpai, 4)
+            };
+
+            return Luv;
+        }
+
+        public static double CIExyYtoCCT(CIExyY xyy)
+        {
+            double n = (xyy.CIEx - 0.332) / (0.1858 - xyy.CIEy);
+            double cct = (4.37 * Math.Pow(n, 3)) + (3601 * Math.Pow(n, 2)) + 6861 * n + 5517;
+
+            return Math.Round(cct, 0);
+        }
+
     }
 
     /// <summary>
