@@ -1,2 +1,2 @@
 # ChromaticityDotNet
-ChromaticityDotNet is a full SDK For Chromaticity programing
+ChromaticityDotNet is a full .Net Core SDK For Chromaticity programing
