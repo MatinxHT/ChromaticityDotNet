@@ -151,7 +151,7 @@ namespace ChromaticityDotNet
 
         public static CIELuv XYZtoLuv(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
         {
-            StandardWhitePoint WhitePoint = GetStandardWhitePoint(illuminant, observer);
+            StandardWhitePoint WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
 
             double yr = XYZ.CIEY / WhitePoint.Yn;
             double upai = (4 * XYZ.CIEX) / (XYZ.CIEX + 15 * XYZ.CIEY + 3 * XYZ.CIEZ);
