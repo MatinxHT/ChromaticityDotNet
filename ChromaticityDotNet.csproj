@@ -7,6 +7,7 @@
     <Version>1.0.0.1</Version>
     <Company>Foshan Double-Brilliant Technology Co.,Ltd</Company>
     <Authors>MartinHung</Authors>
+    <Copyright>Foshan Double-Brilliant Technology Co.,Ltd</Copyright>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
