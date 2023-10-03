@@ -24,12 +24,12 @@ namespace ChromaticityDotNet
                 case (Standardilluminant.D65):
                     switch (observer)
                     {
-                        case(StandardObserver.Degree10):
+                        case (StandardObserver.Degree10):
                             Xn = D65.Degree10.Xn;
                             Yn = D65.Degree10.Yn;
                             Zn = D65.Degree10.Zn;
                             break;
-                        case(StandardObserver.Degree2):
+                        case (StandardObserver.Degree2):
                             Xn = D65.Degree2.Xn;
                             Yn = D65.Degree2.Yn;
                             Zn = D65.Degree2.Zn;
@@ -55,6 +55,7 @@ namespace ChromaticityDotNet
                 Zn = Zn
             };
         }
+    }
 
     public class ChromaticityConversion
     {
