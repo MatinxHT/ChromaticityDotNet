@@ -8,6 +8,8 @@
     <Company>Foshan Double-Brilliant Technology Co.,Ltd</Company>
     <Authors>MartinHung</Authors>
     <Copyright>Foshan Double-Brilliant Technology Co.,Ltd</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
