@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 using static ChromaticityDotNet.DataClass;
@@ -9,7 +10,7 @@ namespace ChromaticityDotNet
 {
     public class ChromaticityDotNetCore
     {
-        public string Version = "1.0.0.0";
+        public string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
     }
 
