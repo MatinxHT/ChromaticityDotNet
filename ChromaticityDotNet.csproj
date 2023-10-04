@@ -4,13 +4,14 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.0.0.1</Version>
+    <Version>1.0.0.2</Version>
     <Company>Foshan Double-Brilliant Technology Co.,Ltd</Company>
     <Authors>MartinHung</Authors>
     <Copyright>Foshan Double-Brilliant Technology Co.,Ltd</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <RepositoryUrl>https://github.com/MatinxHT/ChromaticityDotNet</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
