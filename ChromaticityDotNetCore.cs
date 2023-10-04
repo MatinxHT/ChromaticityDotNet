@@ -20,7 +20,7 @@ namespace ChromaticityDotNet
     }
 
     /// <summary>
-    /// For matching standard color data  or ..
+    /// For matching standard color data  or .. (will be update...)
     /// </summary>
     public class ChromaticityMatch
     {
@@ -78,21 +78,23 @@ namespace ChromaticityDotNet
     public class ChromaticityConversion
     {
         /// <summary>
-        /// Cover XYZ color to Labch color
+        /// Cover CIE XYZ color to CIE Labch color
         /// </summary>
         /// <param name="XYZ">CIEXYZ color</param>
         /// <param name="LightConditionWhitePoint">StandardWhitePoint,specially take case of observer</param>
-        /// <returns>CIELabch color</returns>
-        public static CIELABCH XYZ2Labch(CIEXYZ XYZ, double[] LightConditionWhitePoint)
+        /// <returns>CIE Labch color</returns>
+        public static CIELABCH XYZ2Labch(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
         {
+            StandardWhitePoint WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
+
             double L, a, b, C, H;
             double temX = 0, temY = 0, temZ = 0;
             double[] result = new double[10];
 
             //GetStandXYZ(observer, lightsource_type, &temX, &temY, &temZ);
-            temX = XYZ.CIEX / LightConditionWhitePoint[0]; //白点X值
-            temY = XYZ.CIEY / LightConditionWhitePoint[1]; //白点Y值
-            temZ = XYZ.CIEZ / LightConditionWhitePoint[2]; //白点Z值
+            temX = XYZ.CIEX / WhitePoint.Xn; //白点X值
+            temY = XYZ.CIEY / WhitePoint.Yn; //白点Y值
+            temZ = XYZ.CIEZ / WhitePoint.Zn; //白点Z值
 
             if (temX > 0.008856)
                 temX = Math.Pow(temX, 0.3333333);
@@ -162,10 +164,10 @@ namespace ChromaticityDotNet
         }
 
         /// <summary>
-        /// Covcer XYZ to xy
+        /// Covcer CIE XYZ to CIE xy
         /// </summary>
         /// <param name="XYZ">CIEXYZ color</param>
-        /// <returns>CIExyY color</returns>
+        /// <returns>CIE xyY color</returns>
         public static CIExyY XYZ2xyY(CIEXYZ XYZ)
         {
             double total = XYZ.CIEX + XYZ.CIEY + XYZ.CIEZ;
@@ -178,7 +180,7 @@ namespace ChromaticityDotNet
         }
 
         /// <summary>
-        /// 
+        /// Cover CIE XYZ to CIE Lu'v'
         /// </summary>
         /// <param name="XYZ">CIEXYZ color</param>
         /// <param name="illuminant"></param>
@@ -222,7 +224,12 @@ namespace ChromaticityDotNet
             return Luv;
         }
 
-        public static double CIExyYtoCCT(CIExyY xyy)
+        /// <summary>
+        /// computing correlated color temperature
+        /// </summary>
+        /// <param name="xyy"></param>
+        /// <returns>correlated color temperature</returns>
+        public static double CIExy2CCT(CIExyY xyy)
         {
             double n = (xyy.CIEx - 0.332) / (0.1858 - xyy.CIEy);
             double cct = (4.37 * Math.Pow(n, 3)) + (3601 * Math.Pow(n, 2)) + 6861 * n + 5517;
@@ -233,19 +240,54 @@ namespace ChromaticityDotNet
     }
 
     /// <summary>
-    /// 统一存放色差方程的类，且统一输入参数的颜色空间为LAB空间
+    /// CIE de formulations
     /// </summary>
-    public class CIEdeformulations
+    public class ChromaticityDeltaEFormulations
     {
         /// <summary>
-        /// CIE deltaE2000方程
+        /// The 1976 formula is the first formula that related a measured color difference to a known set of CIELAB coordinates
         /// </summary>
-        /// <param name="standard"></param>
-        /// <param name="sample"></param>
+        /// <param name="standard">standard</param>
+        /// <param name="sample">sample</param>
+        /// <returns>DeltaE1976</returns>
+        public static double DeltaE1976(CIELABCH standard, CIELABCH sample)
+        {
+            return Math.Sqrt(Math.Pow((sample.CIEL - standard.CIEL), 2) + Math.Pow((sample.CIEA - standard.CIEA), 2) + Math.Pow((sample.CIEB - standard.CIEB), 2));
+        }
+
+        /// <summary>
+        /// The 1976 definition was extended to address perceptual non-uniformities, while retaining the CIELAB color space, by the introduction of application-specific weights derived from an automotive paint test's tolerance data.（Danger!coding by Github Copilot!!!!）
+        /// </summary>
+        /// <param name="standard">standard</param>
+        /// <param name="sample">sample</param>
+        /// <returns>DeltaE1994</returns>
+        public static double DeltaE1994(CIELABCH standard,CIELABCH sample)
+        {
+            double deltae= 0;
+            double deltaL = sample.CIEL - standard.CIEL;
+            double deltaC = sample.CIEC - standard.CIEC;
+            double deltaH = sample.CIEH - standard.CIEH;
+            double deltaH2 = Math.Pow(deltaH, 2);
+            double deltaC2 = Math.Pow(deltaC, 2);
+            double deltaL2 = Math.Pow(deltaL, 2);
+            double deltae2 = deltaL2 + deltaC2 + deltaH2;
+            double deltae1 = Math.Sqrt(deltae2);
+            double deltae3 = deltae1 / (1 + 0.045 * sample.CIEC);
+            double deltae4 = deltae3 * (1 + 0.015 * Math.Sqrt(sample.CIEL * sample.CIEL + sample.CIEA * sample.CIEA));
+            deltae = deltae4;
+
+            return deltae;
+        }
+
+        /// <summary>
+        /// CIE deltaE2000
+        /// </summary>
+        /// <param name="standard">standard</param>
+        /// <param name="sample">sample</param>
         /// <param name="kL"></param>
         /// <param name="kC"></param>
         /// <param name="kH"></param>
-        /// <returns>色差计算结果</returns>
+        /// <returns>DeltaE2000</returns>
         public static double DeltaE2000(CIELABCH standard, CIELABCH sample,double kL,double kC,double kH)
         {
             double Ls = standard.CIEL;
@@ -327,13 +369,13 @@ namespace ChromaticityDotNet
         }
 
         /// <summary>
-        /// CIEdeltaEcmc方程，参数l:C可调,纺织品采用(l:c)=(2:1)但东奥新厂采用(1:1)。本函数基于deltaE1976计算色相差
+        /// In 1984, the Colour Measurement Committee of the Society of Dyers and Colourists defined a difference measure, also based on the L*C*h color model. Named after the developing committee, their metric is called CMC l:c. The quasimetric has two parameters: lightness (l) and chroma (c), allowing the users to weight the difference based on the ratio of l:c that is deemed appropriate for the application. Commonly used values are 2:1[20] for acceptability and 1:1 for the threshold of imperceptibility.
         /// </summary>
-        /// <param name="standard">CIELAB类型的标准品LAB数据</param>
-        /// <param name="sample">CIELAB类型的样本LAB数据</param>
-        /// <param name="pl">double类型的l参数</param>
-        /// <param name="pc">double类型的c参数</param>
-        /// <returns>色差计算结果</returns>
+        /// <param name="standard">standard</param>
+        /// <param name="sample">sample</param>
+        /// <param name="pl"></param>
+        /// <param name="pc"></param>
+        /// <returns>DeltaEcmc</returns>
         public static double DeltaEcmc(CIELABCH standard, CIELABCH sample, double pl, double pc)
         {
 
