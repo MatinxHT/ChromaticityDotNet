@@ -8,14 +8,28 @@ using static ChromaticityDotNet.StandardChromaticityClass.StandardilluminantClas
 
 namespace ChromaticityDotNet
 {
+    /// <summary>
+    /// Information of this DLL
     public class ChromaticityDotNetCore
     {
+        /// <summary>
+        /// DLL Version
+        /// </summary>
         public string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
     }
 
+    /// <summary>
+    /// For matching standard color data  or ..
+    /// </summary>
     public class ChromaticityMatch
     {
+        /// <summary>
+        /// Finding StandardWhitePoint in choosen illuminant and observer
+        /// </summary>
+        /// <param name="illuminant">Standard illuminant type</param>
+        /// <param name="observer">Standard observer degree</param>
+        /// <returns>StandardWhitePoint in choosen illuminant and observer </returns>
         public static StandardWhitePoint GetStandardWhitePoint(Standardilluminant illuminant, StandardObserver observer)
         {
             double Xn, Yn, Zn;
@@ -58,8 +72,17 @@ namespace ChromaticityDotNet
         }
     }
 
+    /// <summary>
+    /// For color conversion
+    /// </summary>
     public class ChromaticityConversion
     {
+        /// <summary>
+        /// Cover XYZ color to Labch color
+        /// </summary>
+        /// <param name="XYZ">CIEXYZ color</param>
+        /// <param name="LightConditionWhitePoint">StandardWhitePoint,specially take case of observer</param>
+        /// <returns>CIELabch color</returns>
         public static CIELABCH XYZ2Labch(CIEXYZ XYZ, double[] LightConditionWhitePoint)
         {
             double L, a, b, C, H;
@@ -138,7 +161,12 @@ namespace ChromaticityDotNet
 
         }
 
-        public static CIExyY XYZtoxyY(CIEXYZ XYZ)
+        /// <summary>
+        /// Covcer XYZ to xy
+        /// </summary>
+        /// <param name="XYZ">CIEXYZ color</param>
+        /// <returns>CIExyY color</returns>
+        public static CIExyY XYZ2xyY(CIEXYZ XYZ)
         {
             double total = XYZ.CIEX + XYZ.CIEY + XYZ.CIEZ;
             return new CIExyY()
@@ -149,7 +177,14 @@ namespace ChromaticityDotNet
             };
         }
 
-        public static CIELuv XYZtoLuv(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="XYZ">CIEXYZ color</param>
+        /// <param name="illuminant"></param>
+        /// <param name="observer"></param>
+        /// <returns>CIE Lu'v' color</returns>
+        public static CIELuv XYZ2Luv(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
         {
             StandardWhitePoint WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
 
