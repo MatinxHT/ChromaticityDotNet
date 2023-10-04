@@ -14,4 +14,4 @@ dotnet add package ChromaticityDotNet --version 1.0.0.1
 - CCT data
 
 ## What's more?
--give me a star plz
+- give me a star plz
