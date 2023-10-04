@@ -12,3 +12,6 @@ dotnet add package ChromaticityDotNet --version 1.0.0.1
 - CIE standard illuminant data(D65 A CWF)
 - xy Chromaticity data
 - CCT data
+
+## What's more?
+-give me a star plz
