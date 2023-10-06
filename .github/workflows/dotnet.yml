@@ -39,8 +39,8 @@ jobs:
       uses: actions/upload-release-asset@v1 # 上传发布文件
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./publish/YourLibrary.dll # 要上传的文件路径
-        asset_name: YourLibrary.dll # 上传后的文件名
+        asset_path: ./publish/ChromaticityDotNet.dll # 要上传的文件路径
+        asset_name: ChromaticityDotNet.dll # 上传后的文件名
         asset_content_type: application/octet-stream
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
