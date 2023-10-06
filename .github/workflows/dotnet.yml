@@ -1,27 +1,46 @@
-name: .NET Build & Test
+name: Build and Release .NET Library
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+    branches:
+      - main # 触发分支，可以根据需要更改
 
 jobs:
   build:
-    strategy:
-      matrix:
-        configuration: [Debug, Release]
-    runs-on: windows-latest
+    runs-on: ubuntu-latest # 使用 Ubuntu 环境，可以根据需要更改
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup
-        uses: actions/setup-dotnet@v1
-      - name: Build
-        run: dotnet build --configuration $env:Configuration
-        env:
-          Configuration: ${{ matrix.configuration }}
-      - name: Test
-        run: dotnet test --configuration $env:Configuration
-        env:
-          Configuration: ${{ matrix.configuration }}
+    - name: Checkout code
+      uses: actions/checkout@v2 # 检出代码
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1 # 设置 .NET 环境
+      with:
+        dotnet-version: 5.x # 使用的 .NET 版本，可以根据需要更改
+
+    - name: Restore Dependencies
+      run: dotnet restore # 恢复项目依赖项
+
+    - name: Build
+      run: dotnet build --configuration Release # 构建项目，Release 配置
+
+    - name: Publish
+      run: dotnet publish --configuration Release --output publish # 发布项目到指定目录
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1 # 创建 GitHub Release
+      with:
+        files: |
+          ./publish/* # 需要发布的文件路径
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1 # 上传发布文件
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./publish/YourLibrary.dll # 要上传的文件路径
+        asset_name: YourLibrary.dll # 上传后的文件名
+        asset_content_type: application/octet-stream
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
