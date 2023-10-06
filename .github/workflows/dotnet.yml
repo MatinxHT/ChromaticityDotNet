@@ -34,7 +34,10 @@ jobs:
       id: create_release
       uses: actions/create-release@v1  # 创建GitHub Release
       with:
-        files: ./publish/*  # 将发布文件添加到Release中
+        tag_name: v1.0  # 指定GitHub Release的标签名称，根据您的项目版本进行替换
+        release_name: Release v1.0  # 指定GitHub Release的名称，根据您的项目需求进行替换
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
