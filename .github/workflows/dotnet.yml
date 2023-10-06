@@ -16,7 +16,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1 # 设置 .NET 环境
       with:
-        dotnet-version: 5.x # 使用的 .NET 版本，可以根据需要更改
+        dotnet-version: 6.x # 使用的 .NET 版本，可以根据需要更改
 
     - name: Restore Dependencies
       run: dotnet restore # 恢复项目依赖项
