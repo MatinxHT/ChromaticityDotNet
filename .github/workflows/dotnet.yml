@@ -1,46 +1,42 @@
-name: Build and Release .NET Library
+name: Build and Publish
 
 on:
   push:
     branches:
-      - main # 触发分支，可以根据需要更改
+      - main  # 将您的分支名称替换为实际使用的分支
 
 jobs:
   build:
-    runs-on: ubuntu-latest # 使用 Ubuntu 环境，可以根据需要更改
+    runs-on: ubuntu-latest  # 使用Ubuntu作为运行环境，您可以根据需求选择其他环境
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2 # 检出代码
+      uses: actions/checkout@v2  # 检出代码库
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1 # 设置 .NET 环境
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1  # 设置.NET Core环境
       with:
-        dotnet-version: 6.x # 使用的 .NET 版本，可以根据需要更改
+        dotnet-version: 6.0.x  # 指定.NET Core版本
 
-    - name: Restore Dependencies
-      run: dotnet restore # 恢复项目依赖项
-
-    - name: Build
-      run: dotnet build --configuration Release # 构建项目，Release 配置
+    - name: Build project
+      run: dotnet build --configuration Release  # 编译项目，将生成的文件放在Release文件夹中
 
     - name: Publish
-      run: dotnet publish --configuration Release --output publish # 发布项目到指定目录
+      run: dotnet publish -c Release -o publish  # 发布项目，将输出文件放在publish文件夹中
 
     - name: Create Release
       id: create_release
-      uses: softprops/action-gh-release@v1 # 创建 GitHub Release
+      uses: actions/create-release@v1  # 创建GitHub Release
       with:
         files: |
-          ./publish/* # 需要发布的文件路径
+          ./publish/*  # 将发布文件添加到Release中
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1 # 上传发布文件
+      id: upload_release_asset
+      uses: actions/upload-release-asset@v1  # 上传Release文件
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./publish/ChromaticityDotNet.dll # 要上传的文件路径
-        asset_name: ChromaticityDotNet.dll # 上传后的文件名
-        asset_content_type: application/octet-stream
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        asset_path: ./publish/*  # 上传发布文件
+        asset_name: ChromaticityDotNet.zip  # 指定发布文件的名称
+        token: ${{ secrets.GITHUB_TOKEN }}
