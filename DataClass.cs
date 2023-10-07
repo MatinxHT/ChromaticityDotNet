@@ -175,7 +175,7 @@ namespace ChromaticityDotNet
 
         public class CIEConstant
         {
-            public DataClass.Spectrum XX_10 => new DataClass.Spectrum()
+            public static DataClass.Spectrum XX_10 => new DataClass.Spectrum()
             {
                 StartingWavelength = 400,
                 WavelengthInterval = 10,
@@ -189,7 +189,7 @@ namespace ChromaticityDotNet
                 }
             };
 
-            public DataClass.Spectrum YY_10 => new DataClass.Spectrum()
+            public static DataClass.Spectrum YY_10 => new DataClass.Spectrum()
             {
                 StartingWavelength = 400,
                 WavelengthInterval = 10,
@@ -202,7 +202,7 @@ namespace ChromaticityDotNet
                 }
             };
 
-            public DataClass.Spectrum ZZ_10 => new DataClass.Spectrum()
+            public static DataClass.Spectrum ZZ_10 => new DataClass.Spectrum()
             {
                 StartingWavelength = 400,
                 WavelengthInterval = 10,
