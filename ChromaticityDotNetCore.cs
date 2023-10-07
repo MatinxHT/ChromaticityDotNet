@@ -32,7 +32,7 @@ namespace ChromaticityDotNet
         /// <returns>StandardWhitePoint in choosen illuminant and observer </returns>
         public static StandardWhitePoint GetStandardWhitePoint(Standardilluminant illuminant, StandardObserver observer)
         {
-            double Xn, Yn, Zn;
+            IStandardilluminant Standardilluminantdata;
 
             switch (illuminant)
             {
@@ -40,35 +40,53 @@ namespace ChromaticityDotNet
                     switch (observer)
                     {
                         case (StandardObserver.Degree10):
-                            Xn = D65.Degree10.Xn;
-                            Yn = D65.Degree10.Yn;
-                            Zn = D65.Degree10.Zn;
+                            Standardilluminantdata = new D65_Degree10();
                             break;
                         case (StandardObserver.Degree2):
-                            Xn = D65.Degree2.Xn;
-                            Yn = D65.Degree2.Yn;
-                            Zn = D65.Degree2.Zn;
+                            Standardilluminantdata = new D65_Degree10();
+                            //Standardilluminantdata = new D65_Degree2();
                             break;
                         default:
-                            Xn = 0;
-                            Yn = 0;
-                            Zn = 0;
+                            Standardilluminantdata = new D65_Degree10();
+                            break;
+                    }
+                    break;
+                case (Standardilluminant.CWF):
+                    switch (observer)
+                    {
+                        case (StandardObserver.Degree10):
+                            Standardilluminantdata = new CWF_Degree10();
+                            break;
+                        case (StandardObserver.Degree2):
+                            Standardilluminantdata = new D65_Degree10();
+                            //Standardilluminantdata = new CWF_Degree2();
+                            break;
+                        default:
+                            Standardilluminantdata = new CWF_Degree10();
+                            break;
+                    }
+                    break;
+                case (Standardilluminant.A):
+                    switch (observer)
+                    {
+                        case (StandardObserver.Degree10):
+                            Standardilluminantdata = new A_Degree10();
+                            break;
+                        case (StandardObserver.Degree2):
+                            Standardilluminantdata = new D65_Degree10();
+                            //Standardilluminantdata = new A_Degree2();
+                            break;
+                        default:
+                            Standardilluminantdata = new A_Degree10();
                             break;
                     }
                     break;
                 default:
-                    Xn = 0;
-                    Yn = 0;
-                    Zn = 0;
+                    Standardilluminantdata = new D65_Degree10();
                     break;
             }
 
-            return new StandardWhitePoint
-            {
-                Xn = Xn,
-                Yn = Yn,
-                Zn = Zn
-            };
+            return Standardilluminantdata.whitePoint;
         }
     }
 

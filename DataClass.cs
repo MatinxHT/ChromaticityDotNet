@@ -122,7 +122,7 @@ namespace ChromaticityDotNet
                 };
             }
             
-            public class CWF_10 : IStandardilluminant
+            public class CWF_Degree10 : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.CWF;
                 public StandardObserver Observer => StandardObserver.Degree10;
@@ -146,7 +146,7 @@ namespace ChromaticityDotNet
                 };
             }
 
-            public class A_10 : IStandardilluminant
+            public class A_Degree10 : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.A;
                 public StandardObserver Observer => StandardObserver.Degree10;
