@@ -11,12 +11,24 @@ namespace ChromaticityDotNet
     /// </summary>
     public class DataClass
     {
+        #region SPD
+
         public class StandardWhitePoint
         {
             public double Xn { get; set; }
             public double Yn { get; set; }
             public double Zn { get; set; }
         }
+
+        public class Spectrum
+        {
+            public int StartingWavelength { get; set; }
+            public int WavelengthInterval { get; set; }
+            public int EndingWavelength { get; set; }
+            public double[]? spectrums { get; set; }
+        }
+
+        #endregion
         public class CIEXYZ
         {
             public double CIEX { get; set; }
@@ -55,10 +67,21 @@ namespace ChromaticityDotNet
     public class StandardChromaticityClass
     {
         /// <summary>
-        /// 反射率换算时的计算所需光源条件单独存放于本类别当中
+        /// Store the Standard illuminant data
         /// </summary>
         public class StandardilluminantClass
         {
+            /// <summary>
+            /// class of Standard illuminant format
+            /// </summary>
+            public interface IStandardilluminant
+            {
+                Standardilluminant IlluminantName { get; }
+                StandardObserver Observer { get; }
+                DataClass.StandardWhitePoint whitePoint { get; }
+                DataClass.Spectrum spectrum { get; }
+            }
+
             public enum Standardilluminant
             {
                 D65,
@@ -72,63 +95,79 @@ namespace ChromaticityDotNet
                 Degree10
             }
 
-            public class D65
+            public class D65_Degree10 : IStandardilluminant
+            { 
+                public Standardilluminant IlluminantName => Standardilluminant.D65;
+                public StandardObserver Observer => StandardObserver.Degree10;
+                public DataClass.StandardWhitePoint whitePoint => new DataClass.StandardWhitePoint() 
+                {
+                    Xn = 94.81,
+                    Yn = 100.00,
+                    Zn = 107.32 
+                };
+                public DataClass.Spectrum spectrum => new DataClass.Spectrum()
+                {
+                    StartingWavelength = 400,
+                    WavelengthInterval = 10,
+                    EndingWavelength = 700,
+                    spectrums = new double[31]
+                    {
+                        82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008, 117.812, 114.861,
+                        115.923, 108.811, 109.354, 107.802, 104.79, 107.689, 104.405, 104.046,
+                        100.0, 96.3342, 95.788, 88.6856, 90.0062, 89.5991, 87.6987, 83.2886,
+                        83.6992, 80.0268, 80.2146, 82.2778, 78.2842, 69.7213, 71.6091
+                    }
+                };
+            }
+            
+            public class CWF_10 : IStandardilluminant
             {
-                public class Degree10
+                public Standardilluminant IlluminantName => Standardilluminant.CWF;
+                public StandardObserver Observer => StandardObserver.Degree10;
+                public DataClass.StandardWhitePoint whitePoint => new DataClass.StandardWhitePoint()
                 {
-                    public static double Xn = 94.81;
-                    public static double Yn = 100.00;
-                    public static double Zn = 107.32;
-                }
-
-                public class Degree2
+                    Xn = 103.25,
+                    Yn = 100.00,
+                    Zn = 68.99
+                };
+                public DataClass.Spectrum spectrum => new DataClass.Spectrum()
                 {
-                    public static double Xn = 95.04;
-                    public static double Yn = 100.00;
-                    public static double Zn = 108.88;
-                }
-
-                /// <summary>
-                /// D65光源数据
-                /// </summary>
-                public static double[] D65Standardilluminant = new double[31]
-                {
-                    82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008, 117.812, 114.861,
-                    115.923, 108.811, 109.354, 107.802, 104.79, 107.689, 104.405, 104.046,
-                    100.0, 96.3342, 95.788, 88.6856, 90.0062, 89.5991, 87.6987, 83.2886,
-                    83.6992, 80.0268, 80.2146, 82.2778, 78.2842, 69.7213, 71.6091
+                    StartingWavelength = 400,
+                    WavelengthInterval = 10,
+                    EndingWavelength = 700,
+                    spectrums = new double[31]
+                    {
+                        03.44,03.85,04.19,5.06,11.81,06.63,07.19,07.54,07.65,07.62,
+                        07.28, 07.05, 07.16,08.04,10.01,16.64,16.16,18.62,22.79,18.66,
+                        16.54,13.80,10.95,08.40,06.31,04.68,03.45,02.55,01.89,01.53,01.10
+                    }
                 };
             }
 
-            /// <summary>
-            /// CWF 10度下的光源白点坐标
-            /// </summary>
-            public static double[] CWF_10_WhitePoint = new double[] { 103.25, 100.00, 68.99 };
-            /// <summary>
-            /// A 10度下的光源白点坐标
-            /// </summary>
-            public static double[] A_10_WhitePoint = new double[] { 111.14, 100.00, 35.2 };
-
-            /// <summary>
-            /// CWF光源数据
-            /// </summary>
-            public static double[] CWFStandardilluminant = new double[31]
+            public class A_10 : IStandardilluminant
             {
-            03.44,03.85,04.19,5.06,11.81,06.63,07.19,07.54,07.65,07.62,
-            07.28, 07.05, 07.16,08.04,10.01,16.64,16.16,18.62,22.79,18.66,
-            16.54,13.80,10.95,08.40,06.31,04.68,03.45,02.55,01.89,01.53,01.10
-            };
-
-            /// <summary>
-            /// A光源数据
-            /// </summary>
-            public static double[] AStandardilluminant = new double[31]
-            {
-            14.708,17.6753,20.995,24.2873,28.7027,33.0859,37.8121,42.8693,48.2423,
-            53.9132,59.8511,66.0635,72.4959,79.1326,85.947,92.912,100,107.184,114.436,
-            121.731,129.043,136.346,143.618,150.836,157.979,165.028,171.963,178.769,
-            185.429,191.931,198.261
-            };
+                public Standardilluminant IlluminantName => Standardilluminant.A;
+                public StandardObserver Observer => StandardObserver.Degree10;
+                public DataClass.StandardWhitePoint whitePoint => new DataClass.StandardWhitePoint()
+                {
+                    Xn = 111.14,
+                    Yn = 100.00,
+                    Zn = 35.2
+                };
+                public DataClass.Spectrum spectrum => new DataClass.Spectrum()
+                {
+                    StartingWavelength = 400,
+                    WavelengthInterval = 10,
+                    EndingWavelength = 700,
+                    spectrums = new double[31]
+                    {
+                        14.708,17.6753,20.995,24.2873,28.7027,33.0859,37.8121,42.8693,48.2423,
+                        53.9132,59.8511,66.0635,72.4959,79.1326,85.947,92.912,100,107.184,114.436,
+                        121.731,129.043,136.346,143.618,150.836,157.979,165.028,171.963,178.769,
+                        185.429,191.931,198.261
+                    }
+                };
+            }
 
             /// <summary>
             /// 10°X值
@@ -323,6 +362,60 @@ namespace ChromaticityDotNet
             0.259,0.2588,0.2587,0.2585,0.2584,0.2582,0.258,0.2579,0.2577,0.2576,
             0.2574
             };
+        }
+
+        /// <summary>
+        /// Standard color chips data
+        /// </summary>
+        public class ColorChips
+        {
+            /// <summary>
+            /// ColorFastnessChinaStandard
+            /// </summary>
+            public enum ColorFastnessChinaStandard
+            {
+                /// <summary>
+                /// 纺织品色牢度试验评定变色用灰色样卡标准，采用欧氏距离色差法
+                /// </summary>
+                GBT250,
+                /// <summary>
+                /// 纺织品色牢度试验评定沾色用灰色样卡标准，采用欧氏距离色差法
+                /// </summary>
+                GBT251,
+            }
+
+            /// <summary>
+            /// 色卡数据的接口
+            /// </summary>
+            public interface IColorStandard
+            {
+                string StandardName { get; }
+                string[] FastnessRank { get; }
+                double[] DeltaE { get; }
+                double[] DeltaEOffset { get; }
+                string DeltaEFormula { get; }
+                int GBVersion { get; }
+            }
+
+            public class GBT250Info : IColorStandard
+            {
+                public string StandardName => "纺织品色牢度试验评定变色用灰色样卡标准";
+                public string[] FastnessRank { get; } = { "5", "4-5", "4", "3-4", "3", "2-3", "2", "1-2", "1" };
+                public double[] DeltaE { get; } = { 0, 0.8, 1.7, 2.5, 3.4, 4.8, 6.8, 9.6, 13.6 };
+                public double[] DeltaEOffset { get; } = { 0.2, 0.2, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7, 1.0 };
+                public string DeltaEFormula => "CIE1976";
+                public int GBVersion => 2008;
+            }
+
+            public class GBT251Info : IColorStandard
+            {
+                public string StandardName => "纺织品色牢度试验评定沾色用灰色样卡标准";
+                public string[] FastnessRank { get; } = { "5", "4-5", "4", "3-4", "3", "2-3", "2", "1-2", "1" };
+                public double[] DeltaE { get; } = { 0, 2.2, 4.3, 6.0, 8.5, 12.0, 16.9, 24.0, 34.1 };
+                public double[] DeltaEOffset { get; } = { 0.2, 0.3, 0.3, 0.4, 0.5, 0.7, 1.0, 1.5, 2.0 };
+                public string DeltaEFormula => "CIE1976";
+                public int GBVersion => 2008;
+            }
         }
     }
 
