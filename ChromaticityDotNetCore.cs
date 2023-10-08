@@ -264,6 +264,11 @@ namespace ChromaticityDotNet
             return Math.Round(cct, 0);
         }
 
+        /// <summary>
+        /// Cover CIE XYZ to CIE RGB(1-255 byte)
+        /// </summary>
+        /// <param name="xyzColor"></param>
+        /// <returns>CIE RGB</returns>
         public static CIERGB XYZ2RGB(CIEXYZ xyzColor)
         {
             double X = xyzColor.CIEX;
