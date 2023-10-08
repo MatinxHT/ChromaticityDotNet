@@ -25,7 +25,7 @@ namespace ChromaticityDotNet
             public int StartingWavelength { get; set; }
             public int WavelengthInterval { get; set; }
             public int EndingWavelength { get; set; }
-            public double[]? spectrums { get; set; }
+            public double[]? Spectrums { get; set; }
         }
 
         #endregion
@@ -61,6 +61,9 @@ namespace ChromaticityDotNet
             public double CIEv { get; set; }
         }
 
+        /// <summary>
+        /// RGB data format as byte(0~255),in 'system.windows.media' u can use 'Color newColor = Color.FromRgb(redValue, greenValue, blueValue);'to bursh it
+        /// </summary>
         public class CIERGB
         {
             public byte redValue { get; set;}
@@ -119,7 +122,7 @@ namespace ChromaticityDotNet
                     StartingWavelength = 400,
                     WavelengthInterval = 10,
                     EndingWavelength = 700,
-                    spectrums = new double[31]
+                    Spectrums = new double[31]
                     {
                         82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008, 117.812, 114.861,
                         115.923, 108.811, 109.354, 107.802, 104.79, 107.689, 104.405, 104.046,
@@ -144,7 +147,7 @@ namespace ChromaticityDotNet
                     StartingWavelength = 400,
                     WavelengthInterval = 10,
                     EndingWavelength = 700,
-                    spectrums = new double[31]
+                    Spectrums = new double[31]
                     {
                         03.44,03.85,04.19,5.06,11.81,06.63,07.19,07.54,07.65,07.62,
                         07.28, 07.05, 07.16,08.04,10.01,16.64,16.16,18.62,22.79,18.66,
@@ -168,7 +171,7 @@ namespace ChromaticityDotNet
                     StartingWavelength = 400,
                     WavelengthInterval = 10,
                     EndingWavelength = 700,
-                    spectrums = new double[31]
+                    Spectrums = new double[31]
                     {
                         14.708,17.6753,20.995,24.2873,28.7027,33.0859,37.8121,42.8693,48.2423,
                         53.9132,59.8511,66.0635,72.4959,79.1326,85.947,92.912,100,107.184,114.436,
@@ -187,7 +190,7 @@ namespace ChromaticityDotNet
                 StartingWavelength = 400,
                 WavelengthInterval = 10,
                 EndingWavelength = 700,
-                spectrums = new double[31]
+                Spectrums = new double[31]
                 {
                     0.0191, 0.0847, 0.2045, 0.3147, 0.3837, 0.3707, 0.3023,0.1956, 0.0805, 0.0162, 0.0038, 0.037465, 0.117749,
                     0.236491, 0.376772, 0.529826, 0.705224, 0.878655,1.01416, 1.11852, 1.12399, 1.03048, 0.856297,
@@ -201,7 +204,7 @@ namespace ChromaticityDotNet
                 StartingWavelength = 400,
                 WavelengthInterval = 10,
                 EndingWavelength = 700,
-                spectrums = new double[31]
+                Spectrums = new double[31]
                 {
                     0.0020044, 0.008756, 0.021391, 0.038676, 0.062077,0.089456, 0.128201, 0.18519, 0.253589, 0.339133,
                     0.460777, 0.606741, 0.761757, 0.875211, 0.961988,0.991761, 0.99734, 0.955552, 0.868934, 0.777405,
@@ -214,7 +217,7 @@ namespace ChromaticityDotNet
                 StartingWavelength = 400,
                 WavelengthInterval = 10,
                 EndingWavelength = 700,
-                spectrums = new double[31]
+                Spectrums = new double[31]
                 {
                     0.0860109, 0.389366, 0.972542, 1.55348, 1.96728,1.9948, 1.74537, 1.31756, 0.772125, 0.415254,
                     0.218502, 0.112044, 0.060709, 0.030451, 0.013676,0.003988, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,

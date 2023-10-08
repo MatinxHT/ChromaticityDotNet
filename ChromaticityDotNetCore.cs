@@ -2,7 +2,6 @@
 //using System.Drawing;
 using System.Reflection;
 using System.Windows;
-using System.Windows.Media;
 using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Xml.Linq;
@@ -104,6 +103,8 @@ namespace ChromaticityDotNet
     /// </summary>
     public class ChromaticityConversion
     {
+
+        #region From XYZ to ...
         /// <summary>
         /// Cover CIE XYZ color to CIE Labch color
         /// </summary>
@@ -252,19 +253,6 @@ namespace ChromaticityDotNet
         }
 
         /// <summary>
-        /// computing correlated color temperature
-        /// </summary>
-        /// <param name="xyy"></param>
-        /// <returns>correlated color temperature</returns>
-        public static double CIExy2CCT(CIExyY xyy)
-        {
-            double n = (xyy.CIEx - 0.332) / (0.1858 - xyy.CIEy);
-            double cct = (4.37 * Math.Pow(n, 3)) + (3601 * Math.Pow(n, 2)) + 6861 * n + 5517;
-
-            return Math.Round(cct, 0);
-        }
-
-        /// <summary>
         /// Cover CIE XYZ to CIE RGB(1-255 byte)
         /// </summary>
         /// <param name="xyzColor"></param>
@@ -287,6 +275,11 @@ namespace ChromaticityDotNet
             double R = 3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z;
             double G = -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z;
             double B = 0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z;
+
+            static double GammaCorrection(double value)
+            {
+                return value <= 0.0031308 ? 12.92 * value : 1.055 * Math.Pow(value, 1.0 / 2.4) - 0.055;
+            }
 
             R = GammaCorrection(R);
             G = GammaCorrection(G);
@@ -318,11 +311,42 @@ namespace ChromaticityDotNet
             };
             
         }
-        private static double GammaCorrection(double value)
+
+        #endregion
+
+        #region From xy to ..
+        /// <summary>
+        /// computing correlated color temperature
+        /// </summary>
+        /// <param name="xyy"></param>
+        /// <returns>correlated color temperature</returns>
+        public static double CIExy2CCT(CIExyY xyy)
         {
-            return value <= 0.0031308 ? 12.92 * value : 1.055 * Math.Pow(value, 1.0 / 2.4) - 0.055;
+            double n = (xyy.CIEx - 0.332) / (0.1858 - xyy.CIEy);
+            double cct = (4.37 * Math.Pow(n, 3)) + (3601 * Math.Pow(n, 2)) + 6861 * n + 5517;
+
+            return Math.Round(cct, 0);
         }
 
+        /// <summary>
+        /// For CIE1931 xy space coordinate  to CIE1976 uv space coordinate 
+        /// </summary>
+        /// <param name="xyY"></param>
+        /// <returns>CIE1976 uv space coordinate </returns>
+        public static (double u ,double v) CIExySpace2CIEuvSpace(CIExyY xyY)
+        {
+            double denomx = -2D * xyY.CIEx + 12D * xyY.CIEy + 3D;
+            double denomv = -2D * xyY.CIEx + 12D * xyY.CIEy + 3D;
+            if (denomv != 0.0D)
+            {
+                if (denomx != 0.0D)return (((9D * xyY.CIEy) / denomv),(4D * xyY.CIEx) / denomx);
+                else return(-1, -1);
+            }
+            else
+                return (-1,-1);
+        }
+
+        #endregion
     }
 
     /// <summary>
