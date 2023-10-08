@@ -301,13 +301,9 @@ namespace ChromaticityDotNet
             gInt = Math.Max(gInt, 0);
             bInt = Math.Max(bInt, 0);
 
-            double CIER = rInt;
-            double CIEG = gInt;
-            double CIEB = bInt;
-
-            byte redValue = (byte)CIER;
-            byte greenValue = (byte)CIEG;
-            byte blueValue = (byte)CIEB;
+            byte redValue = (byte)rInt;
+            byte greenValue = (byte)gInt;
+            byte blueValue = (byte)bInt;
 
             return new CIERGB()
             {
