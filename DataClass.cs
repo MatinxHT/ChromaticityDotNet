@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static ChromaticityDotNet.StandardChromaticityClass.StandardilluminantClass;
 
 namespace ChromaticityDotNet
 {
@@ -18,6 +19,8 @@ namespace ChromaticityDotNet
             public double Xn { get; set; }
             public double Yn { get; set; }
             public double Zn { get; set; }
+
+            public StandardObserver Observer { get; set; }
         }
 
         public class Spectrum
@@ -89,8 +92,8 @@ namespace ChromaticityDotNet
             public interface IStandardilluminant
             {
                 Standardilluminant IlluminantName { get; }
-                StandardObserver Observer { get; }
-                DataClass.StandardWhitePoint whitePoint { get; }
+                DataClass.StandardWhitePoint whitePoint_Degree2 { get; }
+                DataClass.StandardWhitePoint whitePoint_Degree10 { get; }
                 DataClass.Spectrum spectrum { get; }
             }
 
@@ -107,16 +110,24 @@ namespace ChromaticityDotNet
                 Degree10
             }
 
-            public class D65_Degree10 : IStandardilluminant
+            public class D65: IStandardilluminant
             { 
                 public Standardilluminant IlluminantName => Standardilluminant.D65;
-                public StandardObserver Observer => StandardObserver.Degree10;
-                public DataClass.StandardWhitePoint whitePoint => new DataClass.StandardWhitePoint() 
+                public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
+                {
+                    Xn = 95.04,
+                    Yn = 100.00,
+                    Zn = 108.88,
+                    Observer = StandardObserver.Degree2
+                };
+                public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint() 
                 {
                     Xn = 94.81,
                     Yn = 100.00,
-                    Zn = 107.32 
+                    Zn = 107.32,
+                    Observer = StandardObserver.Degree10
                 };
+
                 public DataClass.Spectrum spectrum => new DataClass.Spectrum()
                 {
                     StartingWavelength = 400,
@@ -135,12 +146,19 @@ namespace ChromaticityDotNet
             public class CWF_Degree10 : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.CWF;
-                public StandardObserver Observer => StandardObserver.Degree10;
-                public DataClass.StandardWhitePoint whitePoint => new DataClass.StandardWhitePoint()
+                public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
+                {
+                    //Xn = 98.07,
+                    //Yn = 100.00,
+                    //Zn = 118.22,
+                    //Observer = StandardObserver.Degree2
+                };
+                public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint()
                 {
                     Xn = 103.25,
                     Yn = 100.00,
-                    Zn = 68.99
+                    Zn = 68.99,
+                    Observer = StandardObserver.Degree10
                 };
                 public DataClass.Spectrum spectrum => new DataClass.Spectrum()
                 {

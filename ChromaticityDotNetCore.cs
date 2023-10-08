@@ -51,8 +51,7 @@ namespace ChromaticityDotNet
                             Standardilluminantdata = new D65_Degree10();
                             break;
                         case (StandardObserver.Degree2):
-                            Standardilluminantdata = new D65_Degree10();
-                            //Standardilluminantdata = new D65_Degree2();
+                            Standardilluminantdata = new D65_Degree2();
                             break;
                         default:
                             Standardilluminantdata = new D65_Degree10();
