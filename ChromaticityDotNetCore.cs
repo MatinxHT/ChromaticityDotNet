@@ -15,7 +15,12 @@ namespace ChromaticityDotNet
         /// <summary>
         /// DLL Version
         /// </summary>
-        public string Version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+        public static string Version = GetCoreVersion();
+
+        private static string GetCoreVersion()
+        {
+            return Assembly.GetExecutingAssembly().GetName().Version.ToString();
+        }
 
     }
 
