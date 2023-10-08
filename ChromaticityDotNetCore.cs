@@ -1,5 +1,9 @@
 ﻿using System;
+//using System.Drawing;
 using System.Reflection;
+using System.Windows;
+using System.Windows.Media;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Xml.Linq;
 using static ChromaticityDotNet.DataClass;
@@ -258,6 +262,64 @@ namespace ChromaticityDotNet
             double cct = (4.37 * Math.Pow(n, 3)) + (3601 * Math.Pow(n, 2)) + 6861 * n + 5517;
 
             return Math.Round(cct, 0);
+        }
+
+        public static CIERGB XYZ2RGB(CIEXYZ xyzColor)
+        {
+            double X = xyzColor.CIEX;
+            double Y = xyzColor.CIEY;
+            double Z = xyzColor.CIEZ;
+
+            // D65 illuminant (white point used in sRGB and CIE XYZ)
+            double referenceX = 95.047;
+            double referenceY = 100.000;
+            double referenceZ = 108.883;
+
+            X = X / referenceX;
+            Y = Y / referenceY;
+            Z = Z / referenceZ;
+
+            double R = 3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z;
+            double G = -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z;
+            double B = 0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z;
+
+            R = GammaCorrection(R);
+            G = GammaCorrection(G);
+            B = GammaCorrection(B);
+
+            // Convert to 8-bit integer (0-255 range)
+            int rInt = (int)Math.Round(R * 255);
+            int gInt = (int)Math.Round(G * 255);
+            int bInt = (int)Math.Round(B * 255);
+
+            //set limit
+            rInt = Math.Min(rInt, 255);
+            gInt = Math.Min(gInt, 255);
+            bInt = Math.Min(bInt, 255);
+
+            rInt = Math.Max(rInt, 0);
+            gInt = Math.Max(gInt, 0);
+            bInt = Math.Max(bInt, 0);
+
+            double CIER = rInt;
+            double CIEG = gInt;
+            double CIEB = bInt;
+
+            byte redValue = (byte)CIER;
+            byte greenValue = (byte)CIEG;
+            byte blueValue = (byte)CIEB;
+
+            return new CIERGB()
+            {
+                redValue = redValue,
+                greenValue = greenValue,
+                blueValue = blueValue,
+            };
+            
+        }
+        private static double GammaCorrection(double value)
+        {
+            return value <= 0.0031308 ? 12.92 * value : 1.055 * Math.Pow(value, 1.0 / 2.4) - 0.055;
         }
 
     }

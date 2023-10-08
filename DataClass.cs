@@ -60,6 +60,13 @@ namespace ChromaticityDotNet
             public double CIEu { get; set; }
             public double CIEv { get; set; }
         }
+
+        public class CIERGB
+        {
+            public byte redValue { get; set;}
+            public byte greenValue { get; set; }
+            public byte blueValue { get; set; }
+        }
         #endregion
     }
 
