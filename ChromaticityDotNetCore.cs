@@ -38,63 +38,63 @@ namespace ChromaticityDotNet
         /// <param name="illuminant">Standard illuminant type</param>
         /// <param name="observer">Standard observer degree</param>
         /// <returns>StandardWhitePoint in choosen illuminant and observer </returns>
-        public static StandardWhitePoint GetStandardWhitePoint(Standardilluminant illuminant, StandardObserver observer)
-        {
-            IStandardilluminant Standardilluminantdata;
+        //public static StandardWhitePoint GetStandardWhitePoint(Standardilluminant illuminant, StandardObserver observer)
+        //{
+        //    IStandardilluminant Standardilluminantdata;
 
-            switch (illuminant)
-            {
-                case (Standardilluminant.D65):
-                    switch (observer)
-                    {
-                        case (StandardObserver.Degree10):
-                            Standardilluminantdata = new D65_Degree10();
-                            break;
-                        case (StandardObserver.Degree2):
-                            Standardilluminantdata = new D65_Degree2();
-                            break;
-                        default:
-                            Standardilluminantdata = new D65_Degree10();
-                            break;
-                    }
-                    break;
-                case (Standardilluminant.CWF):
-                    switch (observer)
-                    {
-                        case (StandardObserver.Degree10):
-                            Standardilluminantdata = new CWF_Degree10();
-                            break;
-                        case (StandardObserver.Degree2):
-                            Standardilluminantdata = new D65_Degree10();
-                            //Standardilluminantdata = new CWF_Degree2();
-                            break;
-                        default:
-                            Standardilluminantdata = new CWF_Degree10();
-                            break;
-                    }
-                    break;
-                case (Standardilluminant.A):
-                    switch (observer)
-                    {
-                        case (StandardObserver.Degree10):
-                            Standardilluminantdata = new A_Degree10();
-                            break;
-                        case (StandardObserver.Degree2):
-                            Standardilluminantdata = new D65_Degree10();
-                            //Standardilluminantdata = new A_Degree2();
-                            break;
-                        default:
-                            Standardilluminantdata = new A_Degree10();
-                            break;
-                    }
-                    break;
-                default:
-                    Standardilluminantdata = new D65_Degree10();
-                    break;
-            }
+        //    switch (illuminant)
+        //    {
+        //        case (Standardilluminant.D65):
+        //            switch (observer)
+        //            {
+        //                case (StandardObserver.Degree10):
+        //                    Standardilluminantdata = new D65_Degree10();
+        //                    break;
+        //                case (StandardObserver.Degree2):
+        //                    Standardilluminantdata = new D65_Degree2();
+        //                    break;
+        //                default:
+        //                    Standardilluminantdata = new D65_Degree10();
+        //                    break;
+        //            }
+        //            break;
+        //        case (Standardilluminant.CWF):
+        //            switch (observer)
+        //            {
+        //                case (StandardObserver.Degree10):
+        //                    Standardilluminantdata = new CWF_Degree10();
+        //                    break;
+        //                case (StandardObserver.Degree2):
+        //                    Standardilluminantdata = new D65_Degree10();
+        //                    //Standardilluminantdata = new CWF_Degree2();
+        //                    break;
+        //                default:
+        //                    Standardilluminantdata = new CWF_Degree10();
+        //                    break;
+        //            }
+        //            break;
+        //        case (Standardilluminant.A):
+        //            switch (observer)
+        //            {
+        //                case (StandardObserver.Degree10):
+        //                    Standardilluminantdata = new A_Degree10();
+        //                    break;
+        //                case (StandardObserver.Degree2):
+        //                    Standardilluminantdata = new D65_Degree10();
+        //                    //Standardilluminantdata = new A_Degree2();
+        //                    break;
+        //                default:
+        //                    Standardilluminantdata = new A_Degree10();
+        //                    break;
+        //            }
+        //            break;
+        //        default:
+        //            Standardilluminantdata = new D65_Degree10();
+        //            break;
+        //    }
 
-            return Standardilluminantdata.whitePoint;
-        }
+        //    return Standardilluminantdata.whitePoint;
+        //}
     }
 
     /// <summary>
@@ -353,6 +353,13 @@ namespace ChromaticityDotNet
     /// </summary>
     public class ChromaticityDeltaEFormulations
     {
+        public enum DeltaEType
+        {
+            DeltaE1976,
+            DeltaE1994,
+            DeltaE2000,
+            DeltaEcmc
+        }
         /// <summary>
         /// The 1976 formula is the first formula that related a measured color difference to a known set of CIELAB coordinates
         /// </summary>

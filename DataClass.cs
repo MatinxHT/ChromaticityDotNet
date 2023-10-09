@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static ChromaticityDotNet.ChromaticityDeltaEFormulations;
 using static ChromaticityDotNet.StandardChromaticityClass.StandardilluminantClass;
 
 namespace ChromaticityDotNet
@@ -411,7 +412,7 @@ namespace ChromaticityDotNet
                 string[] FastnessRank { get; }
                 double[] DeltaE { get; }
                 double[] DeltaEOffset { get; }
-                string DeltaEFormula { get; }
+                DeltaEType DeltaEFormula { get; }
                 int GBVersion { get; }
             }
 
@@ -421,7 +422,7 @@ namespace ChromaticityDotNet
                 public string[] FastnessRank { get; } = { "5", "4-5", "4", "3-4", "3", "2-3", "2", "1-2", "1" };
                 public double[] DeltaE { get; } = { 0, 0.8, 1.7, 2.5, 3.4, 4.8, 6.8, 9.6, 13.6 };
                 public double[] DeltaEOffset { get; } = { 0.2, 0.2, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7, 1.0 };
-                public string DeltaEFormula => "CIE1976";
+                public DeltaEType DeltaEFormula => DeltaEType.DeltaE1976;
                 public int GBVersion => 2008;
             }
 
@@ -431,7 +432,7 @@ namespace ChromaticityDotNet
                 public string[] FastnessRank { get; } = { "5", "4-5", "4", "3-4", "3", "2-3", "2", "1-2", "1" };
                 public double[] DeltaE { get; } = { 0, 2.2, 4.3, 6.0, 8.5, 12.0, 16.9, 24.0, 34.1 };
                 public double[] DeltaEOffset { get; } = { 0.2, 0.3, 0.3, 0.4, 0.5, 0.7, 1.0, 1.5, 2.0 };
-                public string DeltaEFormula => "CIE1976";
+                public DeltaEType DeltaEFormula => DeltaEType.DeltaE1976;
                 public int GBVersion => 2008;
             }
         }
