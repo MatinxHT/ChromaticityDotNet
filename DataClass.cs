@@ -16,9 +16,7 @@ namespace ChromaticityDotNet
 
         public class StandardWhitePoint
         {
-            public double Xn { get; set; }
-            public double Yn { get; set; }
-            public double Zn { get; set; }
+            public CIEXYZ WhitePointXYZ { get; set; }
 
             public StandardObserver Observer { get; set; }
         }
@@ -115,16 +113,22 @@ namespace ChromaticityDotNet
                 public Standardilluminant IlluminantName => Standardilluminant.D65;
                 public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
                 {
-                    Xn = 95.04,
-                    Yn = 100.00,
-                    Zn = 108.88,
+                    WhitePointXYZ=new DataClass.CIEXYZ()
+                    {
+                        CIEX = 95.047,
+                        CIEY = 100.000,
+                        CIEZ = 108.883
+                    },
                     Observer = StandardObserver.Degree2
                 };
                 public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint() 
                 {
-                    Xn = 94.81,
-                    Yn = 100.00,
-                    Zn = 107.32,
+                    WhitePointXYZ=new DataClass.CIEXYZ()
+                    {
+                        CIEX = 94.811,
+                        CIEY = 100.000,
+                        CIEZ = 107.304
+                    },
                     Observer = StandardObserver.Degree10
                 };
 
@@ -143,21 +147,27 @@ namespace ChromaticityDotNet
                 };
             }
             
-            public class CWF_Degree10 : IStandardilluminant
+            public class CWF : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.CWF;
                 public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
                 {
-                    //Xn = 98.07,
-                    //Yn = 100.00,
-                    //Zn = 118.22,
-                    //Observer = StandardObserver.Degree2
+                    WhitePointXYZ = new DataClass.CIEXYZ()
+                    {
+                        CIEX = 99.14,
+                        CIEY = 100.00,
+                        CIEZ = 67.32
+                    },
+                    Observer = StandardObserver.Degree2
                 };
                 public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint()
                 {
-                    Xn = 103.25,
-                    Yn = 100.00,
-                    Zn = 68.99,
+                    WhitePointXYZ = new DataClass.CIEXYZ()
+                    {
+                        CIEX = 103.25,
+                        CIEY = 100.00,
+                        CIEZ = 68.99
+                    },
                     Observer = StandardObserver.Degree10
                 };
                 public DataClass.Spectrum spectrum => new DataClass.Spectrum()
@@ -174,16 +184,32 @@ namespace ChromaticityDotNet
                 };
             }
 
-            public class A_Degree10 : IStandardilluminant
+            public class A : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.A;
-                public StandardObserver Observer => StandardObserver.Degree10;
-                public DataClass.StandardWhitePoint whitePoint => new DataClass.StandardWhitePoint()
+                
+                public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
                 {
-                    Xn = 111.14,
-                    Yn = 100.00,
-                    Zn = 35.2
+                    WhitePointXYZ = new DataClass.CIEXYZ()
+                    {
+                        CIEX = 109.85,
+                        CIEY = 100.00,
+                        CIEZ = 35.58
+                    },
+                    Observer = StandardObserver.Degree2
                 };
+
+                public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint()
+                {
+                    WhitePointXYZ = new DataClass.CIEXYZ()
+                    {
+                        CIEX = 111.14,
+                        CIEY = 100.00,
+                        CIEZ = 35.20
+                    },
+                    Observer = StandardObserver.Degree10
+                };
+
                 public DataClass.Spectrum spectrum => new DataClass.Spectrum()
                 {
                     StartingWavelength = 400,
