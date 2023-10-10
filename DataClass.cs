@@ -17,7 +17,7 @@ namespace ChromaticityDotNet
 
         public class StandardWhitePoint
         {
-            public CIEXYZ WhitePointXYZ { get; set; }
+            public CIEXYZ WhitePointXnYnZn { get; set; }
 
             public StandardObserver Observer { get; set; }
         }
@@ -114,7 +114,7 @@ namespace ChromaticityDotNet
                 public Standardilluminant IlluminantName => Standardilluminant.D65;
                 public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
                 {
-                    WhitePointXYZ=new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataClass.CIEXYZ()
                     {
                         CIEX = 95.047,
                         CIEY = 100.000,
@@ -124,7 +124,7 @@ namespace ChromaticityDotNet
                 };
                 public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint() 
                 {
-                    WhitePointXYZ=new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataClass.CIEXYZ()
                     {
                         CIEX = 94.811,
                         CIEY = 100.000,
@@ -153,7 +153,7 @@ namespace ChromaticityDotNet
                 public Standardilluminant IlluminantName => Standardilluminant.CWF;
                 public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
                 {
-                    WhitePointXYZ = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataClass.CIEXYZ()
                     {
                         CIEX = 99.14,
                         CIEY = 100.00,
@@ -163,7 +163,7 @@ namespace ChromaticityDotNet
                 };
                 public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint()
                 {
-                    WhitePointXYZ = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataClass.CIEXYZ()
                     {
                         CIEX = 103.25,
                         CIEY = 100.00,
@@ -191,7 +191,7 @@ namespace ChromaticityDotNet
                 
                 public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
                 {
-                    WhitePointXYZ = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataClass.CIEXYZ()
                     {
                         CIEX = 109.85,
                         CIEY = 100.00,
@@ -202,7 +202,7 @@ namespace ChromaticityDotNet
 
                 public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint()
                 {
-                    WhitePointXYZ = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataClass.CIEXYZ()
                     {
                         CIEX = 111.14,
                         CIEY = 100.00,

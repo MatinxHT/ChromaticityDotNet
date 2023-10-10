@@ -38,63 +38,51 @@ namespace ChromaticityDotNet
         /// <param name="illuminant">Standard illuminant type</param>
         /// <param name="observer">Standard observer degree</param>
         /// <returns>StandardWhitePoint in choosen illuminant and observer </returns>
-        //public static StandardWhitePoint GetStandardWhitePoint(Standardilluminant illuminant, StandardObserver observer)
-        //{
-        //    IStandardilluminant Standardilluminantdata;
+        public static StandardWhitePoint GetStandardWhitePoint(Standardilluminant illuminant, StandardObserver observer)
+        {
+            IStandardilluminant Standardilluminantdata;
 
-        //    switch (illuminant)
-        //    {
-        //        case (Standardilluminant.D65):
-        //            switch (observer)
-        //            {
-        //                case (StandardObserver.Degree10):
-        //                    Standardilluminantdata = new D65_Degree10();
-        //                    break;
-        //                case (StandardObserver.Degree2):
-        //                    Standardilluminantdata = new D65_Degree2();
-        //                    break;
-        //                default:
-        //                    Standardilluminantdata = new D65_Degree10();
-        //                    break;
-        //            }
-        //            break;
-        //        case (Standardilluminant.CWF):
-        //            switch (observer)
-        //            {
-        //                case (StandardObserver.Degree10):
-        //                    Standardilluminantdata = new CWF_Degree10();
-        //                    break;
-        //                case (StandardObserver.Degree2):
-        //                    Standardilluminantdata = new D65_Degree10();
-        //                    //Standardilluminantdata = new CWF_Degree2();
-        //                    break;
-        //                default:
-        //                    Standardilluminantdata = new CWF_Degree10();
-        //                    break;
-        //            }
-        //            break;
-        //        case (Standardilluminant.A):
-        //            switch (observer)
-        //            {
-        //                case (StandardObserver.Degree10):
-        //                    Standardilluminantdata = new A_Degree10();
-        //                    break;
-        //                case (StandardObserver.Degree2):
-        //                    Standardilluminantdata = new D65_Degree10();
-        //                    //Standardilluminantdata = new A_Degree2();
-        //                    break;
-        //                default:
-        //                    Standardilluminantdata = new A_Degree10();
-        //                    break;
-        //            }
-        //            break;
-        //        default:
-        //            Standardilluminantdata = new D65_Degree10();
-        //            break;
-        //    }
+            switch (observer)
+            {
+                case(StandardObserver.Degree10):
+                    switch (illuminant)
+                    {
+                        case (Standardilluminant.D65):
+                            Standardilluminantdata = new D65();
+                            return Standardilluminantdata.whitePoint_Degree10;
+                        case (Standardilluminant.CWF):
+                            Standardilluminantdata = new CWF();
+                            return Standardilluminantdata.whitePoint_Degree10;
+                        case (Standardilluminant.A):
+                            Standardilluminantdata = new A();
+                            return Standardilluminantdata.whitePoint_Degree10;
+                        default:
+                            Standardilluminantdata = new D65();
+                            return Standardilluminantdata.whitePoint_Degree10;
+                    }
+                 case(StandardObserver.Degree2):
+                    switch (illuminant)
+                    {
+                        case Standardilluminant.D65:
+                            Standardilluminantdata = new D65();
+                            return Standardilluminantdata.whitePoint_Degree2;
+                            break;
+                            case Standardilluminant.CWF:
+                            Standardilluminantdata = new CWF();
+                            return Standardilluminantdata.whitePoint_Degree2;
+                            case Standardilluminant.A:
+                            Standardilluminantdata = new A();
+                            return Standardilluminantdata.whitePoint_Degree2;
+                            default:
+                            Standardilluminantdata = new D65();
+                            return Standardilluminantdata.whitePoint_Degree2;
+                    }
+                default:
+                    Standardilluminantdata = new D65();
+                    return Standardilluminantdata.whitePoint_Degree10;
+            }
 
-        //    return Standardilluminantdata.whitePoint;
-        //}
+        }
     }
 
     /// <summary>
@@ -119,9 +107,9 @@ namespace ChromaticityDotNet
             double[] result = new double[10];
 
             //GetStandXYZ(observer, lightsource_type, &temX, &temY, &temZ);
-            temX = XYZ.CIEX / WhitePoint.Xn; //白点X值
-            temY = XYZ.CIEY / WhitePoint.Yn; //白点Y值
-            temZ = XYZ.CIEZ / WhitePoint.Zn; //白点Z值
+            temX = XYZ.CIEX / WhitePoint.WhitePointXnYnZn.CIEX; //白点X值
+            temY = XYZ.CIEY / WhitePoint.WhitePointXnYnZn.CIEY; //白点Y值
+            temZ = XYZ.CIEZ / WhitePoint.WhitePointXnYnZn.CIEZ; //白点Z值
 
             if (temX > 0.008856)
                 temX = Math.Pow(temX, 0.3333333);
@@ -217,12 +205,12 @@ namespace ChromaticityDotNet
         {
             StandardWhitePoint WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
 
-            double yr = XYZ.CIEY / WhitePoint.Yn;
+            double yr = XYZ.CIEY / WhitePoint.WhitePointXnYnZn.CIEY;
             double upai = (4 * XYZ.CIEX) / (XYZ.CIEX + 15 * XYZ.CIEY + 3 * XYZ.CIEZ);
             double vpai = (9 * XYZ.CIEY) / (XYZ.CIEX + 15 * XYZ.CIEY + 3 * XYZ.CIEZ);
 
-            double ur = (4 * WhitePoint.Xn) / (WhitePoint.Xn + 15 * WhitePoint.Yn + 3 * WhitePoint.Zn);
-            double vr = (9 * WhitePoint.Yn) / (WhitePoint.Xn + 15 * WhitePoint.Yn + 3 * WhitePoint.Zn);
+            double ur = (4 * WhitePoint.WhitePointXnYnZn.CIEX) / (WhitePoint.WhitePointXnYnZn.CIEX + 15 * WhitePoint.WhitePointXnYnZn.CIEY + 3 * WhitePoint.WhitePointXnYnZn.CIEZ);
+            double vr = (9 * WhitePoint.WhitePointXnYnZn.CIEY) / (WhitePoint.WhitePointXnYnZn.CIEX + 15 * WhitePoint.WhitePointXnYnZn.CIEY + 3 * WhitePoint.WhitePointXnYnZn.CIEZ);
 
             double epsilon = 216.0 / 24389.0;
             double kapa = 24389.0 / 27.0;
