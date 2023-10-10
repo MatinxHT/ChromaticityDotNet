@@ -12,7 +12,7 @@ dotnet add package ChromaticityDotNet
 - ChromaticityMatch:Get Get Standard illuminant WhitePoint data(color mathing is dev ing...)
 
 ## What can we find in this SDK?
-- StandardilluminantClass:CIE standard illuminant data(D65 A CWF)
+- StandardilluminantClass:CIE standard illuminant data(D65/A/CWF)
 - CIEConstant:Chromaticity(xy)/CCT/Standard Observer data
 
 ## What's more?
