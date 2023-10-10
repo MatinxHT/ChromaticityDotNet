@@ -12,13 +12,7 @@ namespace ChromaticityDotNet.Controller
     /// </summary>
     public class ChromaticityDeltaEFormulations
     {
-        public enum DeltaEType
-        {
-            DeltaE1976,
-            DeltaE1994,
-            DeltaE2000,
-            DeltaEcmc
-        }
+        
         /// <summary>
         /// The 1976 formula is the first formula that related a measured color difference to a known set of CIELAB coordinates
         /// </summary>

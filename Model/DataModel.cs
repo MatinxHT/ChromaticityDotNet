@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
-using static ChromaticityDotNet.ChromaticityDeltaEFormulations;
 
 namespace ChromaticityDotNet.Model
 {
@@ -74,6 +73,17 @@ namespace ChromaticityDotNet.Model
         }
 
         #endregion
+    }
+
+    public class ConfigEnum
+    {
+        public enum DeltaEType
+        {
+            DeltaE1976,
+            DeltaE1994,
+            DeltaE2000,
+            DeltaEcmc
+        }
     }
 
 }

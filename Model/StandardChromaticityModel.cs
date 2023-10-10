@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static ChromaticityDotNet.ChromaticityDeltaEFormulations;
+using static ChromaticityDotNet.Model.ConfigEnum;
 
 namespace ChromaticityDotNet.Model
 {
