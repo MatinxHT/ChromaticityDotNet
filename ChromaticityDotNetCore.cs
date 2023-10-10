@@ -66,7 +66,6 @@ namespace ChromaticityDotNet
                         case Standardilluminant.D65:
                             Standardilluminantdata = new D65();
                             return Standardilluminantdata.whitePoint_Degree2;
-                            break;
                             case Standardilluminant.CWF:
                             Standardilluminantdata = new CWF();
                             return Standardilluminantdata.whitePoint_Degree2;
