@@ -66,13 +66,13 @@ namespace ChromaticityDotNet
                         case Standardilluminant.D65:
                             Standardilluminantdata = new D65();
                             return Standardilluminantdata.whitePoint_Degree2;
-                            case Standardilluminant.CWF:
+                        case Standardilluminant.CWF:
                             Standardilluminantdata = new CWF();
                             return Standardilluminantdata.whitePoint_Degree2;
-                            case Standardilluminant.A:
+                        case Standardilluminant.A:
                             Standardilluminantdata = new A();
                             return Standardilluminantdata.whitePoint_Degree2;
-                            default:
+                        default:
                             Standardilluminantdata = new D65();
                             return Standardilluminantdata.whitePoint_Degree2;
                     }
