@@ -4,81 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static ChromaticityDotNet.ChromaticityDeltaEFormulations;
-using static ChromaticityDotNet.StandardChromaticityClass.StandardilluminantClass;
 
-namespace ChromaticityDotNet
+namespace ChromaticityDotNet.Model
 {
-    /// <summary>
-    /// DataClass
-    /// </summary>
-    public class DataClass
-    {
-        #region SPD
-
-        public class StandardWhitePoint
-        {
-            public CIEXYZ WhitePointXnYnZn { get; set; }
-
-            public StandardObserver Observer { get; set; }
-        }
-
-        public class Spectrum
-        {
-            public int StartingWavelength { get; set; }
-            public int WavelengthInterval { get; set; }
-            public int EndingWavelength { get; set; }
-            public double[]? Spectrums { get; set; }
-        }
-
-        #endregion
-
-        #region CIE Colro Data
-        public class CIEXYZ
-        {
-            public double CIEX { get; set; }
-            public double CIEY { get; set; }
-            public double CIEZ { get; set; }
-        }
-
-        public class CIELABCH
-        {
-            public double CIEL { get; set; }
-            public double CIEA { get; set; }
-            public double CIEB { get; set; }
-            public double CIEC { get; set; }
-            public double CIEH { get; set; }
-        }
-
-        public class CIExyY
-        {
-            public double CIEx { get; set; }
-            public double CIEy { get; set; }
-            public double CIEY { get; set; }
-        }
-
-        public class CIELuv
-        {
-            public double CIEL { get; set; }
-            public double CIEu { get; set; }
-            public double CIEv { get; set; }
-        }
-
-        /// <summary>
-        /// RGB data format as byte(0~255),in 'system.windows.media' u can use 'Color newColor = Color.FromRgb(redValue, greenValue, blueValue);'to bursh it
-        /// </summary>
-        public class CIERGB
-        {
-            public byte redValue { get; set;}
-            public byte greenValue { get; set; }
-            public byte blueValue { get; set; }
-        }
-        #endregion
-    }
-
     /// <summary>
     /// Collection of Standard data
     /// </summary>
-    public class StandardChromaticityClass
+    public class StandardChromaticityModel
     {
         /// <summary>
         /// Store the Standard illuminant data
@@ -91,9 +23,9 @@ namespace ChromaticityDotNet
             public interface IStandardilluminant
             {
                 Standardilluminant IlluminantName { get; }
-                DataClass.StandardWhitePoint whitePoint_Degree2 { get; }
-                DataClass.StandardWhitePoint whitePoint_Degree10 { get; }
-                DataClass.Spectrum spectrum { get; }
+                DataModel.StandardWhitePoint whitePoint_Degree2 { get; }
+                DataModel.StandardWhitePoint whitePoint_Degree10 { get; }
+                DataModel.Spectrum spectrum { get; }
             }
 
             public enum Standardilluminant
@@ -109,12 +41,12 @@ namespace ChromaticityDotNet
                 Degree10
             }
 
-            public class D65: IStandardilluminant
-            { 
+            public class D65 : IStandardilluminant
+            {
                 public Standardilluminant IlluminantName => Standardilluminant.D65;
-                public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
+                public DataModel.StandardWhitePoint whitePoint_Degree2 => new DataModel.StandardWhitePoint()
                 {
-                    WhitePointXnYnZn = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
                         CIEX = 95.047,
                         CIEY = 100.000,
@@ -122,9 +54,9 @@ namespace ChromaticityDotNet
                     },
                     Observer = StandardObserver.Degree2
                 };
-                public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint() 
+                public DataModel.StandardWhitePoint whitePoint_Degree10 => new DataModel.StandardWhitePoint()
                 {
-                    WhitePointXnYnZn = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
                         CIEX = 94.811,
                         CIEY = 100.000,
@@ -133,7 +65,7 @@ namespace ChromaticityDotNet
                     Observer = StandardObserver.Degree10
                 };
 
-                public DataClass.Spectrum spectrum => new DataClass.Spectrum()
+                public DataModel.Spectrum spectrum => new DataModel.Spectrum()
                 {
                     StartingWavelength = 400,
                     WavelengthInterval = 10,
@@ -147,13 +79,13 @@ namespace ChromaticityDotNet
                     }
                 };
             }
-            
+
             public class CWF : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.CWF;
-                public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
+                public DataModel.StandardWhitePoint whitePoint_Degree2 => new DataModel.StandardWhitePoint()
                 {
-                    WhitePointXnYnZn = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
                         CIEX = 99.14,
                         CIEY = 100.00,
@@ -161,9 +93,9 @@ namespace ChromaticityDotNet
                     },
                     Observer = StandardObserver.Degree2
                 };
-                public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint()
+                public DataModel.StandardWhitePoint whitePoint_Degree10 => new DataModel.StandardWhitePoint()
                 {
-                    WhitePointXnYnZn = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
                         CIEX = 103.25,
                         CIEY = 100.00,
@@ -171,7 +103,7 @@ namespace ChromaticityDotNet
                     },
                     Observer = StandardObserver.Degree10
                 };
-                public DataClass.Spectrum spectrum => new DataClass.Spectrum()
+                public DataModel.Spectrum spectrum => new DataModel.Spectrum()
                 {
                     StartingWavelength = 400,
                     WavelengthInterval = 10,
@@ -188,10 +120,10 @@ namespace ChromaticityDotNet
             public class A : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.A;
-                
-                public DataClass.StandardWhitePoint whitePoint_Degree2 => new DataClass.StandardWhitePoint()
+
+                public DataModel.StandardWhitePoint whitePoint_Degree2 => new DataModel.StandardWhitePoint()
                 {
-                    WhitePointXnYnZn = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
                         CIEX = 109.85,
                         CIEY = 100.00,
@@ -200,9 +132,9 @@ namespace ChromaticityDotNet
                     Observer = StandardObserver.Degree2
                 };
 
-                public DataClass.StandardWhitePoint whitePoint_Degree10 => new DataClass.StandardWhitePoint()
+                public DataModel.StandardWhitePoint whitePoint_Degree10 => new DataModel.StandardWhitePoint()
                 {
-                    WhitePointXnYnZn = new DataClass.CIEXYZ()
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
                         CIEX = 111.14,
                         CIEY = 100.00,
@@ -211,7 +143,7 @@ namespace ChromaticityDotNet
                     Observer = StandardObserver.Degree10
                 };
 
-                public DataClass.Spectrum spectrum => new DataClass.Spectrum()
+                public DataModel.Spectrum spectrum => new DataModel.Spectrum()
                 {
                     StartingWavelength = 400,
                     WavelengthInterval = 10,
@@ -230,7 +162,7 @@ namespace ChromaticityDotNet
 
         public class CIEConstant
         {
-            public static DataClass.Spectrum XX_10 => new DataClass.Spectrum()
+            public static DataModel.Spectrum XX_10 => new DataModel.Spectrum()
             {
                 StartingWavelength = 400,
                 WavelengthInterval = 10,
@@ -244,7 +176,7 @@ namespace ChromaticityDotNet
                 }
             };
 
-            public static DataClass.Spectrum YY_10 => new DataClass.Spectrum()
+            public static DataModel.Spectrum YY_10 => new DataModel.Spectrum()
             {
                 StartingWavelength = 400,
                 WavelengthInterval = 10,
@@ -257,7 +189,7 @@ namespace ChromaticityDotNet
                 }
             };
 
-            public static DataClass.Spectrum ZZ_10 => new DataClass.Spectrum()
+            public static DataModel.Spectrum ZZ_10 => new DataModel.Spectrum()
             {
                 StartingWavelength = 400,
                 WavelengthInterval = 10,
@@ -437,5 +369,4 @@ namespace ChromaticityDotNet
             }
         }
     }
-
 }
