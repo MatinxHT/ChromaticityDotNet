@@ -162,6 +162,7 @@ namespace ChromaticityDotNet.Model
 
         public class CIEConstant
         {
+            #region Spectrums
             public static DataModel.Spectrum XX_10 => new DataModel.Spectrum()
             {
                 StartingWavelength = 400,
@@ -201,6 +202,8 @@ namespace ChromaticityDotNet.Model
                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
                 }
             };
+
+            #endregion
 
             public static double[] Wavelength_CIE = new double[]
             {
