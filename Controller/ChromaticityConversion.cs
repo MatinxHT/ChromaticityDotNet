@@ -111,8 +111,8 @@ namespace ChromaticityDotNet.Controller
             double total = XYZ.CIEX + XYZ.CIEY + XYZ.CIEZ;
             return new CIExyY()
             {
-                CIEx = Math.Round(XYZ.CIEX / total, 3),
-                CIEy = Math.Round(XYZ.CIEY / total, 3),
+                CIEx = Math.Round(XYZ.CIEX / total, 4),
+                CIEy = Math.Round(XYZ.CIEY / total, 4),
                 CIEY = Math.Round(XYZ.CIEY, 2)
             };
         }
@@ -147,10 +147,6 @@ namespace ChromaticityDotNet.Controller
             {
                 L = kapa * yr;
             }
-
-            //double L = 116 * Math.Pow(yr, 1 / 3) - 16;
-            //double u = 13 * L * (upai - ur);
-            //double v = 13 * L * (vpai - vr);
 
             CIELuv Luv = new CIELuv()
             {
