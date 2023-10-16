@@ -4,7 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.0.1.2</Version>
+    <Version>1.0.1.3</Version>
     <Company>Foshan Double-Brilliant Technology Co.,Ltd</Company>
     <Authors>MartinHung</Authors>
     <Copyright>Foshan Double-Brilliant Technology Co.,Ltd</Copyright>
@@ -12,6 +12,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <RepositoryUrl>https://github.com/MatinxHT/ChromaticityDotNet</RepositoryUrl>
+    <description>ChromaticityDotNet is a .Net Core SDK For Chromaticity programing,you can find some useful standard illuminant data in "ChromaticityDotNet.Model",cover color space conversion and color difference calculation in "ChromaticityDotNet.Controller".Or do any things you want</description>
   </PropertyGroup>
 
   <ItemGroup>
