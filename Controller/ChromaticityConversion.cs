@@ -239,17 +239,22 @@ namespace ChromaticityDotNet.Controller
         /// </summary>
         /// <param name="xyY"></param>
         /// <returns>CIE1976 uv space coordinate </returns>
-        public static (double u, double v) CIExySpace2CIEuvSpace(CIExyY xyY)
+        public static CIELuv CIExy2CIEuv(CIExyY xyY)
         {
-            double denomx = -2D * xyY.CIEx + 12D * xyY.CIEy + 3D;
-            double denomv = -2D * xyY.CIEx + 12D * xyY.CIEy + 3D;
-            if (denomv != 0.0D)
+            CIELuv luv = new CIELuv
             {
-                if (denomx != 0.0D) return (((9D * xyY.CIEy) / denomv), (4D * xyY.CIEx) / denomx);
-                else return (-1, -1);
+                CIEL = 1,
+                CIEu = -1,
+                CIEv = -1,
+            };
+            double denom = -2D * xyY.CIEx + 12D * xyY.CIEy + 3D;
+            if (denom != 0.0D)
+            {
+                luv.CIEu = ((4D * xyY.CIEx) / denom);
+                luv.CIEv = ((9D * xyY.CIEy) / denom);
+                return luv;
             }
-            else
-                return (-1, -1);
+            return luv;
         }
 
         #endregion
