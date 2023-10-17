@@ -1,7 +1,7 @@
 # ChromaticityDotNet
 
 ## About
-ChromaticityDotNet is a .Net Core SDK For Chromaticity programing,you can find some useful standard illuminant data in "ChromaticityDotNet.Model",cover color space conversion and color difference calculation in "ChromaticityDotNet.Controller".Or do any things you want .
+ChromaticityDotNet is a .Net Core SDK for chromaticity programming. You can find some useful standard illuminant data in 'ChromaticityDotNet.Model' and cover color space conversion and color difference calculations in 'ChromaticityDotNet.Controller.' You can also perform any other tasks you need.
 
 ## [NuGet packages](https://www.nuget.org/packages/ChromaticityDotNet)
 dotnet add package ChromaticityDotNet
