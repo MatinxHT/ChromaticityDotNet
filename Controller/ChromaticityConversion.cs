@@ -226,7 +226,7 @@ namespace ChromaticityDotNet.Controller
         /// </summary>
         /// <param name="xyy"></param>
         /// <returns>correlated color temperature</returns>
-        public static double CIExy2CCT(CIExyY xyy)
+        public static double xy2CCT(CIExyY xyy)
         {
             double n = (xyy.CIEx - 0.332) / (0.1858 - xyy.CIEy);
             double cct = (4.37 * Math.Pow(n, 3)) + (3601 * Math.Pow(n, 2)) + 6861 * n + 5517;
@@ -235,11 +235,26 @@ namespace ChromaticityDotNet.Controller
         }
 
         /// <summary>
+        /// For CIE1931 xy space coordinate  to CIEXYZ space
+        /// </summary>
+        /// <param name="xyY"></param>
+        /// <returns>CIEXYZ</returns>
+        public static CIEXYZ xy2XYZ(CIExyY xyY)
+        {
+            return new CIEXYZ()
+            {
+                CIEX = xyY.CIEx * xyY.CIEY / xyY.CIEy,
+                CIEY = xyY.CIEY,
+                CIEZ = (1 - xyY.CIEx - xyY.CIEy) * xyY.CIEY / xyY.CIEy
+            };
+        }
+
+        /// <summary>
         /// For CIE1931 xy space coordinate  to CIE1976 uv space coordinate 
         /// </summary>
         /// <param name="xyY"></param>
         /// <returns>CIE1976 uv space coordinate </returns>
-        public static CIELuv CIExy2CIEuv(CIExyY xyY)
+        public static CIELuv xy2uv(CIExyY xyY)
         {
             CIELuv luv = new CIELuv
             {
