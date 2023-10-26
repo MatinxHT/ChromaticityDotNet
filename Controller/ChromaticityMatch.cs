@@ -13,6 +13,26 @@ namespace ChromaticityDotNet.Controller
     /// </summary>
     public class ChromaticityMatch
     {
+        public static IStandardilluminant GetStandardilluminantdata(Standardilluminant illuminant)
+        {
+            IStandardilluminant Standardilluminantdata;
+            switch (illuminant)
+            {
+                case (Standardilluminant.D65):
+                    Standardilluminantdata = new D65();
+                    return Standardilluminantdata;
+                case (Standardilluminant.CWF):
+                    Standardilluminantdata = new CWF();
+                    return Standardilluminantdata;
+                case (Standardilluminant.A):
+                    Standardilluminantdata = new A();
+                    return Standardilluminantdata;
+                default:
+                    Standardilluminantdata = new D65();
+                    return Standardilluminantdata;
+            }
+        }
+
         /// <summary>
         /// Finding StandardWhitePoint in choosen illuminant and observer
         /// </summary>

@@ -23,9 +23,9 @@ namespace ChromaticityDotNet.Model
             public interface IStandardilluminant
             {
                 Standardilluminant IlluminantName { get; }
-                DataModel.StandardWhitePoint whitePoint_Degree2 { get; }
-                DataModel.StandardWhitePoint whitePoint_Degree10 { get; }
-                DataModel.Spectrum spectrum { get; }
+                DataModel.StandardWhitePoint WhitePoint_Degree2 { get; }
+                DataModel.StandardWhitePoint WhitePoint_Degree10 { get; }
+                DataModel.Spectrum Spectrum { get; }
             }
 
             public enum Standardilluminant
@@ -44,7 +44,7 @@ namespace ChromaticityDotNet.Model
             public class D65 : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.D65;
-                public DataModel.StandardWhitePoint whitePoint_Degree2 => new DataModel.StandardWhitePoint()
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
                 {
                     WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
@@ -54,7 +54,7 @@ namespace ChromaticityDotNet.Model
                     },
                     Observer = StandardObserver.Degree2
                 };
-                public DataModel.StandardWhitePoint whitePoint_Degree10 => new DataModel.StandardWhitePoint()
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
                 {
                     WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
@@ -65,7 +65,7 @@ namespace ChromaticityDotNet.Model
                     Observer = StandardObserver.Degree10
                 };
 
-                public DataModel.Spectrum spectrum => new DataModel.Spectrum()
+                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
                 {
                     StartingWavelength = 400,
                     WavelengthInterval = 10,

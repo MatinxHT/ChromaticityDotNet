@@ -13,6 +13,68 @@ namespace ChromaticityDotNet.Controller
     /// </summary>
     public class ChromaticityConversion
     {
+        #region From Ref to ...
+        public static double[] REFtoXYZ(double[] REFDATA, Standardilluminant illuminant)
+        {
+            IStandardilluminant StandaredIlluminant = ChromaticityMatch.GetStandardilluminantdata(illuminant);
+
+            int i;
+            double[] ligh_temp = new double[41];
+            double[] xx = new double[31];
+            double[] yy = new double[31];
+            double[] zz = new double[31]; double[] XYZn = new double[3];
+            double k;
+
+            for (i = 0; i < 31; i++)
+            {
+                ligh_temp[i] = StandaredIlluminant.Spectrum.Spectrums[i];
+            }
+            for (i = 0; i < 31; i++)
+            {
+                xx[i] = Standardilluminant.xx_10[i];
+                yy[i] = Standardilluminant.yy_10[i];
+                zz[i] = Standardilluminant.zz_10[i];
+            }
+
+            // 计算 k 的值
+            double sumX = 0.0;
+            double sumY = 0.0;
+            double sumZ = 0.0;
+            for (i = 0; i < 31; i++)
+            {
+                sumX += xx[i] * ligh_temp[i];
+                sumY += yy[i] * ligh_temp[i];
+                sumZ += zz[i] * ligh_temp[i];
+            }
+            k = 100.0 / sumY; // 根据代码1的计算方式推导出 k 的计算表达式
+
+            double[] XYZ = new double[6];
+            XYZ[0] = XYZ[1] = XYZ[2] = 0;
+            for (i = 0; i < 31; i++)
+            {
+                XYZ[0] += xx[i] * (REFDATA[i] * 0.01) * ligh_temp[i];
+                XYZ[1] += yy[i] * (REFDATA[i] * 0.01) * ligh_temp[i];
+                XYZ[2] += zz[i] * (REFDATA[i] * 0.01) * ligh_temp[i];
+                XYZn[0] += xx[i] * ligh_temp[i];
+                XYZn[1] += yy[i] * ligh_temp[i];
+                XYZn[2] += zz[i] * ligh_temp[i];
+            }
+
+            //魔法数字
+            //k = 0.086082;
+
+            XYZ[0] = XYZ[0] * k;    // X
+            XYZ[1] = XYZ[1] * k;    // Y
+            XYZ[2] = XYZ[2] * k;    // Z
+            XYZ[3] = XYZn[0];    // Xn
+            XYZ[4] = XYZn[1];    // Yn
+            XYZ[5] = XYZn[2];    // Zn
+
+            //return true;
+            return XYZ;
+        }
+
+        #endregion
 
         #region From XYZ to ...
         /// <summary>
