@@ -1,4 +1,7 @@
 # ChromaticityDotNet
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET C#](https://img.shields.io/badge/.NET-C%23-blue)](https://docs.microsoft.com/en-us/dotnet/csharp/)
+![Nuget (with prereleases)](https://img.shields.io/nuget/vpre/ChromaticityDotNet)
 
 ## About
 ChromaticityDotNet is a .Net Core SDK for chromaticity programming. You can find some useful standard illuminant data in 'ChromaticityDotNet.Model' and cover color space conversion and color difference calculations in 'ChromaticityDotNet.Controller.' You can also perform any other tasks you need.
