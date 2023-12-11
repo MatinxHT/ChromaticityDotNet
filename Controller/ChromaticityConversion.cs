@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static ChromaticityDotNet.Model.DataModel;
+using static ChromaticityDotNet.Model.StandardChromaticityModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
 namespace ChromaticityDotNet.Controller
@@ -14,27 +15,41 @@ namespace ChromaticityDotNet.Controller
     public class ChromaticityConversion
     {
         #region From Ref to ...
-        public static double[] REFtoXYZ(double[] REFDATA, Standardilluminant illuminant)
+        public static double[] REFtoXYZ(double[] REFDATA, Standardilluminant illuminant,StandardObserver standardObserver)
         {
             IStandardilluminant StandaredIlluminant = ChromaticityMatch.GetStandardilluminantdata(illuminant);
+            
 
             int i;
             double[] ligh_temp = new double[41];
             double[] xx = new double[31];
             double[] yy = new double[31];
-            double[] zz = new double[31]; double[] XYZn = new double[3];
+            double[] zz = new double[31]; 
+            double[] XYZn = new double[3];
             double k;
 
-            for (i = 0; i < 31; i++)
+            switch (standardObserver)
             {
-                ligh_temp[i] = StandaredIlluminant.Spectrum.Spectrums[i];
+                case StandardObserver.Degree2:
+                    {
+                        //will be update..
+                        xx = CIEConstant.XX_10.Spectrums;
+                        yy = CIEConstant.YY_10.Spectrums;
+                        zz = CIEConstant.ZZ_10.Spectrums;
+                        break;
+                    }
+                case StandardObserver.Degree10:
+                    {
+                        xx = CIEConstant.XX_10.Spectrums;
+                        yy = CIEConstant.YY_10.Spectrums;
+                        zz = CIEConstant.ZZ_10.Spectrums;
+                        break;
+                    }
+
             }
-            for (i = 0; i < 31; i++)
-            {
-                xx[i] = Standardilluminant.xx_10[i];
-                yy[i] = Standardilluminant.yy_10[i];
-                zz[i] = Standardilluminant.zz_10[i];
-            }
+
+            ligh_temp = StandaredIlluminant.Spectrum.Spectrums;
+
 
             // 计算 k 的值
             double sumX = 0.0;

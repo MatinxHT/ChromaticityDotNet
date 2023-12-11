@@ -83,7 +83,7 @@ namespace ChromaticityDotNet.Model
             public class CWF : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.CWF;
-                public DataModel.StandardWhitePoint whitePoint_Degree2 => new DataModel.StandardWhitePoint()
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
                 {
                     WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
@@ -93,7 +93,7 @@ namespace ChromaticityDotNet.Model
                     },
                     Observer = StandardObserver.Degree2
                 };
-                public DataModel.StandardWhitePoint whitePoint_Degree10 => new DataModel.StandardWhitePoint()
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
                 {
                     WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
@@ -103,7 +103,7 @@ namespace ChromaticityDotNet.Model
                     },
                     Observer = StandardObserver.Degree10
                 };
-                public DataModel.Spectrum spectrum => new DataModel.Spectrum()
+                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
                 {
                     StartingWavelength = 400,
                     WavelengthInterval = 10,
@@ -121,7 +121,7 @@ namespace ChromaticityDotNet.Model
             {
                 public Standardilluminant IlluminantName => Standardilluminant.A;
 
-                public DataModel.StandardWhitePoint whitePoint_Degree2 => new DataModel.StandardWhitePoint()
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
                 {
                     WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
@@ -132,7 +132,7 @@ namespace ChromaticityDotNet.Model
                     Observer = StandardObserver.Degree2
                 };
 
-                public DataModel.StandardWhitePoint whitePoint_Degree10 => new DataModel.StandardWhitePoint()
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
                 {
                     WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
@@ -143,7 +143,7 @@ namespace ChromaticityDotNet.Model
                     Observer = StandardObserver.Degree10
                 };
 
-                public DataModel.Spectrum spectrum => new DataModel.Spectrum()
+                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
                 {
                     StartingWavelength = 400,
                     WavelengthInterval = 10,
