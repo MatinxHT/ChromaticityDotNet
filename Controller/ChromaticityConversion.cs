@@ -15,7 +15,7 @@ namespace ChromaticityDotNet.Controller
     public class ChromaticityConversion
     {
         #region From Ref to ...
-        public static double[] REFtoXYZ(double[] REFDATA, Standardilluminant illuminant,StandardObserver standardObserver)
+        public static CIEXYZ REFtoXYZ(double[] REFDATA, Standardilluminant illuminant,StandardObserver standardObserver)
         {
             IStandardilluminant StandaredIlluminant = ChromaticityMatch.GetStandardilluminantdata(illuminant);
             
@@ -86,7 +86,12 @@ namespace ChromaticityDotNet.Controller
             XYZ[5] = XYZn[2];    // Zn
 
             //return true;
-            return XYZ;
+            return new CIEXYZ
+            {
+                CIEX = XYZ[0],
+                CIEY = XYZ[1],
+                CIEZ = XYZ[2]
+            };
         }
 
         #endregion
