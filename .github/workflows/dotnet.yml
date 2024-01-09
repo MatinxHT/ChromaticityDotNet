@@ -16,13 +16,13 @@ jobs:
         dotnet-version: 6.0.x
     - name: Build with dotnet
       run: dotnet build --configuration Release
-      working-directory: ChromaticityDotNet
+      working-directory: ${{ github.workspace }}
     - name: Run unit tests
       run: dotnet test --configuration Release
-      working-directory: ChromaticityDotNet
+      working-directory: ${{ github.workspace }}
     - name: Generate nuget package
       run: dotnet pack --configuration Release -o nupkg
-      working-directory: ChromaticityDotNet
+      working-directory: ${{ github.workspace }}
     - name: Push nuget package
       run: dotnet nuget push **/*.nupkg -s 'https://api.nuget.org/v3/index.json' -k ${{secrets.CHROMATICITYDOTNETAPI}} --skip-duplicate
-      working-directory: ChromaticityDotNet
+      working-directory: ${{ github.workspace }}
