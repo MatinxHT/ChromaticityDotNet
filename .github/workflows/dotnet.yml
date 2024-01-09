@@ -6,7 +6,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -16,14 +15,14 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: Build with dotnet
+      working-directory: ./src
       run: dotnet build --configuration Release
-      working-directory: ./src
     - name: Run unit tests
+      working-directory: ./src
       run: dotnet test --configuration Release
-      working-directory: ./src
     - name: Generate nuget package
+      working-directory: ./src
       run: dotnet pack --configuration Release -o nupkg
-      working-directory: ./src
     - name: Push nuget package
-      run: dotnet nuget push **\*.nupkg -s 'https://api.nuget.org/v3/index.json' -k ${{secrets.CHROMATICITYDOTNETAPI}} --skip-duplicate
       working-directory: ./src
+      run: dotnet nuget push **\*.nupkg -s 'https://api.nuget.org/v3/index.json' -k ${{secrets.CHROMATICITYDOTNETAPI}} --skip-duplicate
