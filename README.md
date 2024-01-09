@@ -21,7 +21,7 @@ dotnet add package ChromaticityDotNet
 - CIEConstant:Chromaticity(xy)/CCT/Standard Observer data
 
 ## What's more?
-- give me a Star plz
+- give me a Star ~
 
 ## 免责申明
 
