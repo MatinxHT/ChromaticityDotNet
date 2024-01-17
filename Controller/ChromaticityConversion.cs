@@ -325,9 +325,9 @@ namespace ChromaticityDotNet.Controller
         {
             return new CIEXYZ()
             {
-                CIEX = xyY.CIEx * xyY.CIEY / xyY.CIEy,
-                CIEY = xyY.CIEY,
-                CIEZ = (1 - xyY.CIEx - xyY.CIEy) * xyY.CIEY / xyY.CIEy
+                CIEX = Math.Round(xyY.CIEx * xyY.CIEY / xyY.CIEy, 2),
+                CIEY = Math.Round(xyY.CIEY, 2),
+                CIEZ = Math.Round((1 - xyY.CIEx - xyY.CIEy) * xyY.CIEY / xyY.CIEy, 2)
             };
         }
 
