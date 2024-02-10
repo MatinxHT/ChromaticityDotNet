@@ -22,8 +22,9 @@ dotnet add package ChromaticityDotNet
 
 ## Code Sample
 - build up an Color obj
-in 'ChromaticityDotNet' Color Mdoels are fill in namespace 'ChromaticityDotNet.Model.DataModel'.so we can use code as follow to build color obj:
-'''
+in `ChromaticityDotNet` Color Mdoels are fill in namespace `ChromaticityDotNet.Model.DataModel`.so we can use code as follow to build color obj:
+
+```csharp
 using static ChromaticityDotNet.Model.DataModel;
 
 var lab = new CIELABCH()
@@ -32,7 +33,7 @@ CIEL=95.2,
 CIEA = 24.5,
 CIEB = 12.34
 };
-'''
+```
 
 ## What's more?
 - give me a Star ~
