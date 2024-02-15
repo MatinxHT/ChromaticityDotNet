@@ -26,6 +26,7 @@ in `ChromaticityDotNet` Color Mdoels are fill in namespace `ChromaticityDotNet.M
 
 ```csharp
 using static ChromaticityDotNet.Model.DataModel;
+// add to the top
 
 var lab = new CIELABCH()
 {
