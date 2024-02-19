@@ -139,38 +139,38 @@ namespace ChromaticityDotNet.Controller
             b = 200.0 * (temY - temZ);
 
             if (L < 0) L = 0.00;
-            C = Math.Sqrt(a * a + b * b);
-            if ((a == 0) && (b > 0))
-                H = 90;
-            else if ((a == 0) && (b < 0))
-                H = 270;
-            else if ((a >= 0) && (b == 0))
-                H = 0;
-            else if ((a < 0) && (b == 0))
-                H = 180;
-            else
-            {
-                H = Math.Atan(b / a);
-                H = H * 57.3;
-                if ((a > 0) && (b > 0))
-                    H = H;
-                else if (a < 0)
-                    H = 180 + H;
-                else
-                    H = 360 + H;
-            }
+            //C = Math.Sqrt(a * a + b * b);
+            //if ((a == 0) && (b > 0))
+            //    H = 90;
+            //else if ((a == 0) && (b < 0))
+            //    H = 270;
+            //else if ((a >= 0) && (b == 0))
+            //    H = 0;
+            //else if ((a < 0) && (b == 0))
+            //    H = 180;
+            //else
+            //{
+            //    H = Math.Atan(b / a);
+            //    H = H * 57.3;
+            //    if ((a > 0) && (b > 0))
+            //        H = H;
+            //    else if (a < 0)
+            //        H = 180 + H;
+            //    else
+            //        H = 360 + H;
+            //}
 
             double[] labch = new double[7];
-            labch[0] = L;
-            labch[1] = a;
-            labch[2] = b;
-            labch[3] = C;
-            labch[4] = H;
+            labch[0] = Math.Round(labch[0], 2);
+            labch[1] = Math.Round(labch[1], 2);
+            labch[2] = Math.Round(labch[2], 2);
+            //labch[3] = C;
+            //labch[4] = H;
 
-            double[] lab = new double[3];
-            lab[0] = Math.Round(labch[0], 2); // 将 L 值保留小数点后两位
-            lab[1] = Math.Round(labch[1], 2);
-            lab[2] = Math.Round(labch[2], 2);
+            //double[] lab = new double[3];
+            //lab[0] = Math.Round(labch[0], 2); // 将 L 值保留小数点后两位
+            //lab[1] = Math.Round(labch[1], 2);
+            //lab[2] = Math.Round(labch[2], 2);
 
             return new CIELABCH
             {
