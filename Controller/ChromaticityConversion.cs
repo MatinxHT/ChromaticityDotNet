@@ -176,9 +176,7 @@ namespace ChromaticityDotNet.Controller
             {
                 CIEL = labch[0],
                 CIEA = labch[1],
-                CIEB = labch[2],
-                CIEC = labch[3],
-                CIEH = labch[4]
+                CIEB = labch[2]
             };
 
         }
