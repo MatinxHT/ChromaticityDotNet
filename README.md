@@ -4,10 +4,10 @@
 ![Nuget (with prereleases)](https://img.shields.io/nuget/vpre/ChromaticityDotNet)
 
 ## About
-ChromaticityDotNet is a .Net Core SDK for chromaticity programming. You can find some useful standard illuminant data in 'ChromaticityDotNet.Model' and cover color space conversion and color difference calculations in 'ChromaticityDotNet.Controller.' You can also perform any other tasks you need.
+ChromaticityDotNet is a .Net Core SDK for chromaticity programming. You can find some useful standard illuminant data in `ChromaticityDotNet.Model` and cover color space conversion and color difference calculations in `ChromaticityDotNet.Controller`. You can also perform any other tasks you need.
 
-## [NuGet packages](https://www.nuget.org/packages/ChromaticityDotNet)
-```
+## Install [NuGet packages](https://www.nuget.org/packages/ChromaticityDotNet)
+```bash
 dotnet add package ChromaticityDotNet
 ```
 
@@ -20,9 +20,24 @@ dotnet add package ChromaticityDotNet
 - StandardilluminantClass:CIE standard illuminant data(D65/A/CWF)
 - CIEConstant:Chromaticity(xy)/CCT/Standard Observer data
 
+## Code Sample
+- build up an Color obj
+in `ChromaticityDotNet` Color Mdoels are fill in namespace `ChromaticityDotNet.Model.DataModel`.so we can use code as follow to build color obj:
+
+```csharp
+using static ChromaticityDotNet.Model.DataModel;
+// add to the top
+
+var lab = new CIELABCH()
+{
+CIEL = 95.2,
+CIEA = 24.5,
+CIEB = 12.34
+};
+```
 
 ## What's more?
-- give me a Star plz
+- give me a Star ~
 
 ## 免责申明
 

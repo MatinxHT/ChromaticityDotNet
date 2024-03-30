@@ -15,7 +15,7 @@ namespace ChromaticityDotNet.Controller
     public class ChromaticityConversion
     {
         #region From Ref to ...
-        public static double[] REFtoXYZ(double[] REFDATA, Standardilluminant illuminant,StandardObserver standardObserver)
+        public static CIEXYZ REFtoXYZ(double[] REFDATA, Standardilluminant illuminant,StandardObserver standardObserver)
         {
             IStandardilluminant StandaredIlluminant = ChromaticityMatch.GetStandardilluminantdata(illuminant);
             
@@ -86,7 +86,12 @@ namespace ChromaticityDotNet.Controller
             XYZ[5] = XYZn[2];    // Zn
 
             //return true;
-            return XYZ;
+            return new CIEXYZ
+            {
+                CIEX = XYZ[0],
+                CIEY = XYZ[1],
+                CIEZ = XYZ[2]
+            };
         }
 
         #endregion
@@ -134,46 +139,44 @@ namespace ChromaticityDotNet.Controller
             b = 200.0 * (temY - temZ);
 
             if (L < 0) L = 0.00;
-            C = Math.Sqrt(a * a + b * b);
-            if ((a == 0) && (b > 0))
-                H = 90;
-            else if ((a == 0) && (b < 0))
-                H = 270;
-            else if ((a >= 0) && (b == 0))
-                H = 0;
-            else if ((a < 0) && (b == 0))
-                H = 180;
-            else
-            {
-                H = Math.Atan(b / a);
-                H = H * 57.3;
-                if ((a > 0) && (b > 0))
-                    H = H;
-                else if (a < 0)
-                    H = 180 + H;
-                else
-                    H = 360 + H;
-            }
+            //C = Math.Sqrt(a * a + b * b);
+            //if ((a == 0) && (b > 0))
+            //    H = 90;
+            //else if ((a == 0) && (b < 0))
+            //    H = 270;
+            //else if ((a >= 0) && (b == 0))
+            //    H = 0;
+            //else if ((a < 0) && (b == 0))
+            //    H = 180;
+            //else
+            //{
+            //    H = Math.Atan(b / a);
+            //    H = H * 57.3;
+            //    if ((a > 0) && (b > 0))
+            //        H = H;
+            //    else if (a < 0)
+            //        H = 180 + H;
+            //    else
+            //        H = 360 + H;
+            //}
 
             double[] labch = new double[7];
-            labch[0] = L;
-            labch[1] = a;
-            labch[2] = b;
-            labch[3] = C;
-            labch[4] = H;
+            labch[0] = Math.Round(labch[0], 2);
+            labch[1] = Math.Round(labch[1], 2);
+            labch[2] = Math.Round(labch[2], 2);
+            //labch[3] = C;
+            //labch[4] = H;
 
-            double[] lab = new double[3];
-            lab[0] = Math.Round(labch[0], 2); // 将 L 值保留小数点后两位
-            lab[1] = Math.Round(labch[1], 2);
-            lab[2] = Math.Round(labch[2], 2);
+            //double[] lab = new double[3];
+            //lab[0] = Math.Round(labch[0], 2); // 将 L 值保留小数点后两位
+            //lab[1] = Math.Round(labch[1], 2);
+            //lab[2] = Math.Round(labch[2], 2);
 
             return new CIELABCH
             {
                 CIEL = labch[0],
                 CIEA = labch[1],
-                CIEB = labch[2],
-                CIEC = labch[3],
-                CIEH = labch[4]
+                CIEB = labch[2]
             };
 
         }
@@ -320,9 +323,9 @@ namespace ChromaticityDotNet.Controller
         {
             return new CIEXYZ()
             {
-                CIEX = xyY.CIEx * xyY.CIEY / xyY.CIEy,
-                CIEY = xyY.CIEY,
-                CIEZ = (1 - xyY.CIEx - xyY.CIEy) * xyY.CIEY / xyY.CIEy
+                CIEX = Math.Round(xyY.CIEx * xyY.CIEY / xyY.CIEy, 2),
+                CIEY = Math.Round(xyY.CIEY, 2),
+                CIEZ = Math.Round((1 - xyY.CIEx - xyY.CIEy) * xyY.CIEY / xyY.CIEy, 2)
             };
         }
 

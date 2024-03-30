@@ -17,6 +17,8 @@ namespace ChromaticityDotNet.Model
         /// </summary>
         public class StandardilluminantClass
         {
+            #region Data Foramat
+
             /// <summary>
             /// class of Standard illuminant format
             /// </summary>
@@ -40,6 +42,10 @@ namespace ChromaticityDotNet.Model
                 Degree2,
                 Degree10
             }
+
+            #endregion
+
+            #region Standard Illuminant
 
             public class D65 : IStandardilluminant
             {
@@ -149,14 +155,11 @@ namespace ChromaticityDotNet.Model
                     WavelengthInterval = 10,
                     EndingWavelength = 700,
                     Spectrums = new double[31]
-                    {
-                        14.708,17.6753,20.995,24.2873,28.7027,33.0859,37.8121,42.8693,48.2423,
-                        53.9132,59.8511,66.0635,72.4959,79.1326,85.947,92.912,100,107.184,114.436,
-                        121.731,129.043,136.346,143.618,150.836,157.979,165.028,171.963,178.769,
-                        185.429,191.931,198.261
-                    }
+                    {14.708,17.6753,20.995,24.2873,28.7027,33.0859,37.8121,42.8693,48.2423,53.9132,59.8511,66.0635,72.4959,79.1326,85.947,92.912,100,107.184,114.436,121.731,129.043,136.346,143.618,150.836,157.979,165.028,171.963,178.769,185.429,191.931,198.261}
                 };
             }
+
+            #endregion
 
         }
 
