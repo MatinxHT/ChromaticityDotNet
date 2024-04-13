@@ -9,6 +9,7 @@
     <Authors>MartinHung</Authors>
     <Copyright>Foshan Double-Brilliant Technology Co.,Ltd</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <LangVersion>10.0</LangVersion>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <RepositoryUrl>https://github.com/MatinxHT/ChromaticityDotNet</RepositoryUrl>
