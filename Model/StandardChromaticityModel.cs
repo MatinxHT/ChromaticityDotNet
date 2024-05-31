@@ -30,6 +30,9 @@ namespace ChromaticityDotNet.Model
                 DataModel.Spectrum Spectrum { get; }
             }
 
+            /// <summary>
+            /// CIE Standardilluminant Type
+            /// </summary>
             public enum Standardilluminant
             {
                 D65,
@@ -37,6 +40,9 @@ namespace ChromaticityDotNet.Model
                 CWF
             }
 
+            /// <summary>
+            /// CIE StandardObserver Degree
+            /// </summary>
             public enum StandardObserver
             {
                 Degree2,
@@ -47,6 +53,9 @@ namespace ChromaticityDotNet.Model
 
             #region Standard Illuminant
 
+            /// <summary>
+            /// D65 Standardilluminant
+            /// </summary>
             public class D65 : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.D65;
@@ -86,6 +95,9 @@ namespace ChromaticityDotNet.Model
                 };
             }
 
+            /// <summary>
+            /// CWF Standardilluminant
+            /// </summary>
             public class CWF : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.CWF;
@@ -116,13 +128,45 @@ namespace ChromaticityDotNet.Model
                     EndingWavelength = 700,
                     Spectrums = new double[31]
                     {
-                        03.44,03.85,04.19,5.06,11.81,06.63,07.19,07.54,07.65,07.62,
-                        07.28, 07.05, 07.16,08.04,10.01,16.64,16.16,18.62,22.79,18.66,
-                        16.54,13.80,10.95,08.40,06.31,04.68,03.45,02.55,01.89,01.53,01.10
+                        03.44,
+                        03.85,
+                        04.19,
+                        5.06,
+                        11.81,
+                        06.63,
+                        07.19,
+                        07.54,
+                        07.65,
+                        07.62,
+                        07.28,
+                        07.05,
+                        07.16,
+                        08.04,
+                        10.01,
+                        16.64,
+                        16.16,
+                        18.62,
+                        22.79,
+                        18.66,
+                        16.54,
+                        13.80,
+                        10.95,
+                        08.40,
+                        06.31,
+                        04.68,
+                        03.45,
+                        02.55,
+                        01.89,
+                        01.53,
+                        01.10
                     }
+
                 };
             }
 
+            /// <summary>
+            /// A Standardilluminant
+            /// </summary>
             public class A : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.A;
@@ -156,10 +200,39 @@ namespace ChromaticityDotNet.Model
                     EndingWavelength = 700,
                     Spectrums = new double[31]
                     {
-                        14.708, 17.6753, 20.995, 24.2873, 28.7027, 33.0859, 37.8121, 42.8693, 48.2423, 53.9132, 59.8511,
-                        66.0635, 72.4959, 79.1326, 85.947, 92.912, 100, 107.184, 114.436, 121.731, 129.043, 136.346,
-                        143.618, 150.836, 157.979, 165.028, 171.963, 178.769, 185.429, 191.931, 198.261
+                        14.708,
+                        17.6753,
+                        20.995,
+                        24.2873,
+                        28.7027,
+                        33.0859,
+                        37.8121,
+                        42.8693,
+                        48.2423,
+                        53.9132,
+                        59.8511,
+                        66.0635,
+                        72.4959,
+                        79.1326,
+                        85.947,
+                        92.912,
+                        100,
+                        107.184,
+                        114.436,
+                        121.731,
+                        129.043,
+                        136.346,
+                        143.618,
+                        150.836,
+                        157.979,
+                        165.028,
+                        171.963,
+                        178.769,
+                        185.429,
+                        191.931,
+                        198.261
                     }
+
                 };
             }
 
