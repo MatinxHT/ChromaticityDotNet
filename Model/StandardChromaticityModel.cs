@@ -56,52 +56,43 @@ namespace ChromaticityDotNet.Model
             /// <summary>
             /// D65 Standardilluminant
             /// </summary>
-            public class D65 
+            public class D65 : IStandardilluminant
             {
-                public static Standardilluminant IlluminantName => Standardilluminant.D65;
-
-                public static DataModel.StandardWhitePoint WhitePoint_Degree2 { get; }
-                public static DataModel.StandardWhitePoint WhitePoint_Degree10 { get; }
-                public static DataModel.Spectrum Spectrum { get; }
-
-                static D65()
+                public Standardilluminant IlluminantName => Standardilluminant.D65;
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
                 {
-                    WhitePoint_Degree2 = new DataModel.StandardWhitePoint()
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
                     {
-                        WhitePointXnYnZn = new DataModel.CIEXYZ()
-                        {
-                            CIEX = 95.047,
-                            CIEY = 100.000,
-                            CIEZ = 108.883
-                        },
-                        Observer = StandardObserver.Degree2
-                    };
+                        CIEX = 95.047,
+                        CIEY = 100.000,
+                        CIEZ = 108.883
+                    },
+                    Observer = StandardObserver.Degree2
+                };
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
+                {
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
+                    {
+                        CIEX = 94.811,
+                        CIEY = 100.000,
+                        CIEZ = 107.304
+                    },
+                    Observer = StandardObserver.Degree10
+                };
 
-                    WhitePoint_Degree10 = new DataModel.StandardWhitePoint()
+                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
+                {
+                    StartingWavelength = 400,
+                    WavelengthInterval = 10,
+                    EndingWavelength = 700,
+                    Spectrums = new double[31]
                     {
-                        WhitePointXnYnZn = new DataModel.CIEXYZ()
-                        {
-                            CIEX = 94.811,
-                            CIEY = 100.000,
-                            CIEZ = 107.304
-                        },
-                        Observer = StandardObserver.Degree10
-                    };
-
-                    Spectrum = new DataModel.Spectrum()
-                    {
-                        StartingWavelength = 400,
-                        WavelengthInterval = 10,
-                        EndingWavelength = 700,
-                        Spectrums = new double[31]
-                        {
-                            82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008, 117.812, 114.861,
+                        82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008, 117.812, 114.861,
                         115.923, 108.811, 109.354, 107.802, 104.79, 107.689, 104.405, 104.046,
                         100.0, 96.3342, 95.788, 88.6856, 90.0062, 89.5991, 87.6987, 83.2886,
                         83.6992, 80.0268, 80.2146, 82.2778, 78.2842, 69.7213, 71.6091
-                        }
-                    };
-                }
+                    }
+                };
             }
 
             /// <summary>
