@@ -53,19 +53,19 @@ namespace ChromaticityDotNet.Model
             public double CIEL
             {
                 get { return _ciel; }
-                set { _ciel = Math.Min(Math.Max(0, value), 250); }
+                set { _ciel = value; }
             }
 
             public double CIEA
             {
                 get { return _ciea; }
-                set { _ciea = Math.Min(Math.Max(-128, value), 128); }
+                set { _ciea = value; }
             }
 
             public double CIEB
             {
                 get { return _cieb; }
-                set { _cieb = Math.Min(Math.Max(-128, value), 128); }
+                set { _cieb = value; }
             }
 
             public double CIEC
@@ -79,6 +79,7 @@ namespace ChromaticityDotNet.Model
                 get { return _cieh; }
                 private set { _cieh = value; }
             }
+
 
             // 构造函数，初始化属性
             public CIELABCH(double ciel, double ciea, double cieb)
