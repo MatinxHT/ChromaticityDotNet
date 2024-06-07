@@ -55,17 +55,16 @@ namespace ChromaticityDotNet.Model
                 get { return _ciel; }
                 set { _ciel = value; }
             }
-
             public double CIEA
             {
                 get { return _ciea; }
-                set { _ciea = value; }
+                set { _ciea = value; UpdateCH(); }
             }
 
             public double CIEB
             {
                 get { return _cieb; }
-                set { _cieb = value; }
+                set { _cieb = value; UpdateCH(); }
             }
 
             public double CIEC
@@ -87,29 +86,18 @@ namespace ChromaticityDotNet.Model
                 CIEL = ciel;
                 CIEA = ciea;
                 CIEB = cieb;
-                CalculateCIEC();
-                CalculateCIEH();
             }
 
-            // 默认构造函数
             public CIELABCH()
             {
-                // 可以在这里添加默认的初始化逻辑
+
             }
 
-            // 计算CIEC的方法
-            private void CalculateCIEC()
+            private void UpdateCH()
             {
-                _ciec = Math.Round(Math.Sqrt(Math.Pow(CIEA, 2) + Math.Pow(CIEB, 2)),2);
-            }
-
-            // 计算CIEH的方法
-            private void CalculateCIEH()
-            {
-                CIEH = Math.Atan2(CIEB, CIEA) * (180 / Math.PI);
-                if (CIEH < 0)
-                    CIEH += 360;
-                _cieh = Math.Round(CIEH, 2);
+                _ciec = Math.Round(Math.Sqrt(_ciea * _ciea + _cieb * _cieb), 2);  // 计算色度
+                _cieh = Math.Round(Math.Atan2(_cieb, _ciea) * (180 / Math.PI), 2); // 计算色调，转换为度
+                if (_cieh < 0) _cieh += 360; // 确保色调为正值
             }
         }
 
