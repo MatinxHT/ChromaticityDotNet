@@ -49,6 +49,15 @@ namespace ChromaticityDotNet.Model
                 Degree10
             }
 
+            /// <summary>
+            /// SpecularComponentHandling
+            /// </summary>
+            public enum SpecularInclusion
+            {
+                SCI,
+                SCE
+            }
+
             #endregion
 
             #region Standard Illuminant
