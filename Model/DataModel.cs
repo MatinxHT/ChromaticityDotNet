@@ -100,7 +100,7 @@ namespace ChromaticityDotNet.Model
             // 计算CIEC的方法
             private void CalculateCIEC()
             {
-                CIEC = Math.Round(Math.Sqrt(Math.Pow(CIEA, 2) + Math.Pow(CIEB, 2)),2);
+                _ciec = Math.Round(Math.Sqrt(Math.Pow(CIEA, 2) + Math.Pow(CIEB, 2)),2);
             }
 
             // 计算CIEH的方法
@@ -109,7 +109,7 @@ namespace ChromaticityDotNet.Model
                 CIEH = Math.Atan2(CIEB, CIEA) * (180 / Math.PI);
                 if (CIEH < 0)
                     CIEH += 360;
-                CIEH = Math.Round(CIEH, 2);
+                _cieh = Math.Round(CIEH, 2);
             }
         }
 
