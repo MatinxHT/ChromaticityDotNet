@@ -126,6 +126,40 @@ namespace ChromaticityDotNet.Model
         }
 
         #endregion
+
+    }
+
+    public class ColorDifferenceEquationResults
+    {
+        /// <summary>
+        /// 整体色差差异
+        /// </summary>
+        public double DeltaE { get; set; }
+        /// <summary>
+        /// 明度方向的色差情况
+        /// </summary>
+        public double DeltaLonly { get; set; }
+        /// <summary>
+        /// 饱和度方向的色差情况
+        /// </summary>
+        public double DeltaConly { get; set; }
+        /// <summary>
+        /// 色相方向的色差情况
+        /// </summary>
+        public double DeltaHonly { get; set; }
+        /// <summary>
+        /// 明度数值差
+        /// </summary>
+        public double DL { get; set; }
+        /// <summary>
+        /// 饱和度数值差
+        /// </summary>
+        public double DC { get; set; }
+        /// <summary>
+        /// 色相数值差
+        /// </summary>
+        public double DH { get; set; }
+
     }
 
     public class ConfigEnum

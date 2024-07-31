@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ChromaticityDotNet.Model;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -57,7 +58,7 @@ namespace ChromaticityDotNet.Controller
         /// <param name="kC"></param>
         /// <param name="kH"></param>
         /// <returns>DeltaE2000</returns>
-        public static double DeltaE2000(CIELABCH standard, CIELABCH sample, double kL, double kC, double kH)
+        public static ColorDifferenceEquationResults DeltaE2000(CIELABCH standard, CIELABCH sample, double kL, double kC, double kH)
         {
             double Ls = standard.CIEL;
             double As = standard.CIEA;
@@ -111,6 +112,7 @@ namespace ChromaticityDotNet.Controller
             double cBarPrime7 = cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime;
             double rC = Math.Sqrt(cBarPrime7 / (cBarPrime7 + 6103515625.0f));
             double rT = -2.0f * rC * Math.Sin(Math.PI * (2.0f * dTheta) / 180.0f);
+
             //DeltaEresult result = new()
             //{
             //    DL = sample.L - standard.L,
@@ -134,7 +136,25 @@ namespace ChromaticityDotNet.Controller
                 (dCPrime / (kC * sC)) * (dHPrime / (kH * sH)) * rT
             ), 2);
 
-            return DeltaE;
+            ColorDifferenceEquationResults results = new()
+            {
+                DeltaE = Math.Round(Math.Sqrt(
+                (dLPrime / (kL * sL)) * (dLPrime / (kL * sL)) +
+                (dCPrime / (kC * sC)) * (dCPrime / (kC * sC)) +
+                (dHPrime / (kH * sH)) * (dHPrime / (kH * sH)) +
+                (dCPrime / (kC * sC)) * (dHPrime / (kH * sH)) * rT
+            ), 2),
+                DC = c2 - c1,
+                DL = sample.CIEL - standard.CIEL,
+                DH = h2Prime - h1Prime,
+                DeltaConly = Math.Round(Math.Sqrt((dCPrime / (kC * sC)) * (dCPrime / (kC * sC))), 2),
+                DeltaHonly = Math.Round(Math.Sqrt((dHPrime / (kH * sH)) * (dHPrime / (kH * sH))), 2),
+                DeltaLonly = Math.Round(Math.Sqrt((dLPrime / (kL * sL)) * (dLPrime / (kL * sL))), 2),
+
+                
+            };
+
+            return results;
         }
 
         /// <summary>
