@@ -37,7 +37,10 @@ namespace ChromaticityDotNet.Model
             {
                 D65,
                 A,
-                CWF
+                CWF,
+                F7,
+                TL84,
+                U30
             }
 
             /// <summary>
@@ -103,76 +106,7 @@ namespace ChromaticityDotNet.Model
                     }
                 };
             }
-
-            /// <summary>
-            /// CWF Standardilluminant
-            /// </summary>
-            public class CWF : IStandardilluminant
-            {
-                public Standardilluminant IlluminantName => Standardilluminant.CWF;
-                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 99.14,
-                        CIEY = 100.00,
-                        CIEZ = 67.32
-                    },
-                    Observer = StandardObserver.Degree2
-                };
-                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 103.25,
-                        CIEY = 100.00,
-                        CIEZ = 68.99
-                    },
-                    Observer = StandardObserver.Degree10
-                };
-                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
-                {
-                    StartingWavelength = 400,
-                    WavelengthInterval = 10,
-                    EndingWavelength = 700,
-                    Spectrums = new double[31]
-                    {
-                        03.44,
-                        03.85,
-                        04.19,
-                        5.06,
-                        11.81,
-                        06.63,
-                        07.19,
-                        07.54,
-                        07.65,
-                        07.62,
-                        07.28,
-                        07.05,
-                        07.16,
-                        08.04,
-                        10.01,
-                        16.64,
-                        16.16,
-                        18.62,
-                        22.79,
-                        18.66,
-                        16.54,
-                        13.80,
-                        10.95,
-                        08.40,
-                        06.31,
-                        04.68,
-                        03.45,
-                        02.55,
-                        01.89,
-                        01.53,
-                        01.10
-                    }
-
-                };
-            }
-
+            
             /// <summary>
             /// A Standardilluminant
             /// </summary>
@@ -243,6 +177,283 @@ namespace ChromaticityDotNet.Model
                     }
 
                 };
+            }
+
+            /// <summary>
+            /// CWF/F2 Standardilluminant 
+            /// </summary>
+            public class CWF : IStandardilluminant
+            {
+                public Standardilluminant IlluminantName => Standardilluminant.CWF;
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
+                {
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
+                    {
+                        CIEX = 99.14,
+                        CIEY = 100.00,
+                        CIEZ = 67.32
+                    },
+                    Observer = StandardObserver.Degree2
+                };
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
+                {
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
+                    {
+                        CIEX = 103.25,
+                        CIEY = 100.00,
+                        CIEZ = 68.99
+                    },
+                    Observer = StandardObserver.Degree10
+                };
+                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
+                {
+                    StartingWavelength = 400,
+                    WavelengthInterval = 10,
+                    EndingWavelength = 700,
+                    Spectrums = new double[31]
+                    {
+                        03.44,
+                        03.85,
+                        04.19,
+                        5.06,
+                        11.81,
+                        06.63,
+                        07.19,
+                        07.54,
+                        07.65,
+                        07.62,
+                        07.28,
+                        07.05,
+                        07.16,
+                        08.04,
+                        10.01,
+                        16.64,
+                        16.16,
+                        18.62,
+                        22.79,
+                        18.66,
+                        16.54,
+                        13.80,
+                        10.95,
+                        08.40,
+                        06.31,
+                        04.68,
+                        03.45,
+                        02.55,
+                        01.89,
+                        01.53,
+                        01.10
+                    }
+
+                };
+            }
+
+            /// <summary>
+            /// F7 Standardilluminant
+            /// </summary>
+            public class F7 : IStandardilluminant
+            {
+                public Standardilluminant IlluminantName => Standardilluminant.F7;
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
+                {
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
+                    {
+                        CIEX = 95.02,
+                        CIEY = 100.00,
+                        CIEZ = 108.63
+                    },
+                    Observer = StandardObserver.Degree2
+                };
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
+                {
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
+                    {
+                        CIEX = 95.78,
+                        CIEY = 100.00,
+                        CIEZ = 107.62
+                    },
+                    Observer = StandardObserver.Degree10
+                };
+                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
+                {
+                    StartingWavelength = 400,
+                    WavelengthInterval = 10,
+                    EndingWavelength = 700,
+                    Spectrums = new double[31]
+                    {
+                        6.15,
+                        7.37,
+                        7.71,
+                        9.15,
+                        17.52,
+                        12,
+                        13.08,
+                        13.71,
+                        13.95,
+                        13.82,
+                        13.43,
+                        13.08,
+                        12.78,
+                        12.44,
+                        12.26,
+                        17.05,
+                        12.58,
+                        12.83,
+                        16.75,
+                        12.67,
+                        12.19,
+                        11.6,
+                        11.12,
+                        10.76,
+                        10.11,
+                        10.02,
+                        9.87,
+                        7.27,
+                        5.83,
+                        5.04,
+                        4.12
+                    }
+                };
+
+            }
+
+            /// <summary>
+            /// TL84/F11 Standardilluminant 
+            /// </summary>
+            public class TL84 : IStandardilluminant 
+            {
+                public Standardilluminant IlluminantName => Standardilluminant.TL84;
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
+                {
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
+                    {
+                        CIEX = 100.90,
+                        CIEY = 100.00,
+                        CIEZ = 62.26
+                    },
+                    Observer = StandardObserver.Degree2
+                };
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
+                {
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
+                    {
+                        CIEX = 103.82,
+                        CIEY = 100.00,
+                        CIEZ = 65.56
+                    },
+                    Observer = StandardObserver.Degree10
+                };
+
+                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
+                {
+                    StartingWavelength = 400,
+                    WavelengthInterval = 10,
+                    EndingWavelength = 700,
+                    Spectrums = new double[31]
+                    {
+                        1.29,
+                        1.59,
+                        2.46,
+                        4.49,
+                        12.13,
+                        7.19,
+                        6.72,
+                        5.46,
+                        5.66,
+                        14.96,
+                        4.72,
+                        1.47,
+                        0.89,
+                        1.18,
+                        39.59,
+                        32.61,
+                        2.83,
+                        1.67,
+                        11.28,
+                        12.73,
+                        7.33,
+                        55.27,
+                        13.18,
+                        12.26,
+                        2.07,
+                        3.58,
+                        2.48,
+                        1.54,
+                        1.46,
+                        2,
+                        1.35
+                    }
+                };
+
+            }
+
+            /// <summary>
+            /// U30/F12 Standardilluminant
+            /// </summary>
+            public class U30 : IStandardilluminant
+            {
+                public Standardilluminant IlluminantName => Standardilluminant.U30;
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
+                {
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
+                    {
+                        CIEX = 108.05,
+                        CIEY = 100.00,
+                        CIEZ = 39.23
+                    },
+                    Observer = StandardObserver.Degree2
+                };
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
+                {
+                    WhitePointXnYnZn = new DataModel.CIEXYZ()
+                    {
+                        CIEX = 114.43,
+                        CIEY = 100.00,
+                        CIEZ = 40.35
+                    },
+                    Observer = StandardObserver.Degree10
+                };
+                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
+                {
+                    StartingWavelength = 400,
+                    WavelengthInterval = 10,
+                    EndingWavelength = 700,
+                    Spectrums = new double[31]
+                    {
+                        1.19,
+                        1.12,
+                        1.08,
+                        1.78,
+                        7.9,
+                        2.71,
+                        2.49,
+                        2.1,
+                        3.01,
+                        11.88,
+                        3.43,
+                        0.92,
+                        0.6,
+                        1.1,
+                        34.4,
+                        29.48,
+                        3.08,
+                        2.27,
+                        11.96,
+                        14.27,
+                        9.28,
+                        68.53,
+                        14.67,
+                        14.71,
+                        2.57,
+                        4.18,
+                        2.81,
+                        1.64,
+                        1.49,
+                        2.34,
+                        1.61
+                    }
+                };
+
             }
 
             #endregion
@@ -407,6 +618,6 @@ namespace ChromaticityDotNet.Model
             };
         }
 
-        
+
     }
 }
