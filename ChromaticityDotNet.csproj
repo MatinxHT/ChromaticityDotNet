@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.0.1.20</Version>
+    <Version>1.0.2.0</Version>
     <Company>Foshan Double-Brilliant Technology Co.,Ltd</Company>
     <Authors>MartinHung</Authors>
     <Copyright>Foshan Double-Brilliant Technology Co.,Ltd</Copyright>

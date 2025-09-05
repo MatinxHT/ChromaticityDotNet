@@ -63,15 +63,15 @@ namespace ChromaticityDotNet.Controller
                         case (Standardilluminant.CWF):
                             Standardilluminantdata = new CWF();
                             return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                            case (Standardilluminant.F7):
-                                Standardilluminantdata = new F7();
-                                return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                            case (Standardilluminant.TL84):
-                                Standardilluminantdata = new TL84();
-                                return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                            case (Standardilluminant.U30):
-                                Standardilluminantdata = new U30();
-                                return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
+                        case (Standardilluminant.F7):
+                            Standardilluminantdata = new F7();
+                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
+                        case (Standardilluminant.TL84):
+                            Standardilluminantdata = new TL84();
+                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
+                        case (Standardilluminant.U30):
+                            Standardilluminantdata = new U30();
+                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
                         case (Standardilluminant.A):
                             Standardilluminantdata = new A();
                             return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
@@ -88,14 +88,14 @@ namespace ChromaticityDotNet.Controller
                         case Standardilluminant.CWF:
                             Standardilluminantdata = new CWF();
                             return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                            case Standardilluminant.F7:
-                                Standardilluminantdata = new F7();
+                        case Standardilluminant.F7:
+                            Standardilluminantdata = new F7();
                             return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                            case Standardilluminant.TL84:
-                                Standardilluminantdata = new TL84();
+                        case Standardilluminant.TL84:
+                            Standardilluminantdata = new TL84();
                             return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                            case Standardilluminant.U30:
-                                Standardilluminantdata = new U30();
+                        case Standardilluminant.U30:
+                            Standardilluminantdata = new U30();
                             return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
                         case Standardilluminant.A:
                             Standardilluminantdata = new A();
