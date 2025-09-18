@@ -151,6 +151,9 @@ namespace ChromaticityDotNet.Model
         /// 明度数值差
         /// </summary>
         public double DL { get; set; }
+        public double DA { get; set; }
+        public double DB { get; set; }
+
         /// <summary>
         /// 饱和度数值差
         /// </summary>

@@ -144,9 +144,11 @@ namespace ChromaticityDotNet.Controller
                 (dHPrime / (kH * sH)) * (dHPrime / (kH * sH)) +
                 (dCPrime / (kC * sC)) * (dHPrime / (kH * sH)) * rT
             ), 2),
-                DC = c2 - c1,
-                DL = sample.CIEL - standard.CIEL,
-                DH = h2Prime - h1Prime,
+                DA = Math.Round(sample.CIEA - standard.CIEA, 2),
+                DB = Math.Round(sample.CIEB - standard.CIEB, 2),
+                DC = Math.Round(c2 - c1,2),
+                DL = Math.Round(sample.CIEL - standard.CIEL,2),
+                DH = Math.Round(h2Prime - h1Prime,2),
                 DeltaConly = Math.Round(Math.Sqrt((dCPrime / (kC * sC)) * (dCPrime / (kC * sC))), 2),
                 DeltaHonly = Math.Round(Math.Sqrt((dHPrime / (kH * sH)) * (dHPrime / (kH * sH))), 2),
                 DeltaLonly = Math.Round(Math.Sqrt((dLPrime / (kL * sL)) * (dLPrime / (kL * sL))), 2),
