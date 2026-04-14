@@ -1,9 +1,4 @@
 ﻿using ChromaticityDotNet.Model;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static ChromaticityDotNet.Model.DataModel;
 
 namespace ChromaticityDotNet.Controller
@@ -112,29 +107,6 @@ namespace ChromaticityDotNet.Controller
             double cBarPrime7 = cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime;
             double rC = Math.Sqrt(cBarPrime7 / (cBarPrime7 + 6103515625.0f));
             double rT = -2.0f * rC * Math.Sin(Math.PI * (2.0f * dTheta) / 180.0f);
-
-            //DeltaEresult result = new()
-            //{
-            //    DL = sample.L - standard.L,
-            //    DC = c2 - c1,
-            //    DH = h2Prime - h1Prime,
-            //    DeltaLonly = Math.Round(Math.Sqrt((dLPrime / (kL * sL)) * (dLPrime / (kL * sL))), 2),
-            //    DeltaConly = Math.Round(Math.Sqrt((dCPrime / (kC * sC)) * (dCPrime / (kC * sC))), 2),
-            //    DeltaHonly = Math.Round(Math.Sqrt((dHPrime / (kH * sH)) * (dHPrime / (kH * sH))), 2),
-            //    DeltaE = Math.Round(Math.Sqrt(
-            //    (dLPrime / (kL * sL)) * (dLPrime / (kL * sL)) +
-            //    (dCPrime / (kC * sC)) * (dCPrime / (kC * sC)) +
-            //    (dHPrime / (kH * sH)) * (dHPrime / (kH * sH)) +
-            //    (dCPrime / (kC * sC)) * (dHPrime / (kH * sH)) * rT
-            //), 2)
-            //};
-
-            double DeltaE = Math.Round(Math.Sqrt(
-                (dLPrime / (kL * sL)) * (dLPrime / (kL * sL)) +
-                (dCPrime / (kC * sC)) * (dCPrime / (kC * sC)) +
-                (dHPrime / (kH * sH)) * (dHPrime / (kH * sH)) +
-                (dCPrime / (kC * sC)) * (dHPrime / (kH * sH)) * rT
-            ), 2);
 
             ColorDifferenceEquationResults results = new()
             {

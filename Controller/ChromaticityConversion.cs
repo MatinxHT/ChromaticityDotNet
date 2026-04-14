@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static ChromaticityDotNet.Model.DataModel;
+﻿using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 

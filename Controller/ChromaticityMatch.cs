@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static ChromaticityDotNet.Model.DataModel;
+﻿using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
 namespace ChromaticityDotNet.Controller
@@ -50,65 +45,16 @@ namespace ChromaticityDotNet.Controller
         /// <returns>StandardWhitePoint in choosen illuminant and observer </returns>
         public static CIEXYZ GetStandardWhitePoint(Standardilluminant illuminant, StandardObserver observer)
         {
-            IStandardilluminant Standardilluminantdata;
+            IStandardilluminant data = GetStandardilluminantdata(illuminant);
 
             switch (observer)
             {
-                case (StandardObserver.Degree10):
-                    switch (illuminant)
-                    {
-                        case (Standardilluminant.D65):
-                            Standardilluminantdata = new D65();
-                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                        case (Standardilluminant.CWF):
-                            Standardilluminantdata = new CWF();
-                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                        case (Standardilluminant.F7):
-                            Standardilluminantdata = new F7();
-                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                        case (Standardilluminant.TL84):
-                            Standardilluminantdata = new TL84();
-                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                        case (Standardilluminant.U30):
-                            Standardilluminantdata = new U30();
-                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                        case (Standardilluminant.A):
-                            Standardilluminantdata = new A();
-                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                        default:
-                            Standardilluminantdata = new D65();
-                            return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
-                    }
-                case (StandardObserver.Degree2):
-                    switch (illuminant)
-                    {
-                        case Standardilluminant.D65:
-                            Standardilluminantdata = new D65();
-                            return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                        case Standardilluminant.CWF:
-                            Standardilluminantdata = new CWF();
-                            return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                        case Standardilluminant.F7:
-                            Standardilluminantdata = new F7();
-                            return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                        case Standardilluminant.TL84:
-                            Standardilluminantdata = new TL84();
-                            return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                        case Standardilluminant.U30:
-                            Standardilluminantdata = new U30();
-                            return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                        case Standardilluminant.A:
-                            Standardilluminantdata = new A();
-                            return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                        default:
-                            Standardilluminantdata = new D65();
-                            return Standardilluminantdata.WhitePoint_Degree2.WhitePointXnYnZn;
-                    }
+                case StandardObserver.Degree2:
+                    return data.WhitePoint_Degree2.WhitePointXnYnZn;
+                case StandardObserver.Degree10:
                 default:
-                    Standardilluminantdata = new D65();
-                    return Standardilluminantdata.WhitePoint_Degree10.WhitePointXnYnZn;
+                    return data.WhitePoint_Degree10.WhitePointXnYnZn;
             }
-
         }
     }
 }

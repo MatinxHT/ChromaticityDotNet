@@ -1,10 +1,4 @@
-﻿using System;
-//using System.Drawing;
-using System.Reflection;
-using System.Windows;
-using System.Runtime.ConstrainedExecution;
-using System.Text;
-using System.Xml.Linq;
+﻿using System.Reflection;
 
 namespace ChromaticityDotNet
 {
