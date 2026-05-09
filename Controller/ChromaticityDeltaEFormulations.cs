@@ -186,7 +186,7 @@ namespace ChromaticityDotNet.Controller
             }
 
             double deltaELab_square = Math.Pow((L - Ls), 2) + Math.Pow((A - As), 2) + Math.Pow((B - Bs), 2);
-            double deltaH = p * q * Math.Sqrt(deltaELab_square - Math.Pow(deltaL, 2) - Math.Pow(deltaC, 2));
+            double deltaH = p * q * Math.Sqrt(Math.Max(0.0, deltaELab_square - Math.Pow(deltaL, 2) - Math.Pow(deltaC, 2)));
 
             double S_L, S_C, S_H, f, T;
             if (Ls < 16.0)
