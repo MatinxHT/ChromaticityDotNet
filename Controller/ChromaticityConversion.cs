@@ -26,9 +26,9 @@ namespace ChromaticityDotNet.Controller
             switch (standardObserver)
             {
                 case StandardObserver.Degree2:
-                    xx = CIEConstant.XX_10.Spectrums;
-                    yy = CIEConstant.YY_10.Spectrums;
-                    zz = CIEConstant.ZZ_10.Spectrums;
+                    xx = CIEConstant.XX_2.Spectrums;
+                    yy = CIEConstant.YY_2.Spectrums;
+                    zz = CIEConstant.ZZ_2.Spectrums;
                     break;
 
                 default:
@@ -82,9 +82,9 @@ namespace ChromaticityDotNet.Controller
                 case StandardObserver.Degree2:
                     {
                         //will be update..
-                        xx = CIEConstant.XX_10.Spectrums;
-                        yy = CIEConstant.YY_10.Spectrums;
-                        zz = CIEConstant.ZZ_10.Spectrums;
+                        xx = CIEConstant.XX_2.Spectrums;
+                        yy = CIEConstant.YY_2.Spectrums;
+                        zz = CIEConstant.ZZ_2.Spectrums;
                         break;
                     }
                 case StandardObserver.Degree10:

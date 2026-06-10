@@ -470,6 +470,17 @@
                 }
             };
 
+            public static DataModel.Spectrum XX_2 => new DataModel.Spectrum()
+            {
+                StartingWavelength = 400,
+                WavelengthInterval = 10,
+                EndingWavelength = 700,
+                Spectrums = new double[31]
+                {
+                    0.17334,0.17258,0.17141,0.16888,0.16441,0.15664,0.14396,0.12412,0.09129,0.04539,0.00817,0.01387,0.0743,0.15472,0.22962,0.3016,0.3731,0.4406,0.51249,0.57515,0.62704,0.66576,0.69151,0.70792,0.71903,0.72599,0.72997,0.731199,0.73342,0.73439,0.73469
+                }
+            };
+
             public static DataModel.Spectrum YY_10 => new DataModel.Spectrum()
             {
                 StartingWavelength = 400,
@@ -483,6 +494,17 @@
                 }
             };
 
+            public static DataModel.Spectrum YY_2 => new DataModel.Spectrum()
+            {
+                StartingWavelength = 400,
+                WavelengthInterval = 10,
+                EndingWavelength = 700,
+                Spectrums = new double[31]
+                {
+                    0.0048,0.0048,0.0051,0.0069,0.01086,0.01771,0.0297,0.0578,0.1327,0.29498,0.53842,0.75019,0.8338,0.80586,0.75433,0.69231,0.62445,0.55472,0.48659,0.42423,0.37249,0.33401,0.30843,0.29203,0.28094,0.27401,0.27003,0.26801,0.26658,0.26561,0.26531
+                }
+            };
+
             public static DataModel.Spectrum ZZ_10 => new DataModel.Spectrum()
             {
                 StartingWavelength = 400,
@@ -493,6 +515,17 @@
                     0.0860109, 0.389366, 0.972542, 1.55348, 1.96728,1.9948, 1.74537, 1.31756, 0.772125, 0.415254,
                     0.218502, 0.112044, 0.060709, 0.030451, 0.013676,0.003988, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+                }
+            };
+
+            public static DataModel.Spectrum ZZ_2 => new DataModel.Spectrum()
+            {
+                StartingWavelength = 400,
+                WavelengthInterval = 10,
+                EndingWavelength = 700,
+                Spectrums = new double[31]
+                {
+                    0.82186,0.82262,0.82349,0.82422,0.82473,0.82565,0.82634,0.81808,0.77601,0.65963,0.45341,0.23594,0.0919,0.03942,0.01605,0.00609,0.00245,0.00122,0.00092,0.00062,0.00047,0.00023,0.00015,0.00005,0.00003,0,0,0,0,0,0
                 }
             };
 
