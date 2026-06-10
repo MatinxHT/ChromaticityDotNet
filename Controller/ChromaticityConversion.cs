@@ -357,8 +357,13 @@ namespace ChromaticityDotNet.Controller
         /// <returns>correlated color temperature</returns>
         public static double xy2CCT(CIExyY xyy)
         {
-            double n = (xyy.CIEx - 0.332) / (0.1858 - xyy.CIEy);
-            double cct = (4.37 * Math.Pow(n, 3)) + (3601 * Math.Pow(n, 2)) + 6861 * n + 5517;
+            double n = (xyy.CIEx - 0.3320) / (xyy.CIEy - 0.1858);
+
+            double cct =
+                -449 * Math.Pow(n, 3)
+                + 3525 * Math.Pow(n, 2)
+                - 6823.3 * n
+                + 5520.33;
 
             return Math.Round(cct, 0);
         }
