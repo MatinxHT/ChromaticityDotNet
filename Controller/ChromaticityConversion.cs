@@ -10,16 +10,70 @@ namespace ChromaticityDotNet.Controller
     public class ChromaticityConversion
     {
         #region From Ref to ...
-        public static CIEXYZ REFtoXYZ(double[] REFDATA, Standardilluminant illuminant,StandardObserver standardObserver)
+
+        /// <summary>
+        /// Measuring luminescent material (self-luminescent)
+        /// </summary>
+        /// <param name="SPD"></param>
+        /// <param name="standardObserver"></param>
+        /// <returns></returns>
+        public static CIEXYZ SPDtoXYZ(double[] SPD,StandardObserver standardObserver)
+        {
+            double[] xx;
+            double[] yy;
+            double[] zz;
+
+            switch (standardObserver)
+            {
+                case StandardObserver.Degree2:
+                    xx = CIEConstant.XX_10.Spectrums;
+                    yy = CIEConstant.YY_10.Spectrums;
+                    zz = CIEConstant.ZZ_10.Spectrums;
+                    break;
+
+                default:
+                    xx = CIEConstant.XX_10.Spectrums;
+                    yy = CIEConstant.YY_10.Spectrums;
+                    zz = CIEConstant.ZZ_10.Spectrums;
+                    break;
+            }
+
+            double X = 0;
+            double Y = 0;
+            double Z = 0;
+
+            for (int i = 0; i < 31; i++)
+            {
+                X += SPD[i] * xx[i];
+                Y += SPD[i] * yy[i];
+                Z += SPD[i] * zz[i];
+            }
+
+            return new CIEXYZ
+            {
+                CIEX = X,
+                CIEY = Y,
+                CIEZ = Z
+            };
+        }
+
+        /// <summary>
+        /// Measure the color of the reflector
+        /// </summary>
+        /// <param name="REFDATA"></param>
+        /// <param name="illuminant"></param>
+        /// <param name="standardObserver"></param>
+        /// <returns></returns>
+        public static CIEXYZ REFtoXYZ(double[] REFDATA, Standardilluminant illuminant, StandardObserver standardObserver)
         {
             IStandardilluminant StandaredIlluminant = ChromaticityMatch.GetStandardilluminantdata(illuminant);
-            
+
 
             int i;
             double[] ligh_temp = new double[41];
             double[] xx = new double[31];
             double[] yy = new double[31];
-            double[] zz = new double[31]; 
+            double[] zz = new double[31];
             double[] XYZn = new double[3];
             double k;
 
