@@ -387,23 +387,19 @@ namespace ChromaticityDotNet.Controller
         /// For CIE1931 xy space coordinate  to CIE1976 uv space coordinate 
         /// </summary>
         /// <param name="xyY"></param>
-        /// <returns>CIE1976 uv space coordinate </returns>
-        public static CIELuv xy2uv(CIExyY xyY)
+        /// <returns>CIE1976 u'v' chromaticity coordinates</returns>
+        public static CIEuv xy2uv(CIExyY xyY)
         {
-            CIELuv luv = new CIELuv
-            {
-                CIEL = 1,
-                CIEu = -1,
-                CIEv = -1,
-            };
             double denom = -2D * xyY.CIEx + 12D * xyY.CIEy + 3D;
             if (denom != 0.0D)
             {
-                luv.CIEu = ((4D * xyY.CIEx) / denom);
-                luv.CIEv = ((9D * xyY.CIEy) / denom);
-                return luv;
+                return new CIEuv
+                {
+                    CIEu = (4D * xyY.CIEx) / denom,
+                    CIEv = (9D * xyY.CIEy) / denom,
+                };
             }
-            return luv;
+            return new CIEuv { CIEu = -1, CIEv = -1 };
         }
 
         #endregion

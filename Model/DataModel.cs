@@ -103,9 +103,22 @@ namespace ChromaticityDotNet.Model
             public double CIEY { get; set; }
         }
 
+        /// <summary>
+        /// CIE 1976 L*u*v* color space.
+        /// </summary>
         public class CIELuv
         {
             public double CIEL { get; set; }
+            public double CIEu { get; set; }
+            public double CIEv { get; set; }
+        }
+
+        /// <summary>
+        /// CIE 1976 UCS u'v' chromaticity coordinates (not L*u*v*).
+        /// Use this for chromaticity diagram coordinates; use <see cref="CIELuv"/> for the full L*u*v* color space.
+        /// </summary>
+        public class CIEuv
+        {
             public double CIEu { get; set; }
             public double CIEv { get; set; }
         }

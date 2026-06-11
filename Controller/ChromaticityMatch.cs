@@ -8,33 +8,20 @@ namespace ChromaticityDotNet.Controller
     /// </summary>
     public class ChromaticityMatch
     {
+        private static readonly IReadOnlyDictionary<Standardilluminant, IStandardilluminant> _illuminantRegistry =
+            new Dictionary<Standardilluminant, IStandardilluminant>
+            {
+                [Standardilluminant.D65]  = new D65(),
+                [Standardilluminant.A]    = new A(),
+                [Standardilluminant.CWF]  = new CWF(),
+                [Standardilluminant.F7]   = new F7(),
+                [Standardilluminant.TL84] = new TL84(),
+                [Standardilluminant.U30]  = new U30(),
+            };
+
         public static IStandardilluminant GetStandardilluminantdata(Standardilluminant illuminant)
         {
-            IStandardilluminant Standardilluminantdata;
-            switch (illuminant)
-            {
-                case (Standardilluminant.D65):
-                    Standardilluminantdata = new D65();
-                    return Standardilluminantdata;
-                case (Standardilluminant.CWF):
-                    Standardilluminantdata = new CWF();
-                    return Standardilluminantdata;
-                case (Standardilluminant.F7):
-                    Standardilluminantdata = new F7();
-                    return Standardilluminantdata;
-                case (Standardilluminant.TL84):
-                    Standardilluminantdata = new TL84();
-                    return Standardilluminantdata;
-                case (Standardilluminant.U30):
-                    Standardilluminantdata = new U30();
-                    return Standardilluminantdata;
-                case (Standardilluminant.A):
-                    Standardilluminantdata = new A();
-                    return Standardilluminantdata;
-                default:
-                    Standardilluminantdata = new D65();
-                    return Standardilluminantdata;
-            }
+            return _illuminantRegistry.TryGetValue(illuminant, out var data) ? data : _illuminantRegistry[Standardilluminant.D65];
         }
 
         /// <summary>
