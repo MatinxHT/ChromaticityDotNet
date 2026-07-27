@@ -5,6 +5,8 @@ VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChromaticityDotNet", "ChromaticityDotNet.csproj", "{BD774B59-DC90-4464-A59D-BA78454715E3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChromaticityDotNet.Tests", "tests\ChromaticityDotNet.Tests\ChromaticityDotNet.Tests.csproj", "{7C39295A-7354-49E4-9FAF-9C3DDF367D38}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{BD774B59-DC90-4464-A59D-BA78454715E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD774B59-DC90-4464-A59D-BA78454715E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BD774B59-DC90-4464-A59D-BA78454715E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C39295A-7354-49E4-9FAF-9C3DDF367D38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C39295A-7354-49E4-9FAF-9C3DDF367D38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C39295A-7354-49E4-9FAF-9C3DDF367D38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C39295A-7354-49E4-9FAF-9C3DDF367D38}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

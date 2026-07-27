@@ -90,8 +90,8 @@ namespace ChromaticityDotNet.Model
 
             private void UpdateCH()
             {
-                _ciec = Math.Round(Math.Sqrt(_ciea * _ciea + _cieb * _cieb), 2);  // 计算色度
-                _cieh = Math.Round(Math.Atan2(_cieb, _ciea) * (180 / Math.PI), 2); // 计算色调，转换为度
+                _ciec = NumericPrecision.Round(Math.Sqrt(_ciea * _ciea + _cieb * _cieb));  // 计算色度
+                _cieh = NumericPrecision.Round(Math.Atan2(_cieb, _ciea) * (180 / Math.PI)); // 计算色调，转换为度
                 if (_cieh < 0) _cieh += 360; // 确保色调为正值
             }
         }

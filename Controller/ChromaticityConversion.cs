@@ -51,9 +51,9 @@ namespace ChromaticityDotNet.Controller
 
             return new CIEXYZ
             {
-                CIEX = X,
-                CIEY = Y,
-                CIEZ = Z
+                CIEX = NumericPrecision.Round(X),
+                CIEY = NumericPrecision.Round(Y),
+                CIEZ = NumericPrecision.Round(Z)
             };
         }
 
@@ -137,9 +137,9 @@ namespace ChromaticityDotNet.Controller
             //return true;
             return new CIEXYZ
             {
-                CIEX = XYZ[0],
-                CIEY = XYZ[1],
-                CIEZ = XYZ[2]
+                CIEX = NumericPrecision.Round(XYZ[0]),
+                CIEY = NumericPrecision.Round(XYZ[1]),
+                CIEZ = NumericPrecision.Round(XYZ[2])
             };
         }
 
@@ -156,9 +156,8 @@ namespace ChromaticityDotNet.Controller
         {
             CIEXYZ WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
 
-            double L, a, b, C, H;
+            double L, a, b;
             double temX = 0, temY = 0, temZ = 0;
-            double[] result = new double[10];
 
             //GetStandXYZ(observer, lightsource_type, &temX, &temY, &temZ);
             temX = XYZ.CIEX / WhitePoint.CIEX; //白点X值
@@ -188,44 +187,12 @@ namespace ChromaticityDotNet.Controller
             b = 200.0 * (temY - temZ);
 
             if (L < 0) L = 0.00;
-            C = Math.Sqrt(a * a + b * b);
-            if ((a == 0) && (b > 0))
-                H = 90;
-            else if ((a == 0) && (b < 0))
-                H = 270;
-            else if ((a >= 0) && (b == 0))
-                H = 0;
-            else if ((a < 0) && (b == 0))
-                H = 180;
-            else
-            {
-                H = Math.Atan(b / a);
-                H = H * 57.3;
-                if ((a > 0) && (b > 0))
-                    H = H;
-                else if (a < 0)
-                    H = 180 + H;
-                else
-                    H = 360 + H;
-            }
-
-            double[] labch = new double[7];
-            labch[0] = Math.Round(L, 2);
-            labch[1] = Math.Round(a, 2);
-            labch[2] = Math.Round(b, 2);
-            labch[3] = C;
-            labch[4] = H;
-
-            //double[] lab = new double[3];
-            //lab[0] = Math.Round(labch[0], 2); // 将 L 值保留小数点后两位
-            //lab[1] = Math.Round(labch[1], 2);
-            //lab[2] = Math.Round(labch[2], 2);
 
             return new CIELABCH
             {
-                CIEL = labch[0],
-                CIEA = labch[1],
-                CIEB = labch[2]
+                CIEL = NumericPrecision.Round(L),
+                CIEA = NumericPrecision.Round(a),
+                CIEB = NumericPrecision.Round(b)
             };
 
         }
@@ -240,19 +207,19 @@ namespace ChromaticityDotNet.Controller
             double total = XYZ.CIEX + XYZ.CIEY + XYZ.CIEZ;
             return new CIExyY()
             {
-                CIEx = Math.Round(XYZ.CIEX / total, 4),
-                CIEy = Math.Round(XYZ.CIEY / total, 4),
-                CIEY = Math.Round(XYZ.CIEY, 2)
+                CIEx = NumericPrecision.Round(XYZ.CIEX / total),
+                CIEy = NumericPrecision.Round(XYZ.CIEY / total),
+                CIEY = NumericPrecision.Round(XYZ.CIEY)
             };
         }
 
         /// <summary>
-        /// Cover CIE XYZ to CIE Lu'v'
+        /// Convert CIE XYZ to CIE 1976 L*u*v*
         /// </summary>
         /// <param name="XYZ">CIEXYZ color</param>
         /// <param name="illuminant"></param>
         /// <param name="observer"></param>
-        /// <returns>CIE Lu'v' color</returns>
+        /// <returns>CIE 1976 L*u*v* color</returns>
         public static CIELuv XYZ2Luv(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
         {
             CIEXYZ WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
@@ -279,9 +246,9 @@ namespace ChromaticityDotNet.Controller
 
             CIELuv Luv = new CIELuv()
             {
-                CIEL = Math.Round(L, 4),
-                CIEu = Math.Round(upai, 4),
-                CIEv = Math.Round(vpai, 4)
+                CIEL = NumericPrecision.Round(L),
+                CIEu = NumericPrecision.Round(13 * L * (upai - ur)),
+                CIEv = NumericPrecision.Round(13 * L * (vpai - vr))
             };
 
             return Luv;
@@ -298,18 +265,18 @@ namespace ChromaticityDotNet.Controller
             double Y = xyzColor.CIEY;
             double Z = xyzColor.CIEZ;
 
-            // D65 illuminant (white point used in sRGB and CIE XYZ)
-            double referenceX = 95.047;
-            double referenceY = 100.000;
-            double referenceZ = 108.883;
+            // The sRGB matrix expects D65 XYZ normalized to the 0-1 range.
+            X /= 100.0;
+            Y /= 100.0;
+            Z /= 100.0;
 
-            X = X / referenceX;
-            Y = Y / referenceY;
-            Z = Z / referenceZ;
+            double R = 3.2406255 * X - 1.5372080 * Y - 0.4986286 * Z;
+            double G = -0.9689307 * X + 1.8757561 * Y + 0.0415175 * Z;
+            double B = 0.0557101 * X - 0.2040211 * Y + 1.0569959 * Z;
 
-            double R = 3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z;
-            double G = -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z;
-            double B = 0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z;
+            R = Math.Min(Math.Max(R, 0.0), 1.0);
+            G = Math.Min(Math.Max(G, 0.0), 1.0);
+            B = Math.Min(Math.Max(B, 0.0), 1.0);
 
             static double GammaCorrection(double value)
             {
@@ -321,9 +288,9 @@ namespace ChromaticityDotNet.Controller
             B = GammaCorrection(B);
 
             // Convert to 8-bit integer (0-255 range)
-            int rInt = (int)Math.Round(R * 255);
-            int gInt = (int)Math.Round(G * 255);
-            int bInt = (int)Math.Round(B * 255);
+            int rInt = (int)Math.Round(R * 255, MidpointRounding.AwayFromZero);
+            int gInt = (int)Math.Round(G * 255, MidpointRounding.AwayFromZero);
+            int bInt = (int)Math.Round(B * 255, MidpointRounding.AwayFromZero);
 
             //set limit
             rInt = Math.Min(rInt, 255);
@@ -365,7 +332,7 @@ namespace ChromaticityDotNet.Controller
                 - 6823.3 * n
                 + 5520.33;
 
-            return Math.Round(cct, 0);
+            return NumericPrecision.Round(cct);
         }
 
         /// <summary>
@@ -377,9 +344,9 @@ namespace ChromaticityDotNet.Controller
         {
             return new CIEXYZ()
             {
-                CIEX = Math.Round(xyY.CIEx * xyY.CIEY / xyY.CIEy, 2),
-                CIEY = Math.Round(xyY.CIEY, 2),
-                CIEZ = Math.Round((1 - xyY.CIEx - xyY.CIEy) * xyY.CIEY / xyY.CIEy, 2)
+                CIEX = NumericPrecision.Round(xyY.CIEx * xyY.CIEY / xyY.CIEy),
+                CIEY = NumericPrecision.Round(xyY.CIEY),
+                CIEZ = NumericPrecision.Round((1 - xyY.CIEx - xyY.CIEy) * xyY.CIEY / xyY.CIEy)
             };
         }
 
@@ -395,8 +362,8 @@ namespace ChromaticityDotNet.Controller
             {
                 return new CIEuv
                 {
-                    CIEu = (4D * xyY.CIEx) / denom,
-                    CIEv = (9D * xyY.CIEy) / denom,
+                    CIEu = NumericPrecision.Round((4D * xyY.CIEx) / denom),
+                    CIEv = NumericPrecision.Round((9D * xyY.CIEy) / denom),
                 };
             }
             return new CIEuv { CIEu = -1, CIEv = -1 };

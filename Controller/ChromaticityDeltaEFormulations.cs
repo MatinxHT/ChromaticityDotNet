@@ -17,31 +17,45 @@ namespace ChromaticityDotNet.Controller
         /// <returns>DeltaE1976</returns>
         public static double DeltaE1976(CIELABCH standard, CIELABCH sample)
         {
-            return Math.Sqrt(Math.Pow((sample.CIEL - standard.CIEL), 2) + Math.Pow((sample.CIEA - standard.CIEA), 2) + Math.Pow((sample.CIEB - standard.CIEB), 2));
+            return NumericPrecision.Round(Math.Sqrt(
+                Math.Pow(sample.CIEL - standard.CIEL, 2) +
+                Math.Pow(sample.CIEA - standard.CIEA, 2) +
+                Math.Pow(sample.CIEB - standard.CIEB, 2)));
         }
 
         /// <summary>
-        /// The 1976 definition was extended to address perceptual non-uniformities, while retaining the CIELAB color space, by the introduction of application-specific weights derived from an automotive paint test's tolerance data.（Danger!coding by Github Copilot!!!!）
+        /// CIE94 color difference using the graphic-arts weighting factors.
         /// </summary>
         /// <param name="standard">standard</param>
         /// <param name="sample">sample</param>
         /// <returns>DeltaE1994</returns>
         public static double DeltaE1994(CIELABCH standard, CIELABCH sample)
         {
-            double deltae = 0;
             double deltaL = sample.CIEL - standard.CIEL;
-            double deltaC = sample.CIEC - standard.CIEC;
-            double deltaH = sample.CIEH - standard.CIEH;
-            double deltaH2 = Math.Pow(deltaH, 2);
-            double deltaC2 = Math.Pow(deltaC, 2);
-            double deltaL2 = Math.Pow(deltaL, 2);
-            double deltae2 = deltaL2 + deltaC2 + deltaH2;
-            double deltae1 = Math.Sqrt(deltae2);
-            double deltae3 = deltae1 / (1 + 0.045 * sample.CIEC);
-            double deltae4 = deltae3 * (1 + 0.015 * Math.Sqrt(sample.CIEL * sample.CIEL + sample.CIEA * sample.CIEA));
-            deltae = deltae4;
+            double standardChroma = Math.Sqrt(
+                standard.CIEA * standard.CIEA +
+                standard.CIEB * standard.CIEB);
+            double sampleChroma = Math.Sqrt(
+                sample.CIEA * sample.CIEA +
+                sample.CIEB * sample.CIEB);
+            double deltaC = sampleChroma - standardChroma;
+            double deltaA = sample.CIEA - standard.CIEA;
+            double deltaB = sample.CIEB - standard.CIEB;
+            double deltaHSquared = Math.Max(
+                0.0,
+                deltaA * deltaA + deltaB * deltaB - deltaC * deltaC);
+            double deltaH = Math.Sqrt(deltaHSquared);
 
-            return deltae;
+            const double kL = 1.0;
+            const double kC = 1.0;
+            const double kH = 1.0;
+            double sC = 1.0 + 0.045 * standardChroma;
+            double sH = 1.0 + 0.015 * standardChroma;
+
+            return NumericPrecision.Round(Math.Sqrt(
+                Math.Pow(deltaL / kL, 2) +
+                Math.Pow(deltaC / (kC * sC), 2) +
+                Math.Pow(deltaH / (kH * sH), 2)));
         }
 
         /// <summary>
@@ -65,65 +79,65 @@ namespace ChromaticityDotNet.Controller
             //double kL = 1.0f;
             //double kC = 1.0f;
             //double kH = 1.0f;
-            double lBarPrime = 0.5f * (Ls + L);
+            double lBarPrime = 0.5 * (Ls + L);
             double c1 = Math.Sqrt(As * As + Bs * Bs);
             double c2 = Math.Sqrt(A * A + B * B);
-            double cBar = 0.5f * (c1 + c2);
+            double cBar = 0.5 * (c1 + c2);
             double cBar7 = cBar * cBar * cBar * cBar * cBar * cBar * cBar;
-            double g = 0.5f * (1.0f - (float)Math.Sqrt(cBar7 / (cBar7 + 6103515625.0)));
-            double a1Prime = As * (1.0f + g);
-            double a2Prime = A * (1.0f + g);
+            double g = 0.5 * (1.0 - Math.Sqrt(cBar7 / (cBar7 + 6103515625.0)));
+            double a1Prime = As * (1.0 + g);
+            double a2Prime = A * (1.0 + g);
             double c1Prime = Math.Sqrt(a1Prime * a1Prime + Bs * Bs);
             double c2Prime = Math.Sqrt(a2Prime * a2Prime + B * B);
-            double cBarPrime = 0.5f * (c1Prime + c2Prime);
+            double cBarPrime = 0.5 * (c1Prime + c2Prime);
             double h1Prime = (Math.Atan2(Bs, a1Prime) * 180.0) / Math.PI;
             double dhPrime;
 
             if (h1Prime < 0.0)
-                h1Prime += 360.0f;
+                h1Prime += 360.0;
             double h2Prime = (Math.Atan2(B, a2Prime) * 180.0) / Math.PI;
             if (h2Prime < 0.0)
-                h2Prime += 360.0f;
-            double hBarPrime = (Math.Abs(h1Prime - h2Prime) > 180.0f)
-                ? (0.5f * (h1Prime + h2Prime + 360.0))
+                h2Prime += 360.0;
+            double hBarPrime = (Math.Abs(h1Prime - h2Prime) > 180.0)
+                ? (0.5 * (h1Prime + h2Prime + 360.0))
                 : (0.5 * (h1Prime + h2Prime));
-            double t = 1.0f -
-                       0.17f * Math.Cos(Math.PI * (hBarPrime - 30.0f) / 180.0f) +
-                       0.24f * Math.Cos(Math.PI * (2.0f * hBarPrime) / 180.0f) +
-                       0.32f * Math.Cos(Math.PI * (3.0f * hBarPrime + 6.0f) / 180.0f) -
-                       0.20f * Math.Cos(Math.PI * (4.0f * hBarPrime - 63.0f) / 180.0f);
+            double t = 1.0 -
+                       0.17 * Math.Cos(Math.PI * (hBarPrime - 30.0) / 180.0) +
+                       0.24 * Math.Cos(Math.PI * (2.0 * hBarPrime) / 180.0) +
+                       0.32 * Math.Cos(Math.PI * (3.0 * hBarPrime + 6.0) / 180.0) -
+                       0.20 * Math.Cos(Math.PI * (4.0 * hBarPrime - 63.0) / 180.0);
             if (Math.Abs(h2Prime - h1Prime) <= 180.0)
                 dhPrime = h2Prime - h1Prime;
             else
-                dhPrime = (h2Prime <= h1Prime) ? (h2Prime - h1Prime + 360.0f) : (h2Prime - h1Prime - 360.0f);
+                dhPrime = (h2Prime <= h1Prime) ? (h2Prime - h1Prime + 360.0) : (h2Prime - h1Prime - 360.0);
             double dLPrime = L - Ls;
             double dCPrime = c2Prime - c1Prime;
-            double dHPrime = 2.0f * Math.Sqrt(c1Prime * c2Prime) * Math.Sin(Math.PI * (0.5f * dhPrime) / 180.0f);
-            double sL = 1.0f + ((0.015f * (lBarPrime - 50.0f) * (lBarPrime - 50.0f)) /
-                                Math.Sqrt(20.0f + (lBarPrime - 50.0f) * (lBarPrime - 50.0f)));
-            double sC = 1.0f + 0.045f * cBarPrime;
-            double sH = 1.0f + 0.015f * cBarPrime * t;
-            double dTheta = 30.0f * Math.Exp(-((hBarPrime - 275.0f) / 25.0f) * ((hBarPrime - 275.0f) / 25.0f));
+            double dHPrime = 2.0 * Math.Sqrt(c1Prime * c2Prime) * Math.Sin(Math.PI * (0.5 * dhPrime) / 180.0);
+            double sL = 1.0 + ((0.015 * (lBarPrime - 50.0) * (lBarPrime - 50.0)) /
+                               Math.Sqrt(20.0 + (lBarPrime - 50.0) * (lBarPrime - 50.0)));
+            double sC = 1.0 + 0.045 * cBarPrime;
+            double sH = 1.0 + 0.015 * cBarPrime * t;
+            double dTheta = 30.0 * Math.Exp(-((hBarPrime - 275.0) / 25.0) * ((hBarPrime - 275.0) / 25.0));
             double cBarPrime7 = cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime * cBarPrime;
-            double rC = Math.Sqrt(cBarPrime7 / (cBarPrime7 + 6103515625.0f));
-            double rT = -2.0f * rC * Math.Sin(Math.PI * (2.0f * dTheta) / 180.0f);
+            double rC = Math.Sqrt(cBarPrime7 / (cBarPrime7 + 6103515625.0));
+            double rT = -2.0 * rC * Math.Sin(Math.PI * (2.0 * dTheta) / 180.0);
 
             ColorDifferenceEquationResults results = new()
             {
-                DeltaE = Math.Round(Math.Sqrt(
+                DeltaE = NumericPrecision.Round(Math.Sqrt(
                 (dLPrime / (kL * sL)) * (dLPrime / (kL * sL)) +
                 (dCPrime / (kC * sC)) * (dCPrime / (kC * sC)) +
                 (dHPrime / (kH * sH)) * (dHPrime / (kH * sH)) +
                 (dCPrime / (kC * sC)) * (dHPrime / (kH * sH)) * rT
-            ), 2),
-                DA = Math.Round(sample.CIEA - standard.CIEA, 2),
-                DB = Math.Round(sample.CIEB - standard.CIEB, 2),
-                DC = Math.Round(c2 - c1,2),
-                DL = Math.Round(sample.CIEL - standard.CIEL,2),
-                DH = Math.Round(h2Prime - h1Prime,2),
-                DeltaConly = Math.Round(Math.Sqrt((dCPrime / (kC * sC)) * (dCPrime / (kC * sC))), 2),
-                DeltaHonly = Math.Round(Math.Sqrt((dHPrime / (kH * sH)) * (dHPrime / (kH * sH))), 2),
-                DeltaLonly = Math.Round(Math.Sqrt((dLPrime / (kL * sL)) * (dLPrime / (kL * sL))), 2),
+            )),
+                DA = NumericPrecision.Round(sample.CIEA - standard.CIEA),
+                DB = NumericPrecision.Round(sample.CIEB - standard.CIEB),
+                DC = NumericPrecision.Round(c2 - c1),
+                DL = NumericPrecision.Round(sample.CIEL - standard.CIEL),
+                DH = NumericPrecision.Round(h2Prime - h1Prime),
+                DeltaConly = NumericPrecision.Round(Math.Abs(dCPrime / (kC * sC))),
+                DeltaHonly = NumericPrecision.Round(Math.Abs(dHPrime / (kH * sH))),
+                DeltaLonly = NumericPrecision.Round(Math.Abs(dLPrime / (kL * sL))),
 
                 
             };
@@ -212,7 +226,7 @@ namespace ChromaticityDotNet.Controller
 
             S_H = ((f * T) + 1.0 - f) * S_C;
 
-            double delteEcmc = Math.Round(Math.Sqrt(Math.Pow(deltaL / (pl * S_L), 2) + Math.Pow(deltaC / (pc * S_C), 2) + Math.Pow(deltaH / S_H, 2)), 2);
+            double delteEcmc = NumericPrecision.Round(Math.Sqrt(Math.Pow(deltaL / (pl * S_L), 2) + Math.Pow(deltaC / (pc * S_C), 2) + Math.Pow(deltaH / S_H, 2)));
 
             return delteEcmc;
         }
