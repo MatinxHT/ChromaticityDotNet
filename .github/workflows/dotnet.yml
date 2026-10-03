@@ -1,28 +1,155 @@
-name: .NET Build and Pack
+name: .NET Build and Release
 
 on:
   push:
     branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Do not interrupt a run between publishing the package and its release.
+concurrency:
+  group: nuget-release
+  cancel-in-progress: false
 
 jobs:
   build:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
-    - uses: actions/checkout@v3
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: 8.0.x
-    - name: Build with dotnet
-      run: dotnet build --configuration Release
-      working-directory: ${{ github.workspace }}
-    - name: Run unit tests
-      run: dotnet test --configuration Release
-      working-directory: ${{ github.workspace }}
-    - name: Generate nuget package
-      run: dotnet pack --configuration Release -o nupkg
-      working-directory: ${{ github.workspace }}
-    - name: Push nuget package
-      run: dotnet nuget push **/*.nupkg -s 'https://api.nuget.org/v3/index.json' -k ${{secrets.CHROMATICITYDOTNETAPI}} --skip-duplicate
-      working-directory: ${{ github.workspace }}
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore ChromaticityDotNet.sln
+
+      - name: Build
+        run: dotnet build ChromaticityDotNet.sln --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: dotnet test tests/ChromaticityDotNet.Tests/ChromaticityDotNet.Tests.csproj --configuration Release --no-build --no-restore
+
+      - name: Generate NuGet package
+        run: dotnet pack ChromaticityDotNet.csproj --configuration Release --no-build --no-restore --output nupkg
+
+      - name: Read package metadata
+        id: package
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          from zipfile import ZipFile
+
+          packages = list(Path('nupkg').glob('*.nupkg'))
+          if len(packages) != 1:
+              raise SystemExit('Expected exactly one NuGet package')
+          with ZipFile(packages[0]) as package:
+              nuspec, = [name for name in package.namelist() if name.endswith('.nuspec')]
+              metadata = ET.fromstring(package.read(nuspec)).find('{*}metadata')
+              package_id = metadata.findtext('{*}id')
+              version = metadata.findtext('{*}version')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'id={package_id}\nversion={version}\ntag=v{version}\n')
+          PY
+
+      - name: Check GitHub Release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.package.outputs.tag }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" \
+              > "$RUNNER_TEMP/release.json" 2> "$RUNNER_TEMP/release-error.txt"; then
+            draft=$(jq -r '.draft' "$RUNNER_TEMP/release.json")
+            echo "draft=$draft" >> "$GITHUB_OUTPUT"
+            if [[ "$draft" == false ]]; then
+              echo "Published release $RELEASE_TAG already exists; skipping publication."
+              echo 'exists=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [[ "$(jq -r '.target_commitish' "$RUNNER_TEMP/release.json")" != "$GITHUB_SHA" ]]; then
+              echo "::error::Draft $RELEASE_TAG targets another commit. Rerun its original workflow or bump the version."
+              exit 1
+            fi
+          elif [[ "$(cat "$RUNNER_TEMP/release-error.txt")" != *"HTTP 404"* ]]; then
+            cat "$RUNNER_TEMP/release-error.txt" >&2
+            exit 1
+          fi
+
+          # Never associate a package with an existing tag on another commit.
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            if [[ "$(git rev-parse "$RELEASE_TAG^{commit}")" != "$GITHUB_SHA" ]]; then
+              echo "::error::Tag $RELEASE_TAG points to another commit. Bump the project version."
+              exit 1
+            fi
+          fi
+          echo 'exists=false' >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        if: steps.release.outputs.exists != 'true'
+        env:
+          PACKAGE_ID: ${{ steps.package.outputs.id }}
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+          RELEASE_TAG: ${{ steps.package.outputs.tag }}
+        run: |
+          previous_tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' \
+            --exclude "$RELEASE_TAG" "$GITHUB_SHA" 2>/dev/null || true)
+          revision_range="$GITHUB_SHA"
+          if [[ -n "$previous_tag" ]]; then
+            revision_range="$previous_tag..$GITHUB_SHA"
+          fi
+
+          {
+            printf '## Installation\n\n```sh\n'
+            printf 'dotnet add package %s --version %s\n' "$PACKAGE_ID" "$PACKAGE_VERSION"
+            printf '```\n\n[NuGet package](https://www.nuget.org/packages/%s/%s)\n' "$PACKAGE_ID" "$PACKAGE_VERSION"
+            printf '\n## Changes\n\n'
+            git log --no-merges --format='- %s (%h)' "$revision_range"
+            if [[ -n "$previous_tag" ]]; then
+              printf '\n[Full changelog](%s/%s/compare/%s...%s)\n' \
+                "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$previous_tag" "$RELEASE_TAG"
+            fi
+          } > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Push NuGet package
+        if: steps.release.outputs.exists != 'true'
+        env:
+          NUGET_API_KEY: ${{ secrets.CHROMATICITYDOTNETAPI }}
+        run: dotnet nuget push 'nupkg/*.nupkg' --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+
+      - name: Publish GitHub Release
+        if: steps.release.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.package.outputs.tag }}
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+          EXISTING_DRAFT: ${{ steps.release.outputs.draft }}
+        run: |
+          prerelease=false
+          if [[ "$PACKAGE_VERSION" == *-* ]]; then
+            prerelease=true
+          fi
+
+          # Resume a draft left by an interrupted asset upload.
+          if [[ "$EXISTING_DRAFT" == true ]]; then
+            gh release upload "$RELEASE_TAG" nupkg/*.nupkg --clobber
+          else
+            gh release create "$RELEASE_TAG" nupkg/*.nupkg \
+              --target "$GITHUB_SHA" --title "$RELEASE_TAG" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" --draft
+          fi
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease="$prerelease" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"

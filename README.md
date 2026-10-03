@@ -119,6 +119,26 @@ this can change byte results near rounding thresholds compared with the old
 matrix. The Luv inverse was checked against the formula documented by
 [Colour](https://colour.readthedocs.io/en/develop/_modules/colour/models/cie_luv.html#Luv_to_XYZ).
 
+## Publishing
+
+Pushes to `master` build and test the library with the .NET 10 SDK. For a new
+`<Version>` in `ChromaticityDotNet.csproj`, the workflow publishes the NuGet
+package, then creates a matching `v<version>` tag and GitHub Release with the
+`.nupkg` attached. Release notes automatically include commit titles since the
+previous reachable version tag, an installation command, and a NuGet link.
+The first release includes the existing commit history. No separate changelog
+file is required; write descriptive commit titles and bump the version for
+each new package release.
+
+An already published GitHub Release is skipped. Failed runs can be rerun:
+duplicate NuGet versions are skipped and an existing draft release is resumed.
+An existing tag on a different commit stops publication. Prerelease package
+versions are marked as prereleases on GitHub. The workflow can also be started
+manually on `master` from the Actions tab.
+
+Publishing uses the existing `CHROMATICITYDOTNETAPI` repository secret for
+NuGet and the built-in `GITHUB_TOKEN` with `contents: write` for GitHub Releases.
+
 ## What's more?
 - give me a Star ~
 
