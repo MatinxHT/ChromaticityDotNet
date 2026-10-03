@@ -152,6 +152,82 @@ public class ChromaticityDeltaEFormulationsTests
         PrecisionAssert.HasAtMostFourDecimalPlaces(result);
     }
 
+    // Reference values from Colour's CMC tests (l defaults to 2 in Colour):
+    // https://github.com/colour-science/colour/blob/develop/colour/difference/tests/test_delta_e.py
+    [Theory]
+    [InlineData(48.99183622, -0.10561667, 400.65619925, 50.65907324, -0.11671910, 402.82235718, 2, 1, 0.899699975683419)]
+    [InlineData(100, 21.57210357, 272.22819350, 100, 426.67945353, 72.39590835, 2, 1, 172.70477129)]
+    [InlineData(100, 21.57210357, 272.22819350, 100, 74.05216981, 276.45318193, 2, 1, 20.59732717)]
+    [InlineData(100, 21.57210357, 272.22819350, 100, 8.32281957, -73.58297716, 1, 1, 121.71841479)]
+    // Additional values independently calculated in Python from the reference formula:
+    // https://colour.readthedocs.io/en/develop/_modules/colour/difference/delta_e.html#delta_E_CMC
+    // Reference/sample reversal, chroma weights, L=16, achromatic colors, hue wrap,
+    // and inputs with more than four decimal places.
+    [InlineData(50, 20, 0, 50, 0, 20, 1, 1, 24.875171696352)]
+    [InlineData(50, 0, 20, 50, 20, 0, 1, 1, 28.979466483172)]
+    [InlineData(50, 20, 0, 50, 21, 0, 1, 1, 0.606393754240)]
+    [InlineData(50, 20, 0, 50, 21, 0, 1, 2, 0.303196877120)]
+    [InlineData(15.9999, 0, 0, 17, 0, 0, 1, 1, 1.957142857143)]
+    [InlineData(16, 0, 0, 17, 0, 0, 1, 1, 1.956070774863)]
+    [InlineData(16.0001, 0, 0, 17, 0, 0, 1, 1, 1.955865635546)]
+    [InlineData(50, 0, 0, 50, 3, 4, 1, 1, 7.836990595611)]
+    [InlineData(50, 3, 4, 50, 0, 0, 1, 1, 5.333959424864)]
+    [InlineData(50, 20, -0.01, 50, 20, 0.01, 1, 1, 0.017586493853)]
+    [InlineData(50, 20, 0.01, 50, 20, -0.01, 1, 1, 0.017592312276)]
+    [InlineData(50.123456, 20.654321, -30.987654, 51.234567, 21.765432, -29.876543, 1, 1, 1.498812744944)]
+    [InlineData(50.123456, 20.654321, -30.987654, 51.234567, 21.765432, -29.876543, 2, 1, 1.211087702355)]
+    [InlineData(50.123456, 20.654321, -30.987654, 51.234567, 21.765432, -29.876543, 1.5, 0.5, 1.309463001293)]
+    public void CmcMatchesReferenceValuesToFourDecimalPlaces(
+        double l1, double a1, double b1,
+        double l2, double a2, double b2,
+        double pl, double pc, double expected)
+    {
+        double result = ChromaticityDeltaEFormulations.DeltaEcmc(
+            new CIELABCH(l1, a1, b1), new CIELABCH(l2, a2, b2), pl, pc);
+
+        Assert.Equal(Math.Round(expected, 4, MidpointRounding.AwayFromZero), result);
+        Assert.InRange(Math.Abs(result - expected), 0.0, 0.00005);
+        PrecisionAssert.HasAtMostFourDecimalPlaces(result);
+    }
+
+    // Independently calculated with the same Python reference as above.
+    // The neighboring hues round to the boundary in CIELABCH.CIEH, so these
+    // also verify that CMC uses unrounded Lab-derived hue for branch selection.
+    [Theory]
+    [InlineData(163.99999, 19.733031297774)]
+    [InlineData(164.0, 19.776032028101)]
+    [InlineData(164.00001, 19.776033881825)]
+    [InlineData(344.99999, 26.013639132704)]
+    [InlineData(345.0, 26.013636836779)]
+    [InlineData(345.00001, 26.095143893211)]
+    public void CmcUsesReferenceHueAtPiecewiseBoundaries(double hue, double expected)
+    {
+        double radians = hue * (Math.PI / 180.0);
+        CIELABCH standard = new(50.0, 20.0 * Math.Cos(radians), 20.0 * Math.Sin(radians));
+
+        double result = ChromaticityDeltaEFormulations.DeltaEcmc(
+            standard, new CIELABCH(50.0, 0.0, 20.0), 1.0, 1.0);
+
+        Assert.Equal(Math.Round(expected, 4, MidpointRounding.AwayFromZero), result);
+        Assert.InRange(Math.Abs(result - expected), 0.0, 0.00005);
+        PrecisionAssert.HasAtMostFourDecimalPlaces(result);
+    }
+
+    [Theory]
+    [InlineData(0.000025549489, 0.0)]
+    [InlineData(0.000025550511, 0.0001)]
+    [InlineData(0.00022995, 0.0005)]
+    public void CmcRoundsOnlyFinalResultAwayFromZero(double sampleLightness, double expected)
+    {
+        // With an achromatic black reference, DeltaE = sampleLightness / 0.511.
+        // These inputs straddle 0.00005 and include the midpoint 0.00045.
+        double result = ChromaticityDeltaEFormulations.DeltaEcmc(
+            new CIELABCH(0.0, 0.0, 0.0),
+            new CIELABCH(sampleLightness, 0.0, 0.0), 1.0, 1.0);
+
+        Assert.Equal(expected, result);
+    }
+
     private static object[] Row(
         double l1,
         double a1,

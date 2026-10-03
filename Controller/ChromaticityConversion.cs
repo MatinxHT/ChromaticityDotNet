@@ -9,6 +9,9 @@ namespace ChromaticityDotNet.Controller
     /// </summary>
     public class ChromaticityConversion
     {
+        private const double CieEpsilon = 216.0 / 24389.0;
+        private const double CieKappa = 24389.0 / 27.0;
+
         #region From Ref to ...
 
         /// <summary>
@@ -147,44 +150,22 @@ namespace ChromaticityDotNet.Controller
 
         #region From XYZ to ...
         /// <summary>
-        /// Cover CIE XYZ color to CIE Labch color
+        /// Converts CIE XYZ (reference white Y = 100) to CIE Lab and derived chroma/hue.
         /// </summary>
         /// <param name="XYZ">CIEXYZ color</param>
-        /// <param name="LightConditionWhitePoint">StandardWhitePoint,specially take case of observer</param>
+        /// <param name="illuminant">Reference illuminant used for the XYZ values.</param>
+        /// <param name="observer">Standard observer used for the XYZ values.</param>
         /// <returns>CIE Labch color</returns>
         public static CIELABCH XYZ2Labch(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
         {
             CIEXYZ WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
 
-            double L, a, b;
-            double temX = 0, temY = 0, temZ = 0;
-
-            //GetStandXYZ(observer, lightsource_type, &temX, &temY, &temZ);
-            temX = XYZ.CIEX / WhitePoint.CIEX; //白点X值
-            temY = XYZ.CIEY / WhitePoint.CIEY; //白点Y值
-            temZ = XYZ.CIEZ / WhitePoint.CIEZ; //白点Z值
-
-            if (temX > 0.008856)
-                temX = Math.Pow(temX, 0.3333333);
-            else
-                temX = (7.787 * temX) + 0.138;
-            if (temY > 0.008856)
-            {
-                temY = Math.Pow(temY, 0.3333333);
-                L = 116 * temY - 16;
-            }
-            else
-            {
-                L = 903.3 * temY;
-                temY = (7.787 * temY) + 0.138;
-            }
-
-            if (temZ > 0.008856)
-                temZ = Math.Pow(temZ, 0.3333333);
-            else
-                temZ = (7.787 * temZ) + 0.138;
-            a = 500.0 * (temX - temY);
-            b = 200.0 * (temY - temZ);
+            double temX = LabFunction(XYZ.CIEX / WhitePoint.CIEX);
+            double temY = LabFunction(XYZ.CIEY / WhitePoint.CIEY);
+            double temZ = LabFunction(XYZ.CIEZ / WhitePoint.CIEZ);
+            double L = 116.0 * temY - 16.0;
+            double a = 500.0 * (temX - temY);
+            double b = 200.0 * (temY - temZ);
 
             if (L < 0) L = 0.00;
 
@@ -224,6 +205,10 @@ namespace ChromaticityDotNet.Controller
         {
             CIEXYZ WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
 
+            // Black has no chromaticity, but its L*u*v* coordinates are all zero.
+            if (XYZ.CIEX == 0.0 && XYZ.CIEY == 0.0 && XYZ.CIEZ == 0.0)
+                return new CIELuv();
+
             double yr = XYZ.CIEY / WhitePoint.CIEY;
             double upai = (4 * XYZ.CIEX) / (XYZ.CIEX + 15 * XYZ.CIEY + 3 * XYZ.CIEZ);
             double vpai = (9 * XYZ.CIEY) / (XYZ.CIEX + 15 * XYZ.CIEY + 3 * XYZ.CIEZ);
@@ -231,17 +216,14 @@ namespace ChromaticityDotNet.Controller
             double ur = (4 * WhitePoint.CIEX) / (WhitePoint.CIEX + 15 * WhitePoint.CIEY + 3 * WhitePoint.CIEZ);
             double vr = (9 * WhitePoint.CIEY) / (WhitePoint.CIEX + 15 * WhitePoint.CIEY + 3 * WhitePoint.CIEZ);
 
-            double epsilon = 216.0 / 24389.0;
-            double kapa = 24389.0 / 27.0;
-
             double L;
-            if (yr > epsilon)
+            if (yr > CieEpsilon)
             {
                 L = (116 * Math.Pow(yr, 1.0 / 3.0)) - 16;
             }
             else
             {
-                L = kapa * yr;
+                L = CieKappa * yr;
             }
 
             CIELuv Luv = new CIELuv()
@@ -255,10 +237,10 @@ namespace ChromaticityDotNet.Controller
         }
 
         /// <summary>
-        /// Cover CIE XYZ to CIE RGB(1-255 byte)
+        /// Converts D65 CIE XYZ (reference white Y = 100) to 8-bit sRGB, clipping to its gamut.
         /// </summary>
-        /// <param name="xyzColor"></param>
-        /// <returns>CIE RGB</returns>
+        /// <param name="xyzColor">D65 XYZ values; no chromatic adaptation is performed.</param>
+        /// <returns>Gamma-encoded sRGB channels in the range 0 to 255.</returns>
         public static CIERGB XYZ2RGB(CIEXYZ xyzColor)
         {
             double X = xyzColor.CIEX;
@@ -270,9 +252,11 @@ namespace ChromaticityDotNet.Controller
             Y /= 100.0;
             Z /= 100.0;
 
-            double R = 3.2406255 * X - 1.5372080 * Y - 0.4986286 * Z;
-            double G = -0.9689307 * X + 1.8757561 * Y + 0.0415175 * Z;
-            double B = 0.0557101 * X - 0.2040211 * Y + 1.0569959 * Z;
+            // W3C CSS Color 4 matrices use the sRGB D65 white (x=0.3127, y=0.3290).
+            // This is the inverse of the matrix in RGB2XYZ.
+            double R = (12831.0 / 3959.0) * X - (329.0 / 214.0) * Y - (1974.0 / 3959.0) * Z;
+            double G = -(851781.0 / 878810.0) * X + (1648619.0 / 878810.0) * Y + (36519.0 / 878810.0) * Z;
+            double B = (705.0 / 12673.0) * X - (2585.0 / 12673.0) * Y + (705.0 / 667.0) * Z;
 
             R = Math.Min(Math.Max(R, 0.0), 1.0);
             G = Math.Min(Math.Max(G, 0.0), 1.0);
@@ -312,6 +296,118 @@ namespace ChromaticityDotNet.Controller
                 blueValue = blueValue,
             };
 
+        }
+
+        #endregion
+
+        #region To XYZ
+
+        /// <summary>
+        /// Converts CIE Lab to CIE XYZ using the selected reference white.
+        /// </summary>
+        /// <param name="labColor">Finite L*, a*, b* coordinates with L* greater than or equal to zero. Derived C/h are ignored.</param>
+        /// <param name="illuminant">Reference illuminant of the Lab color.</param>
+        /// <param name="observer">Standard observer of the Lab color.</param>
+        /// <returns>XYZ with reference white Y = 100, rounded to four decimal places away from zero at midpoints.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="labColor"/> is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">A coordinate is non-finite, L* is negative, or an enum value is undefined.</exception>
+        /// <exception cref="ArgumentException">The coordinates overflow the finite XYZ range.</exception>
+        /// <remarks>Intermediate values retain full precision. Extended colors are not clipped; L* above 100 is allowed.</remarks>
+        public static CIEXYZ Labch2XYZ(CIELABCH labColor, Standardilluminant illuminant, StandardObserver observer)
+        {
+            if (labColor is null)
+                throw new ArgumentNullException(nameof(labColor));
+
+            ValidateLightness(labColor.CIEL, nameof(labColor));
+            ValidateFinite(labColor.CIEA, nameof(labColor));
+            ValidateFinite(labColor.CIEB, nameof(labColor));
+            CIEXYZ whitePoint = GetConversionWhitePoint(illuminant, observer);
+
+            double fy = (labColor.CIEL + 16.0) / 116.0;
+            double fx = fy + labColor.CIEA / 500.0;
+            double fz = fy - labColor.CIEB / 200.0;
+
+            return CreateRoundedXyz(
+                whitePoint.CIEX * InverseLabFunction(fx),
+                whitePoint.CIEY * RelativeLuminance(labColor.CIEL),
+                whitePoint.CIEZ * InverseLabFunction(fz),
+                nameof(labColor));
+        }
+
+        /// <summary>
+        /// Converts 8-bit, gamma-encoded sRGB to D65 CIE XYZ.
+        /// </summary>
+        /// <param name="rgbColor">sRGB channels in the range 0 to 255.</param>
+        /// <returns>XYZ with reference white Y = 100, rounded to four decimal places away from zero at midpoints.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="rgbColor"/> is null.</exception>
+        /// <remarks>Uses the sRGB D65 white (x=0.3127, y=0.3290). No chromatic adaptation is performed.</remarks>
+        public static CIEXYZ RGB2XYZ(CIERGB rgbColor)
+        {
+            if (rgbColor is null)
+                throw new ArgumentNullException(nameof(rgbColor));
+
+            static double DecodeSrgb(byte channel)
+            {
+                double value = channel / 255.0;
+                return value <= 0.04045
+                    ? value / 12.92
+                    : Math.Pow((value + 0.055) / 1.055, 2.4);
+            }
+
+            double r = DecodeSrgb(rgbColor.redValue);
+            double g = DecodeSrgb(rgbColor.greenValue);
+            double b = DecodeSrgb(rgbColor.blueValue);
+
+            // Rational coefficients from W3C CSS Color 4, scaled from Y=1 to Y=100.
+            return CreateRoundedXyz(
+                100.0 * ((506752.0 / 1228815.0) * r + (87881.0 / 245763.0) * g + (12673.0 / 70218.0) * b),
+                100.0 * ((87098.0 / 409605.0) * r + (175762.0 / 245763.0) * g + (12673.0 / 175545.0) * b),
+                100.0 * ((7918.0 / 409605.0) * r + (87881.0 / 737289.0) * g + (1001167.0 / 1053270.0) * b),
+                nameof(rgbColor));
+        }
+
+        /// <summary>
+        /// Converts CIE 1976 L*u*v* to CIE XYZ using the selected reference white.
+        /// </summary>
+        /// <param name="luvColor">Finite L*, u*, v* coordinates with L* greater than or equal to zero.</param>
+        /// <param name="illuminant">Reference illuminant of the Luv color.</param>
+        /// <param name="observer">Standard observer of the Luv color.</param>
+        /// <returns>XYZ with reference white Y = 100, rounded to four decimal places away from zero at midpoints.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="luvColor"/> is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">A coordinate is non-finite, L* is negative, or an enum value is undefined.</exception>
+        /// <exception cref="ArgumentException">L*=0 has nonzero u*/v*, reconstructed v' is nonpositive, or XYZ overflows.</exception>
+        /// <remarks>Luv(0,0,0) maps to black. L* above 100 is allowed; output XYZ is not clipped.</remarks>
+        public static CIEXYZ Luv2XYZ(CIELuv luvColor, Standardilluminant illuminant, StandardObserver observer)
+        {
+            if (luvColor is null)
+                throw new ArgumentNullException(nameof(luvColor));
+
+            ValidateLightness(luvColor.CIEL, nameof(luvColor));
+            ValidateFinite(luvColor.CIEu, nameof(luvColor));
+            ValidateFinite(luvColor.CIEv, nameof(luvColor));
+            CIEXYZ whitePoint = GetConversionWhitePoint(illuminant, observer);
+
+            if (luvColor.CIEL == 0.0)
+            {
+                if (luvColor.CIEu != 0.0 || luvColor.CIEv != 0.0)
+                    throw new ArgumentException("L*=0 requires u*=0 and v*=0.", nameof(luvColor));
+                return new CIEXYZ();
+            }
+
+            double denominator = whitePoint.CIEX + 15.0 * whitePoint.CIEY + 3.0 * whitePoint.CIEZ;
+            double referenceU = 4.0 * whitePoint.CIEX / denominator;
+            double referenceV = 9.0 * whitePoint.CIEY / denominator;
+            double uPrime = luvColor.CIEu / luvColor.CIEL / 13.0 + referenceU;
+            double vPrime = luvColor.CIEv / luvColor.CIEL / 13.0 + referenceV;
+            if (vPrime <= 0.0)
+                throw new ArgumentException("The reconstructed v' chromaticity must be positive.", nameof(luvColor));
+
+            double y = whitePoint.CIEY * RelativeLuminance(luvColor.CIEL);
+            return CreateRoundedXyz(
+                y * (9.0 * uPrime) / (4.0 * vPrime),
+                y,
+                y * (12.0 - 3.0 * uPrime - 20.0 * vPrime) / (4.0 * vPrime),
+                nameof(luvColor));
         }
 
         #endregion
@@ -370,5 +466,64 @@ namespace ChromaticityDotNet.Controller
         }
 
         #endregion
+
+        private static double LabFunction(double value)
+        {
+            return value > CieEpsilon
+                ? Math.Pow(value, 1.0 / 3.0)
+                : (CieKappa * value + 16.0) / 116.0;
+        }
+
+        private static double InverseLabFunction(double value)
+        {
+            return value > 6.0 / 29.0
+                ? value * value * value
+                : (116.0 * value - 16.0) / CieKappa;
+        }
+
+        private static double RelativeLuminance(double lightness)
+        {
+            return lightness > 8.0
+                ? Math.Pow((lightness + 16.0) / 116.0, 3.0)
+                : lightness / CieKappa;
+        }
+
+        private static void ValidateFinite(double value, string paramName)
+        {
+            // double.IsFinite is not available on netstandard2.0.
+            if (double.IsNaN(value) || double.IsInfinity(value))
+                throw new ArgumentOutOfRangeException(paramName, "Color coordinates must be finite.");
+        }
+
+        private static void ValidateLightness(double lightness, string paramName)
+        {
+            ValidateFinite(lightness, paramName);
+            if (lightness < 0.0)
+                throw new ArgumentOutOfRangeException(paramName, "Lightness must be greater than or equal to zero.");
+        }
+
+        private static CIEXYZ GetConversionWhitePoint(Standardilluminant illuminant, StandardObserver observer)
+        {
+            if (!Enum.IsDefined(typeof(Standardilluminant), illuminant))
+                throw new ArgumentOutOfRangeException(nameof(illuminant), illuminant, "Unknown standard illuminant.");
+            if (!Enum.IsDefined(typeof(StandardObserver), observer))
+                throw new ArgumentOutOfRangeException(nameof(observer), observer, "Unknown standard observer.");
+            return ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
+        }
+
+        private static CIEXYZ CreateRoundedXyz(double x, double y, double z, string paramName)
+        {
+            if (double.IsNaN(x) || double.IsInfinity(x) ||
+                double.IsNaN(y) || double.IsInfinity(y) ||
+                double.IsNaN(z) || double.IsInfinity(z))
+                throw new ArgumentException("Color coordinates cannot be converted to finite XYZ values.", paramName);
+
+            return new CIEXYZ
+            {
+                CIEX = NumericPrecision.Round(x),
+                CIEY = NumericPrecision.Round(y),
+                CIEZ = NumericPrecision.Round(z)
+            };
+        }
     }
 }

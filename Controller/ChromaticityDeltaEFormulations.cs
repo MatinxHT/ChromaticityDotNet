@@ -150,9 +150,10 @@ namespace ChromaticityDotNet.Controller
         /// </summary>
         /// <param name="standard">standard</param>
         /// <param name="sample">sample</param>
-        /// <param name="pl"></param>
-        /// <param name="pc"></param>
-        /// <returns>DeltaEcmc</returns>
+        /// <param name="pl">Lightness weighting factor (l).</param>
+        /// <param name="pc">Chroma weighting factor (c).</param>
+        /// <returns>DeltaEcmc rounded to four decimal places, with midpoint rounding away from zero.</returns>
+        /// <remarks>All weighting terms use the standard color. Swapping standard and sample can change the result.</remarks>
         public static double DeltaEcmc(CIELABCH standard, CIELABCH sample, double pl, double pc)
         {
 
@@ -163,6 +164,7 @@ namespace ChromaticityDotNet.Controller
             double A = sample.CIEA;
             double B = sample.CIEB;
 
+            // Derive unrounded chroma and hue from Lab; CIELABCH.CIEC/CIEH are rounded.
             double Cab_standard = Math.Sqrt(Math.Pow(As, 2) + Math.Pow(Bs, 2));
             double Cab_sample = Math.Sqrt(Math.Pow(A, 2) + Math.Pow(B, 2));
             //注意角度和值的修正
@@ -215,13 +217,14 @@ namespace ChromaticityDotNet.Controller
             S_C = ((0.0638 * Cab_standard) / (1 + 0.0131 * Cab_standard) + 0.638);
             f = Math.Sqrt(Math.Pow(Cab_standard, 4) / (Math.Pow(Cab_standard, 4) + 1900.0));
 
-            if (164.0 <= Hab_sample && Hab_sample <= 345.0)
+            // CMC's hue weighting is based on the standard, just like S_L and S_C.
+            if (164.0 <= Hab_standrad && Hab_standrad <= 345.0)
             {
-                T = 0.56 + Math.Abs(0.2 * Math.Cos((Hab_sample + 168.0) * Math.PI / 180.0));
+                T = 0.56 + Math.Abs(0.2 * Math.Cos((Hab_standrad + 168.0) * Math.PI / 180.0));
             }
             else
             {
-                T = 0.36 + Math.Abs(0.4 * Math.Cos((Hab_sample + 35.0) * Math.PI / 180.0));
+                T = 0.36 + Math.Abs(0.4 * Math.Cos((Hab_standrad + 35.0) * Math.PI / 180.0));
             }
 
             S_H = ((f * T) + 1.0 - f) * S_C;

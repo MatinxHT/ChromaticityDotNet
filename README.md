@@ -36,6 +36,89 @@ CIEB = 12.34
 };
 ```
 
+## CMC color difference and precision
+
+`ChromaticityDeltaEFormulations.DeltaEcmc(standard, sample, pl, pc)` uses the
+standard color for all CMC weighting terms, including hue. `pl` and `pc` are
+the lightness and chroma weights; common choices are 1:1 and 2:1. CMC is
+asymmetric, so exchanging the standard and sample can change the result.
+
+For standard `Lab(50, 20, 0)`, sample `Lab(50, 0, 20)`, and 1:1 weights,
+the corrected result is **24.8752** (previously **28.9795**).
+
+CMC keeps full `double` precision for intermediate calculations and rounds
+only the final result to four decimal places using `MidpointRounding.AwayFromZero`.
+Reference tests check both the rounded value and an absolute error of at most
+0.00005 against independently computed values. This checks CMC accuracy for
+the supplied Lab inputs; it does not recover precision already lost in earlier
+color conversions. To display trailing zeros, format the returned value with `F4`.
+
+## Inverse color conversions
+
+All conversion methods are static members of `ChromaticityConversion` and use
+the existing models in `DataModel`.
+
+| Method | Input | Output and reference white |
+| --- | --- | --- |
+| `Labch2XYZ(labColor, illuminant, observer)` | `CIELABCH`: L*, a*, b*; derived C/h are ignored | XYZ under the selected illuminant and observer |
+| `Luv2XYZ(luvColor, illuminant, observer)` | `CIELuv`: L*, u*, v* | XYZ under the selected illuminant and observer |
+| `RGB2XYZ(rgbColor)` | `CIERGB`: gamma-encoded sRGB bytes, 0–255 | XYZ under sRGB D65 |
+
+```csharp
+using ChromaticityDotNet.Controller;
+using static ChromaticityDotNet.Model.DataModel;
+using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
+
+CIEXYZ fromLab = ChromaticityConversion.Labch2XYZ(
+    new CIELABCH(50.0, 20.0, -30.0),
+    Standardilluminant.D65, StandardObserver.Degree2);
+// XYZ: (21.4643, 18.4187, 40.4654)
+
+CIEXYZ fromLuv = ChromaticityConversion.Luv2XYZ(
+    new CIELuv { CIEL = 50.0, CIEu = 20.0, CIEv = -30.0 },
+    Standardilluminant.D65, StandardObserver.Degree2);
+// XYZ: (22.4406, 18.4187, 31.3083)
+
+CIEXYZ fromRgb = ChromaticityConversion.RGB2XYZ(
+    new CIERGB { redValue = 255, greenValue = 0, blueValue = 0 });
+// XYZ: (41.2391, 21.2639, 1.9331)
+CIERGB red = ChromaticityConversion.XYZ2RGB(fromRgb);
+// RGB: (255, 0, 0)
+```
+
+### Units, precision, and valid inputs
+
+- XYZ uses reference white **Y = 100**. Lab/Luv must use the same illuminant
+  and observer when converting in either direction.
+- Intermediate calculations retain full `double` precision. Each output XYZ
+  component is rounded to four decimal places, with midpoints rounded away
+  from zero. Reference fixtures check an absolute error of at most 0.00005
+  per component. Round trips include rounding at both calls and can accumulate
+  more error; the XYZ→Lab/Luv→XYZ fixtures use a 0.0003 tolerance per component.
+- New inverse methods reject null inputs. Lab/Luv coordinates must be finite,
+  L* must be nonnegative, and illuminant/observer enum values must be defined.
+  Invalid coordinates or enum values throw `ArgumentOutOfRangeException`;
+  null inputs throw `ArgumentNullException`.
+- L* above 100 and extended colors are supported without clipping XYZ.
+  Luv(0,0,0) maps to black. L*=0 with nonzero u*/v*, nonpositive reconstructed
+  v′, and numeric overflow throw `ArgumentException`.
+- sRGB conversions use its D65 chromaticity (x=0.3127, y=0.3290) and perform
+  no chromatic adaptation. Its white is XYZ(95.0456, 100, 108.9058), which
+  differs slightly from the library's tabulated D65/2° white
+  (95.047, 100, 108.883). Use the appropriate white convention when comparing
+  external reference values. `XYZ2RGB` clips colors outside the sRGB gamut
+  and rounds to bytes, so arbitrary XYZ values cannot be recovered losslessly.
+
+### Related numerical corrections
+
+`XYZ2Labch` now uses the exact CIE piecewise constants, removing the previous
+dark-region discontinuity. `XYZ2Luv` maps XYZ black to Luv(0,0,0).
+`XYZ2RGB` and `RGB2XYZ` use matching rational matrices from
+[W3C CSS Color 4](https://www.w3.org/TR/css-color-4/#color-conversion-code);
+this can change byte results near rounding thresholds compared with the old
+matrix. The Luv inverse was checked against the formula documented by
+[Colour](https://colour.readthedocs.io/en/develop/_modules/colour/models/cie_luv.html#Luv_to_XYZ).
+
 ## What's more?
 - give me a Star ~
 
