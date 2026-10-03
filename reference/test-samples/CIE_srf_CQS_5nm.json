@@ -1,0 +1,254 @@
+{
+  "sourcePage": "https://www.cie.co.at/datatable/spectral-radiance-factors-15-test-colour-samples-cqs-90-5nm-wavelength-steps",
+  "csvUrl": "https://files.cie.co.at/Publications-datasets/CIE_srf_CQS_5nm.csv",
+  "metadataUrl": "https://files.cie.co.at/Publications-datasets/CIE_srf_CQS_5nm.csv_metadata_v2.json",
+  "retrievedAtUtc": "2026-10-03T06:13:50.133223+00:00",
+  "csvFile": "CIE_srf_CQS_5nm.csv",
+  "csvSha256": "ea607d6f7a93f4d18bb051eefc68ae2f4bbc948bb92526f5bf0624284047e18c",
+  "metadataSha256": "d66c92b502f7e9b9d0e3be0fe9bed4d9131f81cb5eb73edfc896074bf8576e63",
+  "officialChecksumValidation": [
+    {
+      "method": "md5",
+      "declared": "c4ba3c6c293bc099eee9ab9e26d2a2a9",
+      "matches": true
+    },
+    {
+      "method": "sha256",
+      "declared": "ea607d6f7a93f4d18bb051eefc68ae2f4bbc948bb92526f5bf0624284047e18c",
+      "matches": true
+    }
+  ],
+  "officialMetadata": {
+    "alternateIdentifiers": [
+      {
+        "alternateIdentifier": "CIE_srf_CQS_5nm.csv",
+        "alternateIdentifierType": "fileName"
+      }
+    ],
+    "checksums": [
+      {
+        "checksum": "c4ba3c6c293bc099eee9ab9e26d2a2a9",
+        "hashMethod": "md5"
+      },
+      {
+        "checksum": "ea607d6f7a93f4d18bb051eefc68ae2f4bbc948bb92526f5bf0624284047e18c",
+        "hashMethod": "sha256"
+      }
+    ],
+    "creators": [
+      {
+        "name": "International Commission on Illumination (CIE)",
+        "nameType": "Organizational"
+      }
+    ],
+    "datatableInfo": {
+      "columnHeaders": [
+        {
+          "quantity": "wavelength",
+          "title": "wavelength",
+          "unit": "nm",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "5R 4/14",
+          "quantity": "spectral radiance factor",
+          "title": "VS1",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "10R  6/12",
+          "quantity": "spectral radiance factor",
+          "title": "VS2",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "7.5YR 7/12",
+          "quantity": "spectral radiance factor",
+          "title": "VS3",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "5Y 8/12",
+          "quantity": "spectral radiance factor",
+          "title": "VS4",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "2.5GY 8/10",
+          "quantity": "spectral radiance factor",
+          "title": "VS5",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "7.5GY 7/10",
+          "quantity": "spectral radiance factor",
+          "title": "VS6",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "2.5G 6/12",
+          "quantity": "spectral radiance factor",
+          "title": "VS7",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "2.5BG 6/10",
+          "quantity": "spectral radiance factor",
+          "title": "VS8",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "10BG 6/8",
+          "quantity": "spectral radiance factor",
+          "title": "VS9",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "7.5B 5/10",
+          "quantity": "spectral radiance factor",
+          "title": "VS10",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "2.5PB 4/10",
+          "quantity": "spectral radiance factor",
+          "title": "VS11",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "7.5PB 4/12",
+          "quantity": "spectral radiance factor",
+          "title": "VS12",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "5P 5/10",
+          "quantity": "spectral radiance factor",
+          "title": "VS13",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "2.5RP 6/12",
+          "quantity": "spectral radiance factor",
+          "title": "VS14",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "description": "7.5RP 5/12",
+          "quantity": "spectral radiance factor",
+          "title": "VS15",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        }
+      ],
+      "dataQuality": "nominal",
+      "extrapolationMethod": "nearest",
+      "interpolationMethod": "Sprague",
+      "validations": [
+        {
+          "validationType": "sumOfColumns",
+          "validationValue": "[46980,26.501,30.2533,30.7831,34.9971,27.9252,18.1323,12.0283,15.0495,18.3601,14.7984,11.1533,12.4068,31.7127,36.1257,30.2462]"
+        },
+        {
+          "validationParameter": "13",
+          "validationType": "sampleRow",
+          "validationValue": "440,0.048,0.0822,0.0559,0.0512,0.0786,0.0722,0.0924,0.1896,0.3201,0.3309,0.3074,0.329,0.3945,0.3657,0.1774"
+        }
+      ]
+    },
+    "descriptions": [
+      {
+        "description": "Spectral radiance factor data for the 15 test-colour samples in CQS 9.0, 5nm wavelength steps, original source: CIE 253:2024 Table A.1",
+        "descriptionType": "Abstract"
+      }
+    ],
+    "formats": [
+      "text/csv"
+    ],
+    "identifier": {
+      "identifier": "10.25039/CIE.DS.yzfhz3cm",
+      "identifierType": "DOI"
+    },
+    "language": "en",
+    "publicationYear": "2024",
+    "publisher": "International Commission on Illumination (CIE), Vienna, AT",
+    "relatedItems": [
+      {
+        "relatedItemIdentifier": "10.25039/TR.253.2024",
+        "relatedItemIdentifierType": "DOI",
+        "relatedItemType": "Report",
+        "relationType": "IsPartOf",
+        "titles": [
+          "CIE 253:2024 Overview of Methods for Evaluating Colour Rendition of White-Light Sources beyond Colour Fidelity"
+        ]
+      }
+    ],
+    "rightsList": [
+      {
+        "rights": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "rightsIdentifier": "CC BY-SA 4.0",
+        "rightsURI": "https://creativecommons.org/licenses/by-sa/4.0/"
+      }
+    ],
+    "schemaName": "CIEmetaDigitalProduct",
+    "schemaURL": "https://doi.org/10.25039/CIE.SC.4taqevcd",
+    "schemaVersion": 4,
+    "subjects": [],
+    "titles": [
+      {
+        "title": "Spectral radiance factors for the 15 test-colour samples in CQS 9.0, 5nm wavelength steps"
+      }
+    ],
+    "types": {
+      "resourceType": "dataTable",
+      "resourceTypeGeneral": "Dataset"
+    },
+    "metadataRevision": 2
+  }
+}

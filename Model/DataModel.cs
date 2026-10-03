@@ -16,6 +16,9 @@ namespace ChromaticityDotNet.Model
             public StandardObserver Observer { get; set; }
         }
 
+        /// <summary>Uniformly sampled spectrum, with an inclusive wavelength range in nanometres.
+        /// Sample count must equal (EndingWavelength - StartingWavelength) / WavelengthInterval + 1.
+        /// Values are reflectance percentages for REFtoXYZ, or nonnegative spectral values for SPD.</summary>
         public class Spectrum
         {
             public int StartingWavelength { get; set; }

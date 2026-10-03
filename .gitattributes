@@ -2,6 +2,8 @@
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
 * text=auto
+# Preserve official CSV bytes (including CRLF/BOM) for checksum verification.
+reference/**/*.csv -text
 
 ###############################################################################
 # Set default behavior for command prompt diff.

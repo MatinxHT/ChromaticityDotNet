@@ -7,7 +7,7 @@ namespace ChromaticityDotNet.Controller
     /// <summary>
     /// For color conversion
     /// </summary>
-    public class ChromaticityConversion
+    public partial class ChromaticityConversion
     {
         private const double CieEpsilon = 216.0 / 24389.0;
         private const double CieKappa = 24389.0 / 27.0;
@@ -17,6 +17,9 @@ namespace ChromaticityDotNet.Controller
         /// <summary>
         /// Measuring luminescent material (self-luminescent)
         /// </summary>
+        /// <remarks>Legacy fast calculation: exactly 31 samples, 400–700 nm inclusive,
+        /// at 10 nm intervals. Preserves the original unnormalized sample sum.
+        /// TODO: Define self-luminous SPD units, wavelength-step weighting and XYZ normalization.</remarks>
         /// <param name="SPD"></param>
         /// <param name="standardObserver"></param>
         /// <returns></returns>
@@ -63,6 +66,9 @@ namespace ChromaticityDotNet.Controller
         /// <summary>
         /// Measure the color of the reflector
         /// </summary>
+        /// <remarks>Legacy fast calculation: exactly 31 reflectance percentages, 400–700 nm
+        /// inclusive, at 10 nm intervals. Preserves the original tables and calculation.
+        /// Prefer the Spectrum overload for wavelength-aware calculations with CIE reference data.</remarks>
         /// <param name="REFDATA"></param>
         /// <param name="illuminant"></param>
         /// <param name="standardObserver"></param>

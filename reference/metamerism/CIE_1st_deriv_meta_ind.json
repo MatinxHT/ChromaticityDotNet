@@ -1,0 +1,152 @@
+{
+  "sourcePage": "https://www.cie.co.at/datatable/values-first-deviation-function-used-calculation-cie-special-metamerism-index-change",
+  "csvUrl": "https://files.cie.co.at/Publications-datasets/CIE_1st_deriv_meta_ind.csv",
+  "metadataUrl": "https://files.cie.co.at/Publications-datasets/CIE_1st_deriv_meta_ind.csv_metadata_v2.json",
+  "retrievedAtUtc": "2026-10-03T06:13:57.279484+00:00",
+  "csvFile": "CIE_1st_deriv_meta_ind.csv",
+  "csvSha256": "1f1413de6d58e533e8a3d26e4b7dc30f4cd6f67aebb7593fa3553394da939952",
+  "metadataSha256": "aebba43b04b93a0094879b4c34cce7f05df5705bb52b06f22e8d7fdd272f73a9",
+  "officialChecksumValidation": [
+    {
+      "method": "md5",
+      "declared": "73de03dc084a116e3b79902d6d4e2c5a",
+      "matches": true
+    },
+    {
+      "method": "sha256",
+      "declared": "1f1413de6d58e533e8a3d26e4b7dc30f4cd6f67aebb7593fa3553394da939952",
+      "matches": true
+    }
+  ],
+  "officialMetadata": {
+    "identifier": {
+      "identifier": "10.25039/CIE.DS.caky9gj2",
+      "identifierType": "DOI"
+    },
+    "creators": [
+      {
+        "name": "International Commission on Illumination (CIE)",
+        "nameType": "Organizational"
+      }
+    ],
+    "titles": [
+      {
+        "title": "Values of the first deviation function used in the calculation of the CIE special metamerism index for a change in observer"
+      }
+    ],
+    "publisher": "International Commission on Illumination (CIE), Vienna, AT",
+    "publicationYear": "2018",
+    "subjects": [
+      {
+        "subject": "Colorimetry"
+      },
+      {
+        "subject": "Colour of objects"
+      },
+      {
+        "subject": "Colour vision"
+      },
+      {
+        "subject": "Perception of colour"
+      }
+    ],
+    "language": "en",
+    "alternateIdentifiers": [
+      {
+        "alternateIdentifier": "CIE_1st_deriv_meta_ind.csv",
+        "alternateIdentifierType": "fileName"
+      }
+    ],
+    "relatedItems": [
+      {
+        "relatedItemIdentifier": "10.25039/tr.015.2018",
+        "relatedItemIdentifierType": "DOI",
+        "relationType": "IsPartOf",
+        "relatedItemType": "Report",
+        "titles": [
+          "CIE 015:2018 Colorimetry, 4th Edition"
+        ]
+      }
+    ],
+    "formats": [
+      "text/csv"
+    ],
+    "types": {
+      "resourceType": "dataTable",
+      "resourceTypeGeneral": "Dataset"
+    },
+    "descriptions": [
+      {
+        "description": "Values of the first deviation function used in the calculation of the CIE special metamerism index for a change in observer, , wavelength range: 360 nm to 830 nm, wavelength increment: 1 nm, original source: CIE 015:2018 table 16",
+        "descriptionType": "Abstract"
+      }
+    ],
+    "rightsList": [
+      {
+        "rights": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "rightsURI": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "rightsIdentifier": "CC BY-SA 4.0"
+      }
+    ],
+    "checksums": [
+      {
+        "hashMethod": "md5",
+        "checksum": "73de03dc084a116e3b79902d6d4e2c5a"
+      },
+      {
+        "hashMethod": "sha256",
+        "checksum": "1f1413de6d58e533e8a3d26e4b7dc30f4cd6f67aebb7593fa3553394da939952"
+      }
+    ],
+    "datatableInfo": {
+      "validations": [
+        {
+          "validationType": "sumOfColumns",
+          "validationValue": "[46980,-0.6690,-0.2564,-0.0556]"
+        },
+        {
+          "validationType": "sampleRow",
+          "validationParameter": "30",
+          "validationValue": "525,0.0017,0.0005,0.0005"
+        }
+      ],
+      "interpolationMethod": "linear",
+      "extrapolationMethod": "zero",
+      "dataQuality": "approximated",
+      "columnHeaders": [
+        {
+          "title": "lambda",
+          "unit": "nm",
+          "quantity": "wavelength",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "title": "delta_x_bar(lambda)",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "title": "delta_y_bar(lambda)",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "title": "delta_z_bar(lambda)",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        }
+      ]
+    },
+    "schemaName": "CIEmetaDigitalProduct",
+    "schemaVersion": 4,
+    "schemaURL": "https://doi.org/10.25039/CIE.SC.4taqevcd"
+  }
+}

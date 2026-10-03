@@ -35,6 +35,12 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore ChromaticityDotNet.sln
 
+      - name: Verify CIE reference data and generated constants
+        run: |
+          python3 tools/cie_reference.py verify
+          python3 tools/generate_cie_data.py --check
+          python3 -m unittest discover -s tools -p 'test_*.py'
+
       - name: Build
         run: dotnet build ChromaticityDotNet.sln --configuration Release --no-restore
 

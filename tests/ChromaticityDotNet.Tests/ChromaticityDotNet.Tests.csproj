@@ -20,6 +20,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\ChromaticityDotNet.csproj" />
+    <None Include="..\..\reference\**\*.csv" Link="reference\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\reference\**\*.json" Link="reference\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

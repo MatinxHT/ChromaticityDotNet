@@ -1,0 +1,127 @@
+{
+  "sourcePage": "https://www.cie.co.at/datatable/spectral-radiance-factors-test-colour-sample-15-japanese-skin-complexion-5nm-wavelength",
+  "csvUrl": "https://files.cie.co.at/Publications-datasets/CIE_srf_PS_5nm.csv",
+  "metadataUrl": "https://files.cie.co.at/Publications-datasets/CIE_srf_PS_5nm.csv_metadata_v2.json",
+  "retrievedAtUtc": "2026-10-03T06:13:56.579183+00:00",
+  "csvFile": "CIE_srf_PS_5nm.csv",
+  "csvSha256": "1630cd6a7396ec23e5cf29bc72a6c63cddf1c7934764d143f11c292d7c52715f",
+  "metadataSha256": "9aff57b809414cfe28543885c90814ba7fcfbddf1337b0862740d1a88efe3a0c",
+  "officialChecksumValidation": [
+    {
+      "method": "md5",
+      "declared": "7dfe53cf9a4064ec9dd8988edea5b7e2",
+      "matches": true
+    },
+    {
+      "method": "sha256",
+      "declared": "1630cd6a7396ec23e5cf29bc72a6c63cddf1c7934764d143f11c292d7c52715f",
+      "matches": true
+    }
+  ],
+  "officialMetadata": {
+    "alternateIdentifiers": [
+      {
+        "alternateIdentifier": "CIE_srf_PS_5nm.csv",
+        "alternateIdentifierType": "fileName"
+      }
+    ],
+    "checksums": [
+      {
+        "checksum": "7dfe53cf9a4064ec9dd8988edea5b7e2",
+        "hashMethod": "md5"
+      },
+      {
+        "checksum": "1630cd6a7396ec23e5cf29bc72a6c63cddf1c7934764d143f11c292d7c52715f",
+        "hashMethod": "sha256"
+      }
+    ],
+    "creators": [
+      {
+        "name": "International Commission on Illumination (CIE)",
+        "nameType": "Organizational"
+      }
+    ],
+    "datatableInfo": {
+      "columnHeaders": [
+        {
+          "quantity": "wavelength",
+          "title": "wavelength",
+          "unit": "nm",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        },
+        {
+          "quantity": "spectral radiance factor",
+          "title": "beta15(lambda)",
+          "unit": "dimensionless",
+          "wavelength_first": 380,
+          "wavelength_last": 780,
+          "wavelength_step": 5
+        }
+      ],
+      "dataQuality": "nominal",
+      "extrapolationMethod": "nearest",
+      "interpolationMethod": "Sprague",
+      "validations": [
+        {
+          "validationType": "sumOfColumns",
+          "validationValue": "[46980,32.292]"
+        },
+        {
+          "validationParameter": "13",
+          "validationType": "sampleRow",
+          "validationValue": "440,0.203"
+        }
+      ]
+    },
+    "descriptions": [
+      {
+        "description": "Spectral radiance factors of test-colour sample #15 of the Japanese skin complexion, β15(λ), 5nm wavelength steps, original source: CIE 253:2024 Table B.1",
+        "descriptionType": "Abstract"
+      }
+    ],
+    "formats": [
+      "text/csv"
+    ],
+    "identifier": {
+      "identifier": "10.25039/CIE.DS.7chm7z5h",
+      "identifierType": "DOI"
+    },
+    "language": "en",
+    "publicationYear": "2024",
+    "publisher": "International Commission on Illumination (CIE), Vienna, AT",
+    "relatedItems": [
+      {
+        "relatedItemIdentifier": "10.25039/TR.253.2024",
+        "relatedItemIdentifierType": "DOI",
+        "relatedItemType": "Report",
+        "relationType": "IsPartOf",
+        "titles": [
+          "CIE 253:2024 Overview of Methods for Evaluating Colour Rendition of White-Light Sources beyond Colour Fidelity"
+        ]
+      }
+    ],
+    "rightsList": [
+      {
+        "rights": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "rightsIdentifier": "CC BY-SA 4.0",
+        "rightsURI": "https://creativecommons.org/licenses/by-sa/4.0/"
+      }
+    ],
+    "schemaName": "CIEmetaDigitalProduct",
+    "schemaURL": "https://doi.org/10.25039/CIE.SC.4taqevcd",
+    "schemaVersion": 4,
+    "subjects": [],
+    "titles": [
+      {
+        "title": "Spectral radiance factors of test-colour sample #15 of the Japanese skin complexion, 5nm wavelength steps"
+      }
+    ],
+    "types": {
+      "resourceType": "dataTable",
+      "resourceTypeGeneral": "Dataset"
+    },
+    "metadataRevision": 2
+  }
+}
