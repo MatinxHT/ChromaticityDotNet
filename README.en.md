@@ -18,7 +18,7 @@ dotnet add package ChromaticityDotNet
 
 ## Browser tools
 
-[`apps/`](apps/README.md) contains Avalonia Browser tools for reflectance spectra, batch color differences, color-space conversions, and illuminant-spectrum queries, reusing this library's existing data and algorithms. The app has a separate solution and Cloudflare Pages workflow; Avalonia dependencies are not added to the NuGet library. See the [app guide](apps/README.md) for development and deployment settings.
+[`apps/`](apps/README.md) contains Avalonia Browser tools for reflectance spectra, batch color differences, color-space conversions, and illuminant-spectrum queries, reusing this library's existing data and algorithms. The app has a separate solution and is built and deployed by Cloudflare Pages through Git integration; Avalonia dependencies are not added to the NuGet library. See the [app guide](apps/README.md) for development and deployment settings.
 
 ## Data sources
 

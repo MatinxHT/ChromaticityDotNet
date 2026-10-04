@@ -15,7 +15,7 @@
 
 根项目通过 `DefaultItemExcludes` 排除整个 `apps/**`，应用项目均为 `IsPackable=false`，Avalonia 依赖不会进入 NuGet 库。
 
-`.github/workflows/dotnet.yml` 保留库构建、数据检查、测试、NuGet 和 GitHub Release 步骤。仅改 `apps/**` 或网站工作流时不触发它。网站工作流单独构建、测试和发布，不使用 NuGet 发布密钥，也不创建 Release。
+`.github/workflows/dotnet.yml` 保留库构建、数据检查、测试、NuGet 和 GitHub Release 步骤。仅改 `apps/**` 时不触发它。网站由 Cloudflare Pages 拉取 GitHub 仓库后构建和发布，不使用 NuGet 发布密钥，也不创建 Release。
 
 ## 本地运行
 
@@ -56,22 +56,29 @@ python3 -m http.server 8080 --directory artifacts/site
 
 ## Cloudflare Pages
 
-1. 在 Cloudflare Pages 创建 **Direct Upload** 项目，生产分支设为 `master`。构建由 GitHub Actions 完成。
-2. 在 GitHub 仓库的 Actions 配置中添加：
+1. 在 Cloudflare Pages 选择 **Import an existing Git repository**，连接 GitHub 并选择本仓库。
+2. 构建设置填写：
 
-| 类型 | 名称 | 值 |
-| --- | --- | --- |
-| Variable | `CLOUDFLARE_PAGES_PROJECT_NAME` | 已创建的 Pages 项目名 |
-| Secret | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID |
-| Secret | `CLOUDFLARE_API_TOKEN` | 对目标账户具有 Cloudflare Pages Edit 权限的 API Token |
+| 配置项 | 值 |
+| --- | --- |
+| Production branch | `master` |
+| Framework preset | `None` |
+| Root directory | 留空，使用仓库根目录 |
+| Build command | `bash apps/build_cloudflare.sh` |
+| Build output directory | `artifacts/site` |
+| Environment variables | 无需额外设置 |
 
-3. 推送到 `master`，或手动运行 **Browser Build and Pages Deploy**。
+3. 保存并部署。之后推送到 `master` 时由 Cloudflare 自动拉取、构建和发布。
 
-未设置项目名时，工作流仍构建并上传 `cloudflare-pages-site` artifact，但跳过部署。PR 只构建测试，不使用 Cloudflare 凭据。该流程与 NuGet 发布互相独立。
+`build_cloudflare.sh` 在忽略的 `artifacts/cloudflare-dotnet` 目录安装 .NET 10 SDK 和 `wasm-tools`，仅发布 Browser 项目，然后运行 `prepare_site.py` 整理站点。重复构建只替换生成的 `artifacts/site` 目录。构建命令通过 Bash 调用，无需设置脚本执行权限。Cloudflare 构建不运行测试；修改计算或输入处理代码时，先按上面的本地命令运行测试。
+
+已移除 GitHub 的 **Browser Build and Pages Deploy** 工作流，无需配置 `CLOUDFLARE_PAGES_PROJECT_NAME`、`CLOUDFLARE_ACCOUNT_ID` 或 `CLOUDFLARE_API_TOKEN`。以前为网站部署添加的 GitHub Variable/Secrets 可以删除。
+
+如果已有 Direct Upload 项目，需要新建 Git 集成项目；Cloudflare 不支持将 Direct Upload 项目切换为 Git 集成。
 
 发布后检查首页、`/tools/`、三类示例计算、标准光源查询、中文字体、文件导入、CSV 下载以及 HTTPS 剪贴板。脚本会检查每个文件不超过 Pages 的 25 MiB 限制。浏览器首次访问需要下载 .NET 和 Avalonia 资源；当前不启用 AOT 或 WASM 多线程，不要求 COOP/COEP 跨源隔离。
 
-参考：[Avalonia WASM 部署](https://docs.avaloniaui.net/docs/deployment/webassembly)、[Pages CI Direct Upload](https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/)。
+参考：[Avalonia WASM 部署](https://docs.avaloniaui.net/docs/deployment/webassembly)、[Pages Git integration](https://developers.cloudflare.com/pages/get-started/git-integration/)、[Pages .NET 构建示例](https://developers.cloudflare.com/pages/framework-guides/deploy-a-blazor-site/)。
 
 ## 验证记录
 
@@ -83,7 +90,7 @@ Release WASM 已发布到本地预览，并在浏览器验证前三个独立入�
 
 标准光源查询已通过 Debug WASM 构建。浏览器验证新增的 D50、LED-B1 光源，380–780 nm / 10 nm 波段限制、41 行数据与曲线同步更新，以及查询和反射率曲线的可见光背景。此前已验证 D65/10 nm 与 TL84/1 nm 切换及 401 行数据复制；VS Code 验证浏览器退出联动终止服务，以及点击停止按钮联动关闭浏览器；两种路径均释放 5235 端口。
 
-CSV 导出通过浏览器 Blob 下载，不依赖 File System Access 保存接口。内置浏览器中已确认下载调用成功，但自动化未取得下载落盘确认；上线后应在目标浏览器完成一次实际下载检查。Cloudflare 线上部署需要配置上述账户参数，本次未发布到线上。
+CSV 导出通过浏览器 Blob 下载，不依赖 File System Access 保存接口。内置浏览器中已确认下载调用成功，但自动化未取得下载落盘确认；上线后应在目标浏览器完成一次实际下载检查。Cloudflare 线上部署需要按上述配置连接 GitHub 仓库，本次未发布到线上。
 
 ## 输入与计算约定
 
