@@ -16,9 +16,9 @@ A .NET library for converting relative spectra into color-space values and calcu
 dotnet add package ChromaticityDotNet
 ```
 
-## Browser tools
+## Online evaluation tools
 
-[`apps/`](apps/README.md) contains Avalonia Browser tools for reflectance spectra, batch color differences, color-space conversions, and illuminant-spectrum queries, reusing this library's existing data and algorithms. The app has a separate solution and is built and deployed by Cloudflare Pages through Git integration; Avalonia dependencies are not added to the NuGet library. See the [app guide](apps/README.md) for development and deployment settings.
+[`apps/`](apps/README.md) provides browser-based tools built with Avalonia Browser for reflectance-spectrum calculations, batch color-difference calculations, color-space conversions, and standard illuminant queries. These tools reuse this library's existing data and algorithms. The website uses a separate solution and is built and deployed by Cloudflare Pages through Git integration, without adding Avalonia dependencies to the NuGet package. Try [ChromaticityDotNet online](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME).
 
 ## Data sources
 
@@ -34,7 +34,7 @@ Library aliases: **CWF → FL2, F7 → FL7, TL84 → FL11, U30 → FL12**.
 CIE marks the official FL 1 nm data as `approximated`; undefined z̄ tail values in the 1964 matching functions are treated as zero in calculations.
 
 [`reference/`](reference/README.md) stores official CSVs and JSON records for online update checks, organized by category.
-CSVs are references for Codex and maintainers to review and transcribe into code; runtime calculations use compiled constants. The complete catalog of 50 lights is compiled, including D50, C, D55/D75, ID50/65, L41, every FL/HP/LED column. Source grids remain 1 or 5 nm; see `CieSpectralData.Illuminants` for metadata.
+The CSV files serve as references for Codex and maintainers when verifying data and incorporating them into code; runtime calculations use compiled constants. The complete catalog of 50 illuminants has been incorporated into the code, including D50, C, D55/D75, ID50/65, L41, and the full FL, HP, and LED series. The source tables use sampling intervals of 1 or 5 nm; see `CieSpectralData.Illuminants` for metadata.
 See [CIE data attribution](CIE-DATA-NOTICE.md) for data licensing and credits.
 
 ## Spectral conversion to XYZ
@@ -46,8 +46,8 @@ Conversion methods belong to `ChromaticityConversion`; `Spectrum` belongs to `Da
 | `REFtoXYZ(Spectrum, Standardilluminant, StandardObserver)` | Primary entry point: reflectance percentages → XYZ, normalized to Y = 100 for a perfect reflector |
 | `REFtoXYZ(Spectrum, Spectrum, StandardObserver)` | Use a custom illuminant spectrum; the first two arguments are reflectance and illuminant, respectively |
 | `SPDtoXYZ(Spectrum, StandardObserver)` | Unnormalized XYZ weighted sums for self-luminous SPD; scale conventions remain a [TODO](TODO.md) |
-| `CieSpectralData.Illuminants` | IDs, source files, native grids, and quality metadata for 50 lights |
-| `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | Get an independent copy using the legacy enum or a catalog ID, on its native grid |
+| `CieSpectralData.Illuminants` | IDs, source files, native wavelength ranges, sampling intervals, and quality metadata for 50 illuminants |
+| `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | Get an independent copy of an illuminant spectrum using the legacy enum or a catalog ID, preserving its native sampling grid |
 | `CieSpectralData.GetColorMatchingFunctions(observer)` | Get independent copies of the matching-function spectra `(X, Y, Z)` |
 
 ```csharp
@@ -77,7 +77,7 @@ var fastXyz = ChromaticityConversion.REFtoXYZ(
     Enumerable.Repeat(18.0, 31).ToArray(), Standardilluminant.D65, StandardObserver.Degree2);
 ```
 
-- Wavelength endpoints are inclusive; sample count must equal `(end - start) / interval + 1`. The interval must be a positive integer in nm, and samples must be finite and nonnegative.
+- Wavelength endpoints are inclusive; the sample count must equal `(end - start) / interval + 1`. The interval must be a positive integer in nm, and sample values must be finite and nonnegative.
 - Reflectance is supplied as percentages; values above 100 are allowed. Samples are linearly interpolated to 1 nm and summed over the input range, which must lie within both observer and illuminant coverage. No extrapolation or automatic clipping is applied.
 - The new entry points round XYZ results to four decimal places, with midpoints rounded away from zero. The illuminant's reference luminance over the calculation range must be positive; invalid inputs and numeric overflow throw exceptions.
 - Both `double[]` entry points retain the original tables and algorithms for **fast 31-point calculations over 400–700 nm at 10 nm intervals**.
@@ -118,7 +118,7 @@ var white = ChromaticityMatch.GetStandardWhitePoint(
 - Lab/Luv conversions use an XYZ reference white with Y = 100. Use the same illuminant and observer in both directions. These conversions still use legacy fixed white points, which may differ from whites obtained by the new spectral integration.
 - Inverse conversions retain `double` precision internally and round XYZ outputs to four decimal places, with midpoints rounded away from zero. Reference tests allow an error of at most 0.00005 per component; XYZ → Lab/Luv → XYZ round-trip tests use a tolerance of 0.0003.
 - Lab/Luv inverse conversions require finite coordinates and nonnegative L*; L* above 100 is allowed. Luv(0,0,0) returns black. Zero L* with nonzero u*/v*, nonpositive reconstructed v′, or numeric overflow throws an exception.
-- sRGB uses D65 chromaticity `(0.3127, 0.3290)`, with XYZ white `(95.0456, 100, 108.9058)`, slightly different from the library's fixed D65/2° white `(95.047, 100, 108.883)`. No chromatic adaptation is performed.
+- sRGB uses D65 chromaticity `(0.3127, 0.3290)` and an XYZ white point of `(95.0456, 100, 108.9058)`, which differs slightly from the library's fixed D65/2° white point `(95.047, 100, 108.883)`. No chromatic adaptation is performed.
 - `XYZ2RGB` clips colors outside the sRGB gamut and rounds to bytes, so arbitrary XYZ values cannot be round-tripped losslessly.
 
 The sRGB conversion matrices follow [W3C CSS Color 4](https://www.w3.org/TR/css-color-4/#color-conversion-code); the Luv inverse formula was checked against the [Colour documentation](https://colour.readthedocs.io/en/develop/_modules/colour/models/cie_luv.html#Luv_to_XYZ).
