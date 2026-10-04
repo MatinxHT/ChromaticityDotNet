@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <base href="/">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="ChromaticityDotNet 在线色彩工具：反射光谱计算、批量色差计算、颜色空间转换、标准光源查询。数据在浏览器本地处理。">
+  <title>色差计算 · ChromaticityDotNet</title>
+  <link rel="preload" id="webassembly">
+  <script type="importmap"></script>
+  <link rel="stylesheet" href="app.css">
+  <script type="module" src="main#[.{fingerprint}].js"></script>
+  <link rel="icon" href="/favicon.ico?v=2" sizes="16x16 32x32">
+  <link rel="icon" type="image/png" href="/assets/app-icon.png?v=2" sizes="256x256">
+  <link rel="apple-touch-icon" href="/assets/app-icon.png?v=2">
+</head>
+<body class="tool-page" data-tool="difference">
+  <nav aria-label="项目链接">
+    <a class="brand" href="/" aria-label="ChromaticityDotNet 首页"><img src="/assets/app-icon.png?v=2" width="32" height="32" alt=""><span>ChromaticityDotNet</span></a>
+    <span><a href="https://github.com/MatinxHT/ChromaticityDotNet" target="_blank" rel="noopener">GitHub ↗</a>
+    <a href="https://www.nuget.org/packages/ChromaticityDotNet" target="_blank" rel="noopener">NuGet ↗</a>
+    <a href="/tools/CIE-DATA-NOTICE.md">数据来源与许可</a></span>
+  </nav>
+  <nav class="tools-nav" aria-label="色彩工具">
+    <a data-tool="spectrum" href="/tools/spectrum.html" target="_blank" rel="noopener">01 光谱计算</a>
+    <a data-tool="difference" href="/tools/difference.html" target="_blank" rel="noopener">02 色差计算</a>
+    <a data-tool="conversion" href="/tools/conversion.html" target="_blank" rel="noopener">03 颜色转换</a>
+    <a data-tool="illuminant" href="/tools/illuminant.html" target="_blank" rel="noopener">04 标准光源查询</a>
+  </nav>
+  <div id="out">
+    <main class="avalonia-splash loading" role="status">
+      <img class="loading-icon" src="/assets/app-icon.png?v=2" width="64" height="64" alt="">
+      <h1>正在加载工具</h1>
+      <p id="loading-message">正在加载，请稍候。首次打开可能需要一些时间。</p>
+    </main>
+  </div>
+  <noscript>此工具需要启用 JavaScript 和 WebAssembly。请使用现代浏览器。</noscript>
+</body>
+</html>

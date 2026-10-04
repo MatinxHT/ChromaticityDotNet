@@ -16,6 +16,10 @@
 dotnet add package ChromaticityDotNet
 ```
 
+## 浏览器工具
+
+[`apps/`](apps/README.md) 提供基于 Avalonia Browser 的反射光谱计算、批量色差计算、颜色空间转换和标准光源查询工具，复用本库已有数据与算法。网站采用独立 solution 和 Cloudflare Pages 工作流，不向 NuGet 包引入 Avalonia 依赖。开发运行及部署配置见[工具说明](apps/README.md)。
+
 ## 数据来源
 
 带波长信息的光谱接口使用 [CIE 官方数据](https://www.cie.co.at/data-tables)：
@@ -24,13 +28,13 @@ dotnet add package ChromaticityDotNet
 | --- | --- | --- |
 | CIE 1931 2° / 1964 10° 配色函数 | 360–830 nm / 1 nm | [1931](https://doi.org/10.25039/CIE.DS.xvudnb9b)、[1964](https://doi.org/10.25039/CIE.DS.sqksu2n5) |
 | 照明体 A / D65 | 300–830 nm / 1 nm | [A](https://doi.org/10.25039/CIE.DS.8jsxjrsn)、[D65](https://doi.org/10.25039/CIE.DS.hjfjmt59) |
-| FL2 / FL7 / FL11 / FL12 | 380–780 nm / 1 nm | [荧光灯照明体](https://doi.org/10.25039/CIE.DS.54hy6srn) |
+| FL1–FL12 / FL3.1–FL3.15 | 380–780 nm / 1 nm | [荧光灯照明体](https://doi.org/10.25039/CIE.DS.54hy6srn) |
 
 库内名称对应关系：**CWF → FL2、F7 → FL7、TL84 → FL11、U30 → FL12**。
 FL 的官方 1 nm 数据标注为近似数据（`approximated`）；1964 配色函数中未定义的 z̄ 尾部值在计算时按零处理。
 
 [`reference/`](reference/README.md) 按类别保存官方 CSV 和用于联网检查更新的 JSON。
-CSV 供 Codex 和维护者核对、转入代码；运行时使用编译后的常量。D50、LED 等其他归档数据尚未接入公开接口。
+CSV 供 Codex 和维护者核对、转入代码；运行时使用编译后的常量。完整光源目录已转入代码，共 50 条；包括 D50、C、D55/D75、ID50/65、L41、完整 FL、HP 和 LED 系列。各光源源表间隔为 1 或 5 nm，详情见 `CieSpectralData.Illuminants`。
 数据许可及署名见 [CIE 数据说明](CIE-DATA-NOTICE.md)。
 
 ## 光谱转 XYZ
@@ -42,7 +46,8 @@ CSV 供 Codex 和维护者核对、转入代码；运行时使用编译后的常
 | `REFtoXYZ(Spectrum, Standardilluminant, StandardObserver)` | 主入口：反射率百分数转 XYZ，完全反射体归一化到 Y = 100 |
 | `REFtoXYZ(Spectrum, Spectrum, StandardObserver)` | 使用自定义照明体光谱，前两个参数依次为反射率、照明体 |
 | `SPDtoXYZ(Spectrum, StandardObserver)` | 自发光 SPD 的未归一化 XYZ 加权和，尺度约定见 [TODO](TODO.md) |
-| `CieSpectralData.GetIlluminantSpectrum(illuminant)` | 获取官方照明体光谱的独立副本 |
+| `CieSpectralData.Illuminants` | 50 条光源的 ID、来源、原始波段、间隔和质量标注 |
+| `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | 获取旧枚举或完整目录中光源光谱的独立副本，保留原始采样网格 |
 | `CieSpectralData.GetColorMatchingFunctions(observer)` | 获取配色函数光谱的独立副本 `(X, Y, Z)` |
 
 ```csharp
@@ -63,7 +68,7 @@ var xyz = ChromaticityConversion.REFtoXYZ(
     reflectance, Standardilluminant.D65, StandardObserver.Degree2); // Y = 18
 
 // 直接传入照明体 Spectrum；也可替换为自定义光谱。
-var light = CieSpectralData.GetIlluminantSpectrum(Standardilluminant.D65);
+var light = CieSpectralData.GetIlluminantSpectrum("D50"); // 也可使用 "LED-B1"、"FL3.1"、"HP1" 等目录 ID
 var customXyz = ChromaticityConversion.REFtoXYZ(reflectance, light, StandardObserver.Degree2);
 var (xBar, yBar, zBar) = CieSpectralData.GetColorMatchingFunctions(StandardObserver.Degree2);
 

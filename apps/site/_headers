@@ -1,0 +1,7 @@
+/_framework/*
+  Cache-Control: public, max-age=0, must-revalidate
+/_framework/*.wasm
+  Content-Type: application/wasm
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

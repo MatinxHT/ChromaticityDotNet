@@ -3,6 +3,9 @@ name: .NET Build and Release
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      - 'apps/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:

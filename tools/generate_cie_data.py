@@ -1,20 +1,57 @@
 #!/usr/bin/env python3
-"""Transfer reviewed CIE reference CSVs into C# constants. No network access."""
+"""Transfer reviewed CIE reference CSVs into C# constants and a light catalog. No network access."""
 import argparse
 import csv
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TABLES = [
-    ("observers/CIE_xyz_1931_2deg", 360, 830, [("X2", 1), ("Y2", 2), ("Z2", 3)]),
-    ("observers/CIE_xyz_1964_10deg", 360, 830, [("X10", 1), ("Y10", 2), ("Z10", 3)]),
-    ("illuminants/CIE_std_illum_A_1nm", 300, 830, [("A", 1)]),
-    ("illuminants/CIE_std_illum_D65", 300, 830, [("D65", 1)]),
-    ("illuminants/CIE_illum_FLs_1nm", 380, 780, [("FL2", 2), ("FL7", 7), ("FL11", 11), ("FL12", 12)]),
+OBSERVER_TABLES = [
+    ("observers/CIE_xyz_1931_2deg", [("X2", 1), ("Y2", 2), ("Z2", 3)]),
+    ("observers/CIE_xyz_1964_10deg", [("X10", 1), ("Y10", 2), ("Z10", 3)]),
 ]
+# Prefer the archived official 1 nm version where available. Other tables keep
+# their original 5 nm grid; interpolation belongs to the querying application.
+ILLUMINANT_TABLES = [
+    ("illuminants/CIE_std_illum_D65", "D65"),
+    ("illuminants/CIE_std_illum_A_1nm", "A"),
+    ("illuminants/CIE_std_illum_D50", "D50"),
+    ("illuminants/CIE_illum_D55", "D55"),
+    ("illuminants/CIE_illum_D75", "D75"),
+    ("illuminants/CIE_illum_C", "C"),
+    ("illuminants/CIE_illum_ID50", "ID50"),
+    ("illuminants/CIE_illum_ID65", "ID65"),
+    ("illuminants/CIE_RefSpectrum_L41", "L41"),
+    ("illuminants/CIE_illum_FLs_1nm", None),
+    ("illuminants/CIE_illum_HPs", None),
+    ("illuminants/CIE_illum_LEDs_1nm", None),
+]
+ALIASES = {"FL2": "CWF", "FL7": "F7", "FL11": "TL84", "FL12": "U30"}
+
+
+def read_table(name):
+    path = ROOT / "reference" / (name + ".csv")
+    manifest = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
+    if hashlib.sha256(path.read_bytes()).hexdigest() != manifest["csvSha256"]:
+        raise ValueError("Reference checksum mismatch: " + name)
+    if any(not c["matches"] for c in manifest["officialChecksumValidation"]):
+        raise ValueError("Unverified official checksum: " + name)
+    rows = [r for r in csv.reader(path.read_text(encoding="utf-8-sig").splitlines()) if r]
+    wavelengths = [int(r[0]) for r in rows]
+    start, end, step = wavelengths[0], wavelengths[-1], wavelengths[1] - wavelengths[0]
+    if step <= 0 or wavelengths != list(range(start, end + 1, step)):
+        raise ValueError("Expected complete regular wavelength grid: " + name)
+    headers = manifest["officialMetadata"]["datatableInfo"]["columnHeaders"]
+    if any(len(row) != len(headers) for row in rows):
+        raise ValueError("CSV columns do not match metadata: " + name)
+    return manifest, rows, (start, end, step)
+
+
+def csharp_string(value):
+    return json.dumps(value, ensure_ascii=False)
 
 
 def generate():
@@ -25,19 +62,25 @@ def generate():
         "// </auto-generated>",
         "namespace ChromaticityDotNet.Model", "{", "    internal static class CieReferenceData", "    {",
     ]
-    for name, start, end, columns in TABLES:
-        path = ROOT / "reference" / (name + ".csv")
-        manifest = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
-        if hashlib.sha256(path.read_bytes()).hexdigest() != manifest["csvSha256"]:
-            raise ValueError("Reference checksum mismatch: " + name)
-        if any(not c["matches"] for c in manifest["officialChecksumValidation"]):
-            raise ValueError("Unverified official checksum: " + name)
-        rows = [r for r in csv.reader(path.read_text(encoding="utf-8-sig").splitlines()) if r]
-        if [int(r[0]) for r in rows] != list(range(start, end + 1)):
-            raise ValueError("Expected complete 1 nm grid: " + name)
+    tables = [(name, columns, False) for name, columns in OBSERVER_TABLES]
+    for name, single_id in ILLUMINANT_TABLES:
+        manifest, _, _ = read_table(name)
+        headers = manifest["officialMetadata"]["datatableInfo"]["columnHeaders"]
+        columns = [(single_id, 1)] if single_id else [(h["title"], i) for i, h in enumerate(headers) if i]
+        tables.append((name, columns, True))
+    entries = []
+    fields = set()
+    for name, columns, is_illuminant in tables:
+        manifest, rows, (start, end, step) = read_table(name)
+        if not is_illuminant and (start, end, step) != (360, 830, 1):
+            raise ValueError("Observer grid changed: " + name)
         output.append("        // " + manifest["sourcePage"])
         output.append("        // CSV SHA-256: " + manifest["csvSha256"])
-        for field, column in columns:
+        for light_id, column in columns:
+            field = re.sub(r"[^A-Za-z0-9_]", "_", light_id)
+            if field in fields:
+                raise ValueError("Duplicate generated field: " + field)
+            fields.add(field)
             values = []
             for row in rows:
                 raw = row[column].strip()
@@ -51,7 +94,13 @@ def generate():
             for i in range(0, len(values), 6):
                 output.append("            " + ", ".join(values[i:i + 6]) + ",")
             output.extend(["        };", ""])
-    output.extend(["    }", "}", ""])
+            if is_illuminant:
+                display = light_id + ("（" + ALIASES[light_id] + "）" if light_id in ALIASES else "")
+                approximate = manifest["officialMetadata"]["datatableInfo"]["dataQuality"] == "approximated"
+                args = [csharp_string(light_id), csharp_string(display), str(start), str(end), str(step),
+                        str(approximate).lower(), csharp_string(Path(name).name + ".csv"), csharp_string(manifest["sourcePage"])]
+                entries.append("            (new CieIlluminantInfo(" + ", ".join(args) + "), " + field + "),")
+    output.extend(["        internal static readonly (CieIlluminantInfo Info, double[] Values)[] IlluminantEntries =", "        {", *entries, "        };", "    }", "}", ""])
     return "\n".join(output)
 
 
@@ -64,7 +113,7 @@ if __name__ == "__main__":
     if args.check:
         if not destination.exists() or destination.read_text(encoding="utf-8") != content:
             raise SystemExit("CieReferenceData.g.cs needs regeneration.")
-        print("Generated CIE constants match the reference archive.")
+        print("Generated CIE constants and catalog match the reference archive.")
     else:
         destination.write_text(content, encoding="utf-8")
         print("Generated " + str(destination.relative_to(ROOT)))

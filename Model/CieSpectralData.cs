@@ -7,6 +7,30 @@ namespace ChromaticityDotNet.Model
     /// Legacy StandardChromaticityModel tables remain unchanged.</summary>
     public static class CieSpectralData
     {
+        /// <summary>All compiled CIE light spectra, in catalog order. Unlike the legacy
+        /// white-point enum, this includes the complete archived FL, HP and LED series.</summary>
+        public static IReadOnlyList<CieIlluminantInfo> Illuminants { get; } =
+            Array.AsReadOnly(CieReferenceData.IlluminantEntries.Select(entry => entry.Info).ToArray());
+
+        private static readonly Dictionary<string, (CieIlluminantInfo Info, double[] Values)> Catalog =
+            CieReferenceData.IlluminantEntries.ToDictionary(entry => entry.Info.Id, StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Returns an independent copy of a catalog spectrum on its original
+        /// wavelength grid (1 or 5 nm). No interpolation or extrapolation is performed.</summary>
+        public static Spectrum GetIlluminantSpectrum(string illuminantId)
+        {
+            if (illuminantId is null) throw new ArgumentNullException(nameof(illuminantId));
+            if (!Catalog.TryGetValue(illuminantId, out var entry))
+                throw new ArgumentOutOfRangeException(nameof(illuminantId), "Unknown CIE illuminant ID.");
+            return new Spectrum
+            {
+                StartingWavelength = entry.Info.StartingWavelength,
+                EndingWavelength = entry.Info.EndingWavelength,
+                WavelengthInterval = entry.Info.WavelengthInterval,
+                Spectrums = (double[])entry.Values.Clone()
+            };
+        }
+
         /// <summary>Returns an independent copy of the official 1 nm illuminant spectrum.
         /// A/D65 cover 300–830 nm; fluorescent illuminants cover 380–780 nm.
         /// Existing library aliases CWF, F7, TL84 and U30 map to FL2, FL7, FL11 and FL12.</summary>

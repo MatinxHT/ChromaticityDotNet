@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Chromaticity.Tools.Browser": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5235",
+      "environmentVariables": { "ASPNETCORE_ENVIRONMENT": "Development" }
+    }
+  }
+}

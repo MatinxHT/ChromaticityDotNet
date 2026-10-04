@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <WasmEnableThreads>false</WasmEnableThreads>
+    <WasmBuildNative>true</WasmBuildNative>
+    <RunAOTCompilation>false</RunAOTCompilation>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Browser" Version="$(AvaloniaVersion)" />
+    <ProjectReference Include="../Chromaticity.Tools/Chromaticity.Tools.csproj" />
+    <StaticWebAssetFingerprintPattern Include="JS" Pattern="*.js" Expression="#[.{fingerprint}]!" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../Chromaticity.Tools/Assets/OFL.txt" Link="wwwroot/tools/FONT-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../CIE-DATA-NOTICE.md" Link="wwwroot/tools/CIE-DATA-NOTICE.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../LICENSE" Link="wwwroot/tools/LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- The static home page uses the calculation assembly's version without loading WASM. -->
+  <Target Name="GenerateCalculationLibraryVersion" BeforeTargets="ResolveProjectStaticWebAssets" DependsOnTargets="ResolveReferences" Condition="'$(NoBuild)' != 'true'">
+    <ItemGroup>
+      <_CalculationLibraryReference Include="@(ReferencePath)" Condition="'%(ReferencePath.Filename)' == 'ChromaticityDotNet'" />
+    </ItemGroup>
+    <Error Condition="'@(_CalculationLibraryReference)' == ''" Text="Cannot find the calculation assembly for the home page version." />
+    <GetAssemblyIdentity AssemblyFiles="@(_CalculationLibraryReference)">
+      <Output TaskParameter="Assemblies" ItemName="_CalculationLibraryIdentity" />
+    </GetAssemblyIdentity>
+    <WriteLinesToFile File="$(IntermediateOutputPath)library-version.js"
+                      Lines="document.getElementById('library-version').textContent = 'ChromaticityDotNet v%(_CalculationLibraryIdentity.Version)'"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" Encoding="UTF-8" />
+    <ItemGroup>
+      <_LibraryVersionAsset Include="$(IntermediateOutputPath)library-version.js">
+        <RelativePath>library-version.js</RelativePath>
+      </_LibraryVersionAsset>
+      <FileWrites Include="$(IntermediateOutputPath)library-version.js" />
+    </ItemGroup>
+    <DefineStaticWebAssets CandidateAssets="@(_LibraryVersionAsset)" SourceType="Computed" SourceId="$(PackageId)"
+                          ContentRoot="$(IntermediateOutputPath)" BasePath="$(StaticWebAssetBasePath)"
+                          AssetKind="All" AssetMode="All" AssetRole="Primary"
+                          CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest"
+                          FingerprintCandidates="$(StaticWebAssetsFingerprintContent)" FingerprintPatterns="@(StaticWebAssetFingerprintPattern)">
+      <Output TaskParameter="Assets" ItemName="StaticWebAsset" />
+      <Output TaskParameter="Assets" ItemName="_GeneratedLibraryVersionAsset" />
+    </DefineStaticWebAssets>
+    <DefineStaticWebAssetEndpoints CandidateAssets="@(_GeneratedLibraryVersionAsset)" ExistingEndpoints="@(StaticWebAssetEndpoint)"
+                                   ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
+      <Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
+    </DefineStaticWebAssetEndpoints>
+  </Target>
+</Project>

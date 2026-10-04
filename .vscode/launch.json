@@ -1,0 +1,37 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Tools · 启动工具首页",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "dotnet run --project \"${workspaceFolder}/apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj\" --no-launch-profile -p:GeneratePackageOnBuild=false",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "ASPNETCORE_URLS": "http://localhost:5235",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_CLI_USE_MSBUILD_SERVER": "0",
+        "MSBUILDDISABLENODEREUSE": "1"
+      },
+      "serverReadyAction": {
+        "pattern": "App url:.*http://localhost:5235/",
+        "action": "startDebugging",
+        "name": "Tools · 浏览器",
+        "killOnServerStop": true
+      }
+    },
+    {
+      "name": "Tools · 浏览器",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5235/",
+      "webRoot": "${workspaceFolder}/apps/Chromaticity.Tools.Browser/wwwroot",
+      "userDataDir": "${workspaceFolder}/artifacts/tools-debug/chrome-profile",
+      "runtimeArgs": ["--disable-background-mode"],
+      "cleanUp": "wholeBrowser",
+      "killBehavior": "forceful",
+      "cascadeTerminateToConfigurations": ["Tools · 启动工具首页"],
+      "presentation": { "hidden": true }
+    }
+  ]
+}

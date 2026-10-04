@@ -16,6 +16,10 @@ A .NET library for converting relative spectra into color-space values and calcu
 dotnet add package ChromaticityDotNet
 ```
 
+## Browser tools
+
+[`apps/`](apps/README.md) contains Avalonia Browser tools for reflectance spectra, batch color differences, color-space conversions, and illuminant-spectrum queries, reusing this library's existing data and algorithms. The app has a separate solution and Cloudflare Pages workflow; Avalonia dependencies are not added to the NuGet library. See the [app guide](apps/README.md) for development and deployment settings.
+
 ## Data sources
 
 The wavelength-aware spectral API uses [official CIE datasets](https://www.cie.co.at/data-tables):
@@ -24,13 +28,13 @@ The wavelength-aware spectral API uses [official CIE datasets](https://www.cie.c
 | --- | --- | --- |
 | CIE 1931 2° / 1964 10° color-matching functions | 360–830 nm / 1 nm | [1931](https://doi.org/10.25039/CIE.DS.xvudnb9b), [1964](https://doi.org/10.25039/CIE.DS.sqksu2n5) |
 | Illuminants A / D65 | 300–830 nm / 1 nm | [A](https://doi.org/10.25039/CIE.DS.8jsxjrsn), [D65](https://doi.org/10.25039/CIE.DS.hjfjmt59) |
-| FL2 / FL7 / FL11 / FL12 | 380–780 nm / 1 nm | [Fluorescent illuminants](https://doi.org/10.25039/CIE.DS.54hy6srn) |
+| FL1–FL12 / FL3.1–FL3.15 | 380–780 nm / 1 nm | [Fluorescent illuminants](https://doi.org/10.25039/CIE.DS.54hy6srn) |
 
 Library aliases: **CWF → FL2, F7 → FL7, TL84 → FL11, U30 → FL12**.
 CIE marks the official FL 1 nm data as `approximated`; undefined z̄ tail values in the 1964 matching functions are treated as zero in calculations.
 
 [`reference/`](reference/README.md) stores official CSVs and JSON records for online update checks, organized by category.
-CSVs are references for Codex and maintainers to review and transcribe into code; runtime calculations use compiled constants. Other archived datasets, including D50 and LED, are not yet exposed by the public API.
+CSVs are references for Codex and maintainers to review and transcribe into code; runtime calculations use compiled constants. The complete catalog of 50 lights is compiled, including D50, C, D55/D75, ID50/65, L41, every FL/HP/LED column. Source grids remain 1 or 5 nm; see `CieSpectralData.Illuminants` for metadata.
 See [CIE data attribution](CIE-DATA-NOTICE.md) for data licensing and credits.
 
 ## Spectral conversion to XYZ
@@ -42,7 +46,8 @@ Conversion methods belong to `ChromaticityConversion`; `Spectrum` belongs to `Da
 | `REFtoXYZ(Spectrum, Standardilluminant, StandardObserver)` | Primary entry point: reflectance percentages → XYZ, normalized to Y = 100 for a perfect reflector |
 | `REFtoXYZ(Spectrum, Spectrum, StandardObserver)` | Use a custom illuminant spectrum; the first two arguments are reflectance and illuminant, respectively |
 | `SPDtoXYZ(Spectrum, StandardObserver)` | Unnormalized XYZ weighted sums for self-luminous SPD; scale conventions remain a [TODO](TODO.md) |
-| `CieSpectralData.GetIlluminantSpectrum(illuminant)` | Get an independent copy of an official illuminant spectrum |
+| `CieSpectralData.Illuminants` | IDs, source files, native grids, and quality metadata for 50 lights |
+| `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | Get an independent copy using the legacy enum or a catalog ID, on its native grid |
 | `CieSpectralData.GetColorMatchingFunctions(observer)` | Get independent copies of the matching-function spectra `(X, Y, Z)` |
 
 ```csharp
@@ -63,7 +68,7 @@ var xyz = ChromaticityConversion.REFtoXYZ(
     reflectance, Standardilluminant.D65, StandardObserver.Degree2); // Y = 18
 
 // Pass an illuminant Spectrum directly, or replace it with a custom spectrum.
-var light = CieSpectralData.GetIlluminantSpectrum(Standardilluminant.D65);
+var light = CieSpectralData.GetIlluminantSpectrum("D50"); // Also accepts catalog IDs such as "LED-B1", "FL3.1", and "HP1".
 var customXyz = ChromaticityConversion.REFtoXYZ(reflectance, light, StandardObserver.Degree2);
 var (xBar, yBar, zBar) = CieSpectralData.GetColorMatchingFunctions(StandardObserver.Degree2);
 

@@ -21,12 +21,34 @@ Sources of the numerical data currently compiled into the library:
   typical fluorescent lamps, 1nm wavelength steps*,
   [DOI: 10.25039/CIE.DS.54hy6srn](https://doi.org/10.25039/CIE.DS.54hy6srn).
 
+- CIE 2022, *CIE standard illuminant D50*,
+  [DOI: 10.25039/CIE.DS.etgmuqt5](https://doi.org/10.25039/CIE.DS.etgmuqt5).
+- CIE 2018, *Relative spectral power distributions of CIE illuminant D55*,
+  [DOI: 10.25039/CIE.DS.qewfb3kp](https://doi.org/10.25039/CIE.DS.qewfb3kp).
+- CIE 2018, *Relative spectral power distributions of CIE illuminant D75*,
+  [DOI: 10.25039/CIE.DS.9fvcmrk4](https://doi.org/10.25039/CIE.DS.9fvcmrk4).
+- CIE 2018, *Relative spectral power distributions of CIE illuminant C*,
+  [DOI: 10.25039/CIE.DS.mjdd2enu](https://doi.org/10.25039/CIE.DS.mjdd2enu).
+- CIE 2009, *CIE indoor daylight illuminant ID50*,
+  [DOI: 10.25039/CIE.DS.r4gcnrzc](https://doi.org/10.25039/CIE.DS.r4gcnrzc).
+- CIE 2009, *CIE indoor daylight illuminant ID65*,
+  [DOI: 10.25039/CIE.DS.bd53qdqk](https://doi.org/10.25039/CIE.DS.bd53qdqk).
+- CIE 2023, *CIE reference spectrum L41*,
+  [DOI: 10.25039/CIE.DS.van56dfj](https://doi.org/10.25039/CIE.DS.van56dfj).
+- CIE 2018, *Relative spectral power distributions of high pressure discharge lamp illuminants*,
+  [DOI: 10.25039/CIE.DS.f6rvvnev](https://doi.org/10.25039/CIE.DS.f6rvvnev).
+- CIE 2018, *Relative spectral power distributions of illuminants representing typical LED lamps, 1nm spacing*,
+  [DOI: 10.25039/CIE.DS.dhcw57sd](https://doi.org/10.25039/CIE.DS.dhcw57sd).
+
 Modifications in the generated numerical tables: the selected CSV columns are
-represented as C# double literals; only FL2, FL7, FL11 and FL12 are compiled from
-the fluorescent dataset; undefined (`NaN`) CIE 1964 z-bar entries at 560–830 nm
+represented as C# double literals, including every FL/HP/LED light column and
+the illuminant catalog. The original 1 nm or 5 nm grid is preserved; undefined (`NaN`) CIE 1964 z-bar entries at 560–830 nm
 are represented as zero for computation. Original CSV files are preserved without
-these modifications. The fluorescent 1 nm data are identified by CIE metadata as
-`approximated`. No CIE endorsement is implied.
+these modifications. The fluorescent and LED 1 nm data are identified by CIE metadata as
+`approximated`. The browser query uses linear interpolation when a requested
+wavelength lies between original samples, and does not extrapolate. Its visible
+wavelength background is a gamut-clipped, brightness-normalized sRGB display
+approximation derived from the CIE 1931 observer; it does not modify the spectra. No CIE endorsement is implied.
 
 For every archived dataset, the adjacent JSON preserves the official title,
 creator, DOI, related publication, rights, data-quality and processing metadata,
