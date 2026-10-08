@@ -23,11 +23,11 @@ nav, .site-header {
   border-bottom: 1px solid var(--line);
   background: #fff;
 }
-nav a, .site-header a { text-decoration: none; font-size: 13px; }
+nav a, .site-header a { text-decoration: none; font-size: 14px; }
 nav span { display: flex; gap: 18px; }
-.header-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 18px; margin-left: auto; }
-.language-picker { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }
-.language-select { padding: 6px 26px 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: inherit; font: inherit; cursor: pointer; }
+.header-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 24px; margin-left: auto; }
+.language-picker { display: inline-flex; align-items: center; gap: 12px; font-size: 14px; white-space: nowrap; }
+.language-select { min-height: 38px; padding: 8px 30px 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: inherit; font: inherit; cursor: pointer; }
 .language-select:focus-visible { outline: 2px solid #222; outline-offset: 2px; }
 .tool-page > nav:first-child { flex-shrink: 0; }
 nav a:hover, .site-header a:hover { text-decoration: underline; }
@@ -39,9 +39,22 @@ nav a:hover, .site-header a:hover { text-decoration: underline; }
 #out { position: relative; flex: 1; min-height: 0; width: 100%; overflow: hidden; }
 #out:focus-visible { outline: 1px solid #666; outline-offset: -1px; }
 .avalonia-splash.splash-close { display: none; }
-.loading { max-width: 620px; margin: 12vh auto; padding: 32px; text-align: center; }
+.loading { max-width: 620px; margin: 0 auto; padding: clamp(24px, 8vh, 64px) 32px 32px; text-align: center; max-height: 100%; overflow-y: auto; }
 .loading h1 { font-size: 24px; font-weight: 600; }
 .loading p { color: var(--muted); line-height: 1.8; }
+.loading-progress { margin: 24px auto 0; max-width: 420px; text-align: left; }
+.loading-progress-heading { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; }
+.loading-progress progress { display: block; width: 100%; height: 8px; margin: 12px 0; border: 0; border-radius: 4px; overflow: hidden; background: #ddd; accent-color: #333; }
+.loading-progress progress::-webkit-progress-bar { background: #ddd; }
+.loading-progress progress::-webkit-progress-value { background: #333; }
+.loading-progress progress::-moz-progress-bar { background: #333; }
+.loading-progress p { margin: 8px 0; font-size: 13px; overflow-wrap: anywhere; }
+#loading-percent, #loading-detail { font-variant-numeric: tabular-nums; }
+#loading-warning { color: #333; white-space: pre-line; }
+.loading-retry { margin-top: 12px; padding: 9px 18px; border: 1px solid #aaa; border-radius: 6px; background: #fff; color: inherit; font: inherit; cursor: pointer; }
+.loading-retry:hover { background: #eee; }
+.loading-retry:focus-visible { outline: 2px solid #222; outline-offset: 2px; }
+[hidden] { display: none !important; }
 .tools-nav { justify-content: flex-start; gap: 8px; padding-block: 8px; flex-shrink: 0; }
 .tools-nav a { padding: 9px 14px; border: 1px solid transparent; border-radius: 6px; background: #eee; }
 .tools-nav a:hover { background: #e5e5e5; text-decoration: none; }
@@ -74,9 +87,11 @@ nav a:hover, .site-header a:hover { text-decoration: underline; }
 .home-footer a { text-decoration: none; }
 .home-footer a:hover { text-decoration: underline; }
 @media (max-width: 540px) {
-  nav, .site-header { padding-inline: 12px; gap: 8px; }
+  nav, .site-header { padding-inline: 12px; gap: 12px; }
   nav span { gap: 10px; flex-wrap: wrap; }
-  .header-actions { gap: 10px; }
+  .header-actions { justify-content: flex-start; gap: 12px 18px; margin-left: 0; width: 100%; }
+  .language-picker { gap: 10px; }
+  .loading { margin: 0 auto; padding: 24px 16px; }
   .tools-nav { gap: 6px; }
   .tools-nav a { padding: 9px 10px; }
   .home-main, .home-footer { padding-inline: 16px; }

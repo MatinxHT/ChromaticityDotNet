@@ -36,10 +36,18 @@
     <a data-tool="grades" href="/tools/grades.html" target="_blank" rel="noopener" data-en="05 Color grade chart">05 色差分级色卡</a>
   </nav>
   <div id="out">
-    <main class="avalonia-splash loading" role="status">
+    <main class="avalonia-splash loading">
       <img class="loading-icon" src="/assets/app-icon.png?v=2" width="64" height="64" alt="">
-      <h1 data-en="Starting the tool">正在启动工具</h1>
+      <h1 id="loading-heading">正在启动工具</h1>
       <p id="loading-message" data-en="The first visit downloads runtime components; later visits can reuse cached files. Each tab still needs to initialize. Please wait.">首次使用需下载运行组件，后续打开可复用缓存。每个标签页仍需初始化，请稍候。</p>
+      <div class="loading-progress">
+        <div class="loading-progress-heading"><span id="loading-stage" role="status">正在读取运行配置</span><span id="loading-percent">0%</span></div>
+        <progress id="loading-progress" value="0" max="100" aria-label="运行资源加载进度（按资源数）"></progress>
+        <p id="loading-detail">已用时 0 秒</p>
+        <p data-en="Progress is based on the number of runtime resources loaded, including cached files. After 100%, the runtime and interface still need to initialize.">进度按运行资源数计算，包含缓存读取。达到 100% 后，仍需初始化运行时和界面。</p>
+        <p id="loading-warning" role="status" hidden></p>
+        <button id="loading-retry" class="loading-retry" type="button" hidden>重新加载</button>
+      </div>
     </main>
   </div>
   <noscript data-en="This tool requires JavaScript and WebAssembly. Please use a modern browser.">此工具需要启用 JavaScript 和 WebAssembly。请使用现代浏览器。</noscript>

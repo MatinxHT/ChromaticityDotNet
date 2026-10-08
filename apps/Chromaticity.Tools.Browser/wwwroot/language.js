@@ -52,11 +52,3 @@ window.addEventListener('storage', event => {
     if (event.key === storageKey || event.key === null) setLanguage(event.newValue, false);
 });
 render();
-
-export function showStartupError() {
-    const message = document.getElementById('loading-message');
-    if (!message) return;
-    chineseText.set(message, '加载失败。请刷新页面，或检查浏览器是否支持 WebAssembly。');
-    message.dataset.en = 'Loading failed. Refresh the page or check that your browser supports WebAssembly.';
-    render();
-}
