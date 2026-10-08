@@ -3,9 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="ChromaticityDotNet 色彩工具箱：光谱计算、色差计算、颜色转换、标准光源查询、色差分级色卡。">
+  <meta name="description" content="ChromaticityDotNet 色彩工具箱：光谱计算、色差计算、颜色转换、标准光源查询、色差分级色卡。" data-i18n-attribute="content" data-en="ChromaticityDotNet color tools: spectrum calculation, color differences, color conversion, standard illuminants and color grade charts. Data is processed locally in your browser.">
   <title>色彩工具箱 · ChromaticityDotNet</title>
   <link rel="stylesheet" href="/app.css">
+  <script type="module" src="language#[.{fingerprint}].js"></script>
   <script type="module" src="library-version#[.{fingerprint}].js"></script>
   <link rel="icon" href="/favicon.ico?v=2" sizes="16x16 32x32">
   <link rel="icon" type="image/png" href="/assets/app-icon.png?v=2" sizes="256x256">
@@ -13,42 +14,50 @@
 </head>
 <body class="home-page">
   <header class="site-header">
-    <a class="brand" href="/" aria-label="ChromaticityDotNet 首页"><img src="/assets/app-icon.png?v=2" width="32" height="32" alt=""><strong>ChromaticityDotNet</strong></a>
+    <a class="brand" href="/" aria-label="ChromaticityDotNet 首页" data-i18n-attribute="aria-label" data-en="ChromaticityDotNet home"><img src="/assets/app-icon.png?v=2" width="32" height="32" alt=""><strong>ChromaticityDotNet</strong></a>
+    <div class="header-actions">
+    <label class="language-picker" for="system-language">系统语言Language
+      <select class="language-select" id="system-language">
+        <option value="zh-CN" selected>简体中文/Chinese</option>
+        <option value="en">英语/English</option>
+      </select>
+    </label>
     <a href="https://github.com/MatinxHT/ChromaticityDotNet" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
   </header>
   <main class="home-main">
-    <h1>色彩工具箱</h1>
-    <ul class="tool-cards" aria-label="工具入口">
+    <h1 data-en="Color toolbox">色彩工具箱</h1>
+    <ul class="tool-cards" aria-label="工具入口" data-i18n-attribute="aria-label" data-en="Tools">
       <li><a class="tool-entry" href="/tools/spectrum.html" target="_blank" rel="noopener">
         <span class="tool-number">01</span><span class="tool-arrow" aria-hidden="true">↗</span>
-        <h2>光谱计算</h2><p>输入反射率光谱，计算颜色值并查看光谱曲线。</p>
+        <h2 data-en="Spectrum calculation">光谱计算</h2><p data-en="Enter a reflectance spectrum to calculate color values and view the spectral curve.">输入反射率光谱，计算颜色值并查看光谱曲线。</p>
       </a></li>
       <li><a class="tool-entry" href="/tools/difference.html" target="_blank" rel="noopener">
         <span class="tool-number">02</span><span class="tool-arrow" aria-hidden="true">↗</span>
-        <h2>色差计算</h2><p>比较标样与样品的 Lab 数据，批量计算色差。</p>
+        <h2 data-en="Color difference">色差计算</h2><p data-en="Compare standard and sample Lab values and calculate color differences in batches.">比较标样与样品的 Lab 数据，批量计算色差。</p>
       </a></li>
       <li><a class="tool-entry" href="/tools/conversion.html" target="_blank" rel="noopener">
         <span class="tool-number">03</span><span class="tool-arrow" aria-hidden="true">↗</span>
-        <h2>颜色转换</h2><p>转换 XYZ、Lab、Luv、xyY、sRGB 和 HEX 颜色值。</p>
+        <h2 data-en="Color conversion">颜色转换</h2><p data-en="Convert XYZ, Lab, Luv, xyY, sRGB and HEX color values.">转换 XYZ、Lab、Luv、xyY、sRGB 和 HEX 颜色值。</p>
       </a></li>
       <li><a class="tool-entry" href="/tools/illuminant.html" target="_blank" rel="noopener">
         <span class="tool-number">04</span><span class="tool-arrow" aria-hidden="true">↗</span>
-        <h2>标准光源查询</h2><p>查询标准光源光谱，查看曲线并复制数据。</p>
+        <h2 data-en="Standard illuminants">标准光源查询</h2><p data-en="Look up standard illuminant spectra, view curves and copy data.">查询标准光源光谱，查看曲线并复制数据。</p>
       </a></li>
       <li><a class="tool-entry" href="/tools/grades.html" target="_blank" rel="noopener">
         <span class="tool-number">05</span><span class="tool-arrow" aria-hidden="true">↗</span>
-        <h2>色差分级色卡</h2><p>选择公式和等级阈值，展开色卡、按等级推算目标色、分析样本偏差。</p>
+        <h2 data-en="Color grade chart">色差分级色卡</h2><p data-en="Select a formula and grade threshold to generate charts, calculate target colors and analyze sample differences.">选择公式和等级阈值，展开色卡、按等级推算目标色、分析样本偏差。</p>
       </a></li>
     </ul>
   </main>
   <footer class="home-footer">
     <div class="footer-links">
       <a href="https://www.nuget.org/packages/ChromaticityDotNet" target="_blank" rel="noopener">NuGet</a>
-      <a href="/tools/CIE-DATA-NOTICE.md">CIE 数据说明</a>
-      <a href="/tools/LICENSE.txt">MIT 许可</a>
-      <a href="/tools/FONT-LICENSE.txt">字体许可</a>
+      <a href="/tools/CIE-DATA-NOTICE.md" data-en="CIE data notice">CIE 数据说明</a>
+      <a href="/tools/LICENSE.txt" data-en="MIT license">MIT 许可</a>
+      <a href="/tools/FONT-LICENSE.txt" data-en="Font license">字体许可</a>
     </div>
-    <span>计算库：<span id="library-version">ChromaticityDotNet</span> · 代码 MIT / CIE 数据 CC BY-SA 4.0</span>
+    <span><span data-en="Calculation library: ">计算库：</span><span id="library-version">ChromaticityDotNet</span><span data-en=" · Code: MIT / CIE data: CC BY-SA 4.0"> · 代码 MIT / CIE 数据 CC BY-SA 4.0</span></span>
   </footer>
 </body>
 </html>

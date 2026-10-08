@@ -4,10 +4,17 @@ using Chromaticity.Tools;
 using Chromaticity.Tools.Services;
 using System.Runtime.InteropServices.JavaScript;
 
-internal sealed class Program
+internal sealed partial class Program
 {
-    private static Task Main(string[] args) => AppBuilder.Configure(() => new App { ResultDownloader = new BrowserResultDownloader(), Tool = args.FirstOrDefault() ?? "spectrum" })
-        .StartBrowserAppAsync("out", new BrowserPlatformOptions { PreferFileDialogPolyfill = true });
+    private static Task Main(string[] args)
+    {
+        UiLanguage.Set(args.ElementAtOrDefault(1));
+        return AppBuilder.Configure(() => new App { ResultDownloader = new BrowserResultDownloader(), Tool = args.FirstOrDefault() ?? "spectrum" })
+            .StartBrowserAppAsync("out", new BrowserPlatformOptions { PreferFileDialogPolyfill = true });
+    }
+
+    [JSExport]
+    public static void SetLanguage(string language) => UiLanguage.Set(language);
 }
 
 internal sealed partial class BrowserResultDownloader : IResultDownloader

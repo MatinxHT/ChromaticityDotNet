@@ -227,7 +227,7 @@ public sealed partial class MainView
                 {
                     Name = "GradeSwatch", Height = 112,
                     Background = available ? Brush.Parse(Value("HEX")) : Brush.Parse("#EEEEEE"),
-                    Child = available ? null : new TextBlock { Text = "不可生成", FontSize = 12, Foreground = Muted,
+                    Child = available ? null : new LocalizedTextBlock { Text = "不可生成", FontSize = 12, Foreground = Muted,
                         HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
                 });
                 var details = new StackPanel { Spacing = 8 };

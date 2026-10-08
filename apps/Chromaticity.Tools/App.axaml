@@ -24,6 +24,9 @@
       <Setter Property="BorderBrush" Value="#222222" />
       <Setter Property="Foreground" Value="White" />
     </Style>
+    <Style Selector="Button.primary TextBlock">
+      <Setter Property="Foreground" Value="White" />
+    </Style>
     <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
       <Setter Property="Background" Value="#3D3D3D" />
       <Setter Property="BorderBrush" Value="#3D3D3D" />

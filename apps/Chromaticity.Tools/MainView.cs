@@ -209,9 +209,9 @@ public sealed partial class MainView : UserControl
                 var top = TopLevel.GetTopLevel(button) ?? throw new InvalidOperationException("浏览器尚未就绪。");
                 var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
                 {
-                    Title = "导入无表头的数值数据",
+                    Title = UiLanguage.Translate("导入无表头的数值数据"),
                     AllowMultiple = false,
-                    FileTypeFilter = [new FilePickerFileType("文本数据") { Patterns = ["*.csv", "*.tsv", "*.txt"], MimeTypes = ["text/csv", "text/tab-separated-values", "text/plain"] }]
+                    FileTypeFilter = [new FilePickerFileType(UiLanguage.Translate("文本数据")) { Patterns = ["*.csv", "*.tsv", "*.txt"], MimeTypes = ["text/csv", "text/tab-separated-values", "text/plain"] }]
                 });
                 if (files.Count == 0) return;
                 using var file = files[0];
@@ -231,9 +231,13 @@ public sealed partial class MainView : UserControl
     private static StandardObserver SelectedObserver(ComboBox combo) => combo.SelectedIndex == 0 ? StandardObserver.Degree2 : StandardObserver.Degree10;
     private static ComboBox Light() => Select(ToolCalculations.Illuminants.Select(x => x.ToString()).ToArray());
     private static ComboBox Observer() => Select(["2° · CIE 1931", "10° · CIE 1964"]);
-    private static ComboBox Select(string[] items) => new() { ItemsSource = items, SelectedIndex = 0, MinWidth = 155 };
+    private static ComboBox Select(string[] items) => new()
+    {
+        ItemsSource = items, SelectedIndex = 0, MinWidth = 155,
+        ItemTemplate = new FuncDataTemplate<string>((item, _) => Text(item ?? ""))
+    };
     private static TextBox SmallInput(string value) => new() { Text = value, Width = 155 };
-    private static TextBox Input(string name, string placeholder) => new()
+    private static TextBox Input(string name, string placeholder) => new LocalizedTextBox()
     {
         Name = name,
         PlaceholderText = placeholder,
@@ -243,7 +247,7 @@ public sealed partial class MainView : UserControl
         MaxLength = ToolCalculations.MaxTextLength,
         HorizontalAlignment = HorizontalAlignment.Stretch
     };
-    private static TextBlock Text(string text, double size = 14, bool bold = false) => new()
+    private static TextBlock Text(string text, double size = 14, bool bold = false) => new LocalizedTextBlock()
     {
         Text = text,
         FontSize = size,
@@ -280,7 +284,7 @@ public sealed partial class MainView : UserControl
     }
     private static Button Button(string label, Action action)
     {
-        var button = new Button { Content = label }; button.Click += (_, _) => action(); return button;
+        var button = new Button { Content = new LocalizedTextBlock { Text = label } }; button.Click += (_, _) => action(); return button;
     }
     private static Button Primary(string label, Action action) { var button = Button(label, action); button.Classes.Add("primary"); return button; }
 
@@ -356,7 +360,7 @@ public sealed partial class MainView : UserControl
                     {
                         var table = _table; if (table is null) return;
                         var clipboard = TopLevel.GetTopLevel(this)?.Clipboard ?? throw new InvalidOperationException("剪贴板不可用，请下载 CSV。");
-                        await clipboard.SetTextAsync(table.ToTsv());
+                        await clipboard.SetTextAsync(UiLanguage.TranslateTable(table).ToTsv());
                         _status.Text = $"已复制 {table.Rows.Length} 行，可粘贴到 Excel。";
                     }
                     catch (Exception ex) { _status.Text = $"复制失败：{ex.Message}"; }
@@ -368,14 +372,14 @@ public sealed partial class MainView : UserControl
                         var table = _table; if (table is null) return;
                         if (downloader is not null)
                         {
-                            await downloader.DownloadAsync("chromaticity-results.csv", table.ToCsv());
+                            await downloader.DownloadAsync("chromaticity-results.csv", UiLanguage.TranslateTable(table).ToCsv());
                             _status.Text = $"已开始下载 {table.Rows.Length} 行结果，请查看浏览器下载列表。";
                             return;
                         }
                         var top = TopLevel.GetTopLevel(this) ?? throw new InvalidOperationException("浏览器尚未就绪。");
                         using var file = await top.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
                         {
-                            Title = "导出计算结果",
+                            Title = UiLanguage.Translate("导出计算结果"),
                             SuggestedFileName = "chromaticity-results.csv",
                             DefaultExtension = "csv",
                             FileTypeChoices = [new FilePickerFileType("CSV") { Patterns = ["*.csv"], MimeTypes = ["text/csv"] }]
@@ -383,7 +387,7 @@ public sealed partial class MainView : UserControl
                         if (file is null) return;
                         await using var stream = await file.OpenWriteAsync();
                         await using var writer = new StreamWriter(stream, new UTF8Encoding(true));
-                        await writer.WriteAsync(table.ToCsv());
+                        await writer.WriteAsync(UiLanguage.TranslateTable(table).ToCsv());
                     }
                     catch (Exception ex) { _status.Text = $"导出失败：{ex.Message}。也可使用复制结果。"; }
                 };
@@ -428,9 +432,11 @@ public sealed partial class MainView : UserControl
                     for (var i = 0; i < table.Headers.Length; i++)
                     {
                         var column = i;
+                        var header = Text(table.Headers[i], 12, true);
+                        header.TextWrapping = TextWrapping.NoWrap;
                         _grid.Columns.Add(new DataGridTemplateColumn
                         {
-                            Header = new TextBlock { Text = table.Headers[i], FontSize = 12, FontWeight = FontWeight.SemiBold },
+                            Header = header,
                             Width = new DataGridLength(_differencePreviews
                                 ? i switch { 0 => 64, 1 or 2 => 116, 9 => 178, 10 => 160, 11 => 108, _ => 82 }
                                 : i == 0 ? 160 : 260),
@@ -459,7 +465,9 @@ public sealed partial class MainView : UserControl
                                     preview.Children.Add(hex);
                                     return preview;
                                 }
-                                return new TextBlock { Text = value, Margin = new Thickness(8), VerticalAlignment = VerticalAlignment.Center };
+                                var cell = Text(value); cell.TextWrapping = TextWrapping.NoWrap;
+                                cell.Margin = new Thickness(8); cell.VerticalAlignment = VerticalAlignment.Center;
+                                return cell;
                             })
                         });
                     }
@@ -484,6 +492,16 @@ public sealed partial class MainView : UserControl
 
 public sealed class SpectrumPlot : Control
 {
+    protected override void OnAttachedToLogicalTree(Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToLogicalTree(e);
+        UiLanguage.Changed += InvalidateVisual;
+    }
+    protected override void OnDetachedFromLogicalTree(Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e)
+    {
+        UiLanguage.Changed -= InvalidateVisual;
+        base.OnDetachedFromLogicalTree(e);
+    }
     private static readonly IBrush[] VisibleBackground = Enumerable.Range(WavelengthColors.Start, WavelengthColors.End - WavelengthColors.Start + 1)
         .Select(wavelength =>
         {
@@ -523,7 +541,7 @@ public sealed class SpectrumPlot : Control
         var pen = new Pen(Brush.Parse("#333333"), 2.5);
         Point At(int i) => new(left + i * width / (_values.Length - 1), top + height * (1 - _values[i] / max));
         for (var i = 1; i < _values.Length; i++) context.DrawLine(pen, At(i - 1), At(i));
-        Label(AxisLabel, 0, 0); Label($"{_start} nm", left, top + height + 12);
+        Label(UiLanguage.Translate(AxisLabel), 0, 0); Label($"{_start} nm", left, top + height + 12);
         Label($"{end} nm", left + width - 55, top + height + 12);
         var tickStep = span <= 200 ? 50 : 100;
         for (var wavelength = (_start / tickStep + 1) * tickStep; wavelength < end; wavelength += tickStep)

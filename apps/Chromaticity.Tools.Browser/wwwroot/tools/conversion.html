@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <base href="/">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="ChromaticityDotNet 在线色彩工具：反射光谱计算、批量色差计算、颜色空间转换、标准光源查询、色差分级色卡。数据在浏览器本地处理。">
+  <meta name="description" content="ChromaticityDotNet 在线色彩工具：反射光谱计算、批量色差计算、颜色空间转换、标准光源查询、色差分级色卡。数据在浏览器本地处理。" data-i18n-attribute="content" data-en="ChromaticityDotNet color tools: spectrum calculation, color differences, color conversion, standard illuminants and color grade charts. Data is processed locally in your browser.">
   <title>颜色转换 · ChromaticityDotNet</title>
   <link rel="preload" id="webassembly">
   <script type="importmap"></script>
@@ -15,26 +15,33 @@
   <link rel="apple-touch-icon" href="/assets/app-icon.png?v=2">
 </head>
 <body class="tool-page" data-tool="conversion">
-  <nav aria-label="项目链接">
-    <a class="brand" href="/" aria-label="ChromaticityDotNet 首页"><img src="/assets/app-icon.png?v=2" width="32" height="32" alt=""><span>ChromaticityDotNet</span></a>
-    <span><a href="https://github.com/MatinxHT/ChromaticityDotNet" target="_blank" rel="noopener">GitHub ↗</a>
+  <nav aria-label="项目链接" data-i18n-attribute="aria-label" data-en="Project links">
+    <a class="brand" href="/" aria-label="ChromaticityDotNet 首页" data-i18n-attribute="aria-label" data-en="ChromaticityDotNet home"><img src="/assets/app-icon.png?v=2" width="32" height="32" alt=""><span>ChromaticityDotNet</span></a>
+    <div class="header-actions">
+    <label class="language-picker" for="system-language">系统语言Language
+      <select class="language-select" id="system-language">
+        <option value="zh-CN" selected>简体中文/Chinese</option>
+        <option value="en">英语/English</option>
+      </select>
+    </label>
+    <a href="https://github.com/MatinxHT/ChromaticityDotNet" target="_blank" rel="noopener">GitHub ↗</a>
     <a href="https://www.nuget.org/packages/ChromaticityDotNet" target="_blank" rel="noopener">NuGet ↗</a>
-    <a href="/tools/CIE-DATA-NOTICE.md">数据来源与许可</a></span>
+    <a href="/tools/CIE-DATA-NOTICE.md" data-en="Data sources and licenses">数据来源与许可</a></div>
   </nav>
-  <nav class="tools-nav" aria-label="色彩工具">
-    <a data-tool="spectrum" href="/tools/spectrum.html" target="_blank" rel="noopener">01 光谱计算</a>
-    <a data-tool="difference" href="/tools/difference.html" target="_blank" rel="noopener">02 色差计算</a>
-    <a data-tool="conversion" href="/tools/conversion.html" target="_blank" rel="noopener">03 颜色转换</a>
-    <a data-tool="illuminant" href="/tools/illuminant.html" target="_blank" rel="noopener">04 标准光源查询</a>
-    <a data-tool="grades" href="/tools/grades.html" target="_blank" rel="noopener">05 色差分级色卡</a>
+  <nav class="tools-nav" aria-label="色彩工具" data-i18n-attribute="aria-label" data-en="Color tools">
+    <a data-tool="spectrum" href="/tools/spectrum.html" target="_blank" rel="noopener" data-en="01 Spectrum calculation">01 光谱计算</a>
+    <a data-tool="difference" href="/tools/difference.html" target="_blank" rel="noopener" data-en="02 Color difference">02 色差计算</a>
+    <a data-tool="conversion" href="/tools/conversion.html" target="_blank" rel="noopener" data-en="03 Color conversion">03 颜色转换</a>
+    <a data-tool="illuminant" href="/tools/illuminant.html" target="_blank" rel="noopener" data-en="04 Standard illuminants">04 标准光源查询</a>
+    <a data-tool="grades" href="/tools/grades.html" target="_blank" rel="noopener" data-en="05 Color grade chart">05 色差分级色卡</a>
   </nav>
   <div id="out">
     <main class="avalonia-splash loading" role="status">
       <img class="loading-icon" src="/assets/app-icon.png?v=2" width="64" height="64" alt="">
-      <h1>正在启动工具</h1>
-      <p id="loading-message">首次使用需下载运行组件，后续打开可复用缓存。每个标签页仍需初始化，请稍候。</p>
+      <h1 data-en="Starting the tool">正在启动工具</h1>
+      <p id="loading-message" data-en="The first visit downloads runtime components; later visits can reuse cached files. Each tab still needs to initialize. Please wait.">首次使用需下载运行组件，后续打开可复用缓存。每个标签页仍需初始化，请稍候。</p>
     </main>
   </div>
-  <noscript>此工具需要启用 JavaScript 和 WebAssembly。请使用现代浏览器。</noscript>
+  <noscript data-en="This tool requires JavaScript and WebAssembly. Please use a modern browser.">此工具需要启用 JavaScript 和 WebAssembly。请使用现代浏览器。</noscript>
 </body>
 </html>

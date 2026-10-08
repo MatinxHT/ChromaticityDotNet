@@ -37,8 +37,9 @@ public sealed partial class MainView
                     Center($"C* {ToolCalculations.F(color.Chroma)} · h° {hue}", 13)) };
             Grid.SetColumn(details, i); Grid.SetRow(details, 2); preview.Children.Add(details);
         }
-        var condition = Note($"{comparison.Settings.FormulaName} · 一级 ΔE = {ToolCalculations.F(comparison.Settings.StepDeltaE)}");
-        if (comparison.Rounding.HasValue) condition.Text += " · 等级计算：" + ColorGradeCalculations.RoundingTitle(comparison.Rounding.Value);
+        var conditionText = $"{comparison.Settings.FormulaName} · 一级 ΔE = {ToolCalculations.F(comparison.Settings.StepDeltaE)}";
+        if (comparison.Rounding.HasValue) conditionText += " · 等级计算：" + ColorGradeCalculations.RoundingTitle(comparison.Rounding.Value);
+        var condition = Note(conditionText);
         condition.TextAlignment = TextAlignment.Center;
         var hueDelta = comparison.DeltaHue.HasValue ? Signed(comparison.DeltaHue.Value) + "°" : "—（色相未定义）";
         var quantified = Center($"ΔL* {Signed(comparison.DeltaL)} · Δa* {Signed(comparison.DeltaA)} · Δb* {Signed(comparison.DeltaB)}\n" +
