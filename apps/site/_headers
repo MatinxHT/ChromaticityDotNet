@@ -1,5 +1,5 @@
-/_framework/*
-  Cache-Control: public, max-age=0, must-revalidate
+# prepare_site.py adds exact cache rules from the .NET publish manifest.
+# Keep Cache-Control out of wildcard rules: Pages merges matching headers.
 /_framework/*.wasm
   Content-Type: application/wasm
 /*

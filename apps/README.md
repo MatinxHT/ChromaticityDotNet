@@ -43,6 +43,8 @@ python3 -m http.server 8080 --directory artifacts/site
 
 打开 `http://localhost:8080`。再次暂存站点时传入新的输出目录，例如 `python3 apps/prepare_site.py artifacts/site-preview`；脚本拒绝覆盖已有目录。
 
+缓存与发布校验测试：`python3 -m unittest discover -s apps -p test_prepare_site.py`。普通 Python 静态预览不应用 Pages 的 `_headers`；响应头与跨标签页缓存应在 Pages 预览部署中检查。
+
 ## VS Code 启动
 
 用 VS Code 打开仓库根目录，安装 .NET 10 SDK、`wasm-tools` 工作负载及 Chrome。
@@ -70,7 +72,9 @@ python3 -m http.server 8080 --directory artifacts/site
 
 3. 保存并部署。之后推送到 `master` 时由 Cloudflare 自动拉取、构建和发布。
 
-`build_cloudflare.sh` 在忽略的 `artifacts/cloudflare-dotnet` 目录安装 .NET 10 SDK 和 `wasm-tools`，仅发布 Browser 项目，然后运行 `prepare_site.py` 整理站点。重复构建只替换生成的 `artifacts/site` 目录。构建命令通过 Bash 调用，无需设置脚本执行权限。Cloudflare 构建不运行测试；修改计算或输入处理代码时，先按上面的本地命令运行测试。
+`build_cloudflare.sh` 在忽略的 `artifacts/cloudflare-dotnet` 目录安装 .NET 10 SDK 和 `wasm-tools`，仅发布 Browser 项目，运行缓存与发布校验测试后，再运行 `prepare_site.py` 整理站点。重复构建只替换生成的 `artifacts/site` 目录。构建命令通过 Bash 调用，无需设置脚本执行权限。Cloudflare 构建不运行 .NET 算法测试；修改计算或输入处理代码时，先按上面的本地命令运行测试。
+
+`prepare_site.py` 根据 .NET 发布端点清单生成精确的缓存响应头，仅对文件名包含 SDK 内容指纹且 SHA-256 完整性校验通过的 WASM、JS 设置 `public, max-age=31536000, immutable`。HTML（包括 Pages 去掉 `.html` 后的 URL 和目录入口）与固定名称的脚本使用 `no-cache`，每次访问先确认版本，未变化时可返回 304。新版本 HTML 引用新哈希文件，未变化的运行组件继续复用浏览器缓存；各标签页仍分别初始化自己的运行实例。通配规则不设置 Cache-Control，避免 Pages 合并规则造成冲突；清单与文件不一致或响应头超出 Pages 限制时，构建中止，避免发布错误的缓存策略。
 
 已移除 GitHub 的 **Browser Build and Pages Deploy** 工作流，无需配置 `CLOUDFLARE_PAGES_PROJECT_NAME`、`CLOUDFLARE_ACCOUNT_ID` 或 `CLOUDFLARE_API_TOKEN`。以前为网站部署添加的 GitHub Variable/Secrets 可以删除。
 
@@ -81,6 +85,8 @@ python3 -m http.server 8080 --directory artifacts/site
 参考：[Avalonia WASM 部署](https://docs.avaloniaui.net/docs/deployment/webassembly)、[Pages Git integration](https://developers.cloudflare.com/pages/get-started/git-integration/)、[Pages .NET 构建示例](https://developers.cloudflare.com/pages/framework-guides/deploy-a-blazor-site/)。
 
 ## 验证记录
+
+本次缓存调整通过 11 项缓存与发布校验测试、196 项应用测试及 Release WASM 发布。Wrangler 本地 Pages 预览解析 63 条有效响应头规则；61 个缓存响应全部符合生成策略（41 个内容哈希 WASM/JS 长期缓存），首页和 WASM 条件请求均返回 304，五个工具入口的启动提示及模块标识已核对。未发布到线上，生产浏览器缓存行为以部署后的响应头为准。
 
 色级阈值与两项分析功能通过 169 项应用测试（本次新增 34 项），Release WASM 发布成功。测试覆盖三种公式下的自定义阈值、逐级 L/C/h 推算与反向等级恢复、小数等级、CMC 前一步参考、跨 0° 色相、中性色、坐标边界、无效阈值/样本、1000 级计算上限和三方向自适应布局。本地 Chrome 验证默认 1.5 的 +2/+1/-3 推算及样本反算、CMC 2:1 与自定义阈值 1.2 的推算、无间隙双块预览、参数变更清除所有旧结果；目标色 CSV 已实际下载并核对四阶段坐标、等级、阈值与量化色差。验证结束后关闭临时浏览器标签页和本地预览进程。
 

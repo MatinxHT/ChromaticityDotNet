@@ -20,6 +20,9 @@ dotnet workload install wasm-tools
 dotnet publish apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj \
   -c Release -p:GeneratePackageOnBuild=false
 
+# Cache policy regressions must stop the deployment before staging the site.
+python3 -m unittest discover -s apps -p test_prepare_site.py
+
 # Only replace the generated site; prepare_site.py requires a fresh directory.
 rm -rf "$repo_root/artifacts/site"
 python3 apps/prepare_site.py
