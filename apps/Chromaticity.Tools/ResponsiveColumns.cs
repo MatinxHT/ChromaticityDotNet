@@ -7,7 +7,9 @@ namespace Chromaticity.Tools;
 public sealed class ResponsiveColumns : Panel
 {
     private const double Gap = 18;
-    private static int Columns(double width) => double.IsFinite(width) && width >= 720 ? 2 : 1;
+    public int MaximumColumns { get; init; } = 2;
+    private int Columns(double width) => double.IsFinite(width)
+        ? Math.Clamp((int)Math.Min(int.MaxValue, Math.Max(0, width) / 360), 1, Math.Max(1, MaximumColumns)) : 1;
 
     protected override Size MeasureOverride(Size availableSize)
     {

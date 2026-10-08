@@ -7,6 +7,25 @@ namespace Chromaticity.Tools.Tests;
 public class LayoutTests
 {
     [Theory]
+    [InlineData(1100, 3)]
+    [InlineData(900, 2)]
+    [InlineData(390, 1)]
+    public void ThreeGradeDirectionsAdaptToTheAvailableWidth(double width, int columns)
+    {
+        var panel = new ResponsiveColumns { MaximumColumns = 3 };
+        foreach (var i in Enumerable.Range(0, 3)) panel.Children.Add(new Border { Height = 100 });
+        panel.Measure(new Size(width, double.PositiveInfinity));
+        panel.Arrange(new Rect(0, 0, width, panel.DesiredSize.Height));
+        var columnWidth = (width - 18 * (columns - 1)) / columns;
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.InRange(Math.Abs(columnWidth - panel.Children[i].Bounds.Width), 0, 1);
+            Assert.InRange(Math.Abs((i % columns) * (columnWidth + 18) - panel.Children[i].Bounds.X), 0, 1);
+            Assert.Equal((i / columns) * 118, panel.Children[i].Bounds.Y);
+        }
+    }
+
+    [Theory]
     [InlineData(1100, true)]
     [InlineData(720, true)]
     [InlineData(719, false)]

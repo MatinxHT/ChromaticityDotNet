@@ -12,7 +12,7 @@ using static ChromaticityDotNet.Model.StandardChromaticityModel.Standardillumina
 
 namespace Chromaticity.Tools;
 
-public sealed class MainView : UserControl
+public sealed partial class MainView : UserControl
 {
     private static readonly IBrush Muted = Brush.Parse("#666666");
     private readonly IResultDownloader? _downloader;
@@ -26,6 +26,7 @@ public sealed class MainView : UserControl
             "difference" => DifferencePage(),
             "conversion" => ConversionPage(),
             "illuminant" => IlluminantPage(),
+            "grades" => ColorGradePage(),
             _ => SpectrumPage()
         });
         content.Children.Add(Note($"ChromaticityDotNet v{LibraryInfo.Version} · 代码 MIT · CIE 数据 CC BY-SA 4.0\n计算保留库的四位小数与既有白点约定。色块仅为屏幕近似，不能代替仪器测量。"));
@@ -175,14 +176,14 @@ public sealed class MainView : UserControl
             Fields(("输入空间", space), ("参考照明体", light), ("观察者", observer)), help,
             Note("每行一个颜色；数值支持中英文逗号、制表符或空格分列。"), input,
             Actions(Button("载入示例", () => input.Text = (InputSpace)space.SelectedIndex switch
-                {
-                    InputSpace.XYZ => "21.4643,18.4187,40.4654\n0,0,0",
-                    InputSpace.Lab => "50,20,-30\n75,-15,25",
-                    InputSpace.Luv => "50,10,-20\n0,0,0",
-                    InputSpace.xyY => "0.3127,0.3290,50\n0.3,0.3,20",
-                    InputSpace.sRGB => "255,0,0\n32,160,144",
-                    _ => "#FF0000\n#20A090"
-                }), ImportButton(input, result), Primary("转换颜色", () => result.Run(() => ToolCalculations.ConvertColors(input.Text ?? "", (InputSpace)space.SelectedIndex, SelectedLight(light), SelectedObserver(observer))))),
+            {
+                InputSpace.XYZ => "21.4643,18.4187,40.4654\n0,0,0",
+                InputSpace.Lab => "50,20,-30\n75,-15,25",
+                InputSpace.Luv => "50,10,-20\n0,0,0",
+                InputSpace.xyY => "0.3127,0.3290,50\n0.3,0.3,20",
+                InputSpace.sRGB => "255,0,0\n32,160,144",
+                _ => "#FF0000\n#20A090"
+            }), ImportButton(input, result), Primary("转换颜色", () => result.Run(() => ToolCalculations.ConvertColors(input.Text ?? "", (InputSpace)space.SelectedIndex, SelectedLight(light), SelectedObserver(observer))))),
             Note("sRGB 预览由 XYZ 直接映射并裁剪超色域值；其他照明体或观察者条件下为未经色适应的屏幕近似。\n黑色的 x、y 未定义，显示为 —。LCh 为库内 Lab 的派生输出。"));
         Watch(result, null, input, space, light, observer);
         return Stack(Card(form), result);
@@ -208,7 +209,8 @@ public sealed class MainView : UserControl
                 var top = TopLevel.GetTopLevel(button) ?? throw new InvalidOperationException("浏览器尚未就绪。");
                 var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
                 {
-                    Title = "导入无表头的数值数据", AllowMultiple = false,
+                    Title = "导入无表头的数值数据",
+                    AllowMultiple = false,
                     FileTypeFilter = [new FilePickerFileType("文本数据") { Patterns = ["*.csv", "*.tsv", "*.txt"], MimeTypes = ["text/csv", "text/tab-separated-values", "text/plain"] }]
                 });
                 if (files.Count == 0) return;
@@ -233,12 +235,20 @@ public sealed class MainView : UserControl
     private static TextBox SmallInput(string value) => new() { Text = value, Width = 155 };
     private static TextBox Input(string name, string placeholder) => new()
     {
-        Name = name, PlaceholderText = placeholder, AcceptsReturn = true, TextWrapping = TextWrapping.NoWrap,
-        Height = 200, MaxLength = ToolCalculations.MaxTextLength, HorizontalAlignment = HorizontalAlignment.Stretch
+        Name = name,
+        PlaceholderText = placeholder,
+        AcceptsReturn = true,
+        TextWrapping = TextWrapping.NoWrap,
+        Height = 200,
+        MaxLength = ToolCalculations.MaxTextLength,
+        HorizontalAlignment = HorizontalAlignment.Stretch
     };
     private static TextBlock Text(string text, double size = 14, bool bold = false) => new()
     {
-        Text = text, FontSize = size, FontWeight = bold ? FontWeight.SemiBold : FontWeight.Normal, TextWrapping = TextWrapping.Wrap
+        Text = text,
+        FontSize = size,
+        FontWeight = bold ? FontWeight.SemiBold : FontWeight.Normal,
+        TextWrapping = TextWrapping.Wrap
     };
     private static TextBlock Note(string text) { var block = Text(text); block.Foreground = Muted; block.LineHeight = 23; return block; }
     private static StackPanel Stack(params Control[] children)
@@ -247,8 +257,12 @@ public sealed class MainView : UserControl
     }
     private static Border Card(Control child) => new()
     {
-        Child = child, Padding = new Thickness(24), Background = Brushes.White,
-        BorderBrush = Brush.Parse("#DDDDDD"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8)
+        Child = child,
+        Padding = new Thickness(24),
+        Background = Brushes.White,
+        BorderBrush = Brush.Parse("#DDDDDD"),
+        BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(8)
     };
     private static WrapPanel Fields(params (string Label, Control Input)[] fields)
     {
@@ -261,7 +275,8 @@ public sealed class MainView : UserControl
     }
     private static WrapPanel Actions(params Button[] buttons)
     {
-        var wrap = new WrapPanel(); foreach (var button in buttons) { button.Margin = new Thickness(0, 0, 10, 8); wrap.Children.Add(button); } return wrap;
+        var wrap = new WrapPanel(); foreach (var button in buttons) { button.Margin = new Thickness(0, 0, 10, 8); wrap.Children.Add(button); }
+        return wrap;
     }
     private static Button Button(string label, Action action)
     {
@@ -282,13 +297,20 @@ public sealed class MainView : UserControl
                 metrics.Children.Add(metric);
             }
             var content = Stack(Text(title, 15, true), metrics); content.Spacing = 8;
-            return new Border { Child = content, Padding = new Thickness(14, 12),
-                Background = Brush.Parse("#F5F5F5"), CornerRadius = new CornerRadius(8) };
+            return new Border
+            {
+                Child = content,
+                Padding = new Thickness(14, 12),
+                Background = Brush.Parse("#F5F5F5"),
+                CornerRadius = new CornerRadius(8)
+            };
         }
         var hex = Value("HEX");
         var preview = new Border
         {
-            Name = "SampleSwatch", Height = 72, CornerRadius = new CornerRadius(8),
+            Name = "SampleSwatch",
+            Height = 72,
+            CornerRadius = new CornerRadius(8),
             Background = hex == "—" ? Brush.Parse("#EEEEEE") : Brush.Parse(hex)
         };
         var values = new ResponsiveColumns();
@@ -311,52 +333,64 @@ public sealed class MainView : UserControl
         private readonly StackPanel _samples = new() { Spacing = 16, IsVisible = false };
         private readonly bool _sampleCards;
         private readonly bool _differencePreviews;
-        private readonly Button _copy;
-        private readonly Button _save;
+        private readonly Func<CalculationTable, Control>? _renderResult;
+        private readonly string? _successMessage;
+        private readonly Button? _copy;
+        private readonly Button? _save;
 
-        public ResultPanel(IResultDownloader? downloader, bool sampleCards = false, bool differencePreviews = false, string title = "计算结果")
+        public ResultPanel(IResultDownloader? downloader, bool sampleCards = false, bool differencePreviews = false, string title = "计算结果",
+            Func<CalculationTable, Control>? renderResult = null, string? successMessage = null, bool allowExport = true)
         {
             _sampleCards = sampleCards;
             _differencePreviews = differencePreviews;
+            _renderResult = renderResult;
+            _successMessage = successMessage;
             if (differencePreviews) { _grid.RowHeight = 56; _grid.FrozenColumnCount = 1; }
-            _copy = Button("复制结果", () => { }); _save = Button("下载 CSV", () => { });
-            _copy.IsEnabled = _save.IsEnabled = false;
-            _copy.Click += async (_, _) =>
+            if (allowExport)
             {
-                try
+                _copy = Button("复制结果", () => { }); _save = Button("下载 CSV", () => { });
+                _copy.IsEnabled = _save.IsEnabled = false;
+                _copy.Click += async (_, _) =>
                 {
-                    var table = _table; if (table is null) return;
-                    var clipboard = TopLevel.GetTopLevel(this)?.Clipboard ?? throw new InvalidOperationException("剪贴板不可用，请下载 CSV。");
-                    await clipboard.SetTextAsync(table.ToTsv());
-                    _status.Text = $"已复制 {table.Rows.Length} 行，可粘贴到 Excel。";
-                }
-                catch (Exception ex) { _status.Text = $"复制失败：{ex.Message}"; }
-            };
-            _save.Click += async (_, _) =>
-            {
-                try
-                {
-                    var table = _table; if (table is null) return;
-                    if (downloader is not null)
+                    try
                     {
-                        await downloader.DownloadAsync("chromaticity-results.csv", table.ToCsv());
-                        _status.Text = $"已开始下载 {table.Rows.Length} 行结果，请查看浏览器下载列表。";
-                        return;
+                        var table = _table; if (table is null) return;
+                        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard ?? throw new InvalidOperationException("剪贴板不可用，请下载 CSV。");
+                        await clipboard.SetTextAsync(table.ToTsv());
+                        _status.Text = $"已复制 {table.Rows.Length} 行，可粘贴到 Excel。";
                     }
-                    var top = TopLevel.GetTopLevel(this) ?? throw new InvalidOperationException("浏览器尚未就绪。");
-                    using var file = await top.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                    catch (Exception ex) { _status.Text = $"复制失败：{ex.Message}"; }
+                };
+                _save.Click += async (_, _) =>
+                {
+                    try
                     {
-                        Title = "导出计算结果", SuggestedFileName = "chromaticity-results.csv", DefaultExtension = "csv",
-                        FileTypeChoices = [new FilePickerFileType("CSV") { Patterns = ["*.csv"], MimeTypes = ["text/csv"] }]
-                    });
-                    if (file is null) return;
-                    await using var stream = await file.OpenWriteAsync();
-                    await using var writer = new StreamWriter(stream, new UTF8Encoding(true));
-                    await writer.WriteAsync(table.ToCsv());
-                }
-                catch (Exception ex) { _status.Text = $"导出失败：{ex.Message}。也可使用复制结果。"; }
-            };
-            Child = Stack(Text(title, 20, true), _status, _grid, _samples, Actions(_copy, _save));
+                        var table = _table; if (table is null) return;
+                        if (downloader is not null)
+                        {
+                            await downloader.DownloadAsync("chromaticity-results.csv", table.ToCsv());
+                            _status.Text = $"已开始下载 {table.Rows.Length} 行结果，请查看浏览器下载列表。";
+                            return;
+                        }
+                        var top = TopLevel.GetTopLevel(this) ?? throw new InvalidOperationException("浏览器尚未就绪。");
+                        using var file = await top.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                        {
+                            Title = "导出计算结果",
+                            SuggestedFileName = "chromaticity-results.csv",
+                            DefaultExtension = "csv",
+                            FileTypeChoices = [new FilePickerFileType("CSV") { Patterns = ["*.csv"], MimeTypes = ["text/csv"] }]
+                        });
+                        if (file is null) return;
+                        await using var stream = await file.OpenWriteAsync();
+                        await using var writer = new StreamWriter(stream, new UTF8Encoding(true));
+                        await writer.WriteAsync(table.ToCsv());
+                    }
+                    catch (Exception ex) { _status.Text = $"导出失败：{ex.Message}。也可使用复制结果。"; }
+                };
+            }
+            var content = Stack(Text(title, 20, true), _status, _grid, _samples);
+            if (_copy is not null && _save is not null) content.Children.Add(Actions(_copy, _save));
+            Child = content;
             Background = Brushes.White; Padding = new Thickness(24); CornerRadius = new CornerRadius(8);
             BorderBrush = Brush.Parse("#DDDDDD"); BorderThickness = new Thickness(1);
         }
@@ -364,7 +398,9 @@ public sealed class MainView : UserControl
         public void Invalidate()
         {
             _samples.Children.Clear(); _samples.IsVisible = false;
-            _table = null; _grid.ItemsSource = null; _grid.IsVisible = false; _copy.IsEnabled = _save.IsEnabled = false;
+            _table = null; _grid.ItemsSource = null; _grid.IsVisible = false;
+            if (_copy is not null) _copy.IsEnabled = false;
+            if (_save is not null) _save.IsEnabled = false;
             _status.Foreground = Muted; _status.FontWeight = FontWeight.Normal; _status.Text = "数据或条件已更新，请点击计算。";
         }
 
@@ -376,7 +412,12 @@ public sealed class MainView : UserControl
             try
             {
                 var table = calculate();
-                if (_sampleCards)
+                if (_renderResult is not null)
+                {
+                    _samples.Children.Add(_renderResult(table));
+                    _samples.IsVisible = true;
+                }
+                else if (_sampleCards)
                 {
                     foreach (var row in table.Rows) _samples.Children.Add(SampleCard(table.Headers, row));
                     _samples.IsVisible = true;
@@ -398,10 +439,22 @@ public sealed class MainView : UserControl
                                 var value = row?[column] ?? "";
                                 if (_differencePreviews && column is 1 or 2)
                                 {
-                                    var preview = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6,
-                                        Margin = new Thickness(6), VerticalAlignment = VerticalAlignment.Center };
-                                    preview.Children.Add(new Border { Width = 30, Height = 30, CornerRadius = new CornerRadius(5),
-                                        Background = Brush.Parse(value), BorderBrush = Brush.Parse("#DDDDDD"), BorderThickness = new Thickness(1) });
+                                    var preview = new StackPanel
+                                    {
+                                        Orientation = Orientation.Horizontal,
+                                        Spacing = 6,
+                                        Margin = new Thickness(6),
+                                        VerticalAlignment = VerticalAlignment.Center
+                                    };
+                                    preview.Children.Add(new Border
+                                    {
+                                        Width = 30,
+                                        Height = 30,
+                                        CornerRadius = new CornerRadius(5),
+                                        Background = Brush.Parse(value),
+                                        BorderBrush = Brush.Parse("#DDDDDD"),
+                                        BorderThickness = new Thickness(1)
+                                    });
                                     var hex = Text(value, 11); hex.VerticalAlignment = VerticalAlignment.Center;
                                     preview.Children.Add(hex);
                                     return preview;
@@ -412,13 +465,16 @@ public sealed class MainView : UserControl
                     }
                     _grid.ItemsSource = table.Rows; _grid.IsVisible = true;
                 }
-                _table = table;
-                _copy.IsEnabled = _save.IsEnabled = true;
-                _status.Text = _sampleCards
+                _table = _copy is not null ? table : null;
+                if (_copy is not null) _copy.IsEnabled = true;
+                if (_save is not null) _save.IsEnabled = true;
+                _status.Text = _successMessage ?? (_renderResult is not null
+                    ? "已生成色卡。复制及导出包含颜色坐标、实际色差、公式参数与不可生成原因。"
+                    : _sampleCards
                     ? $"已完成 {table.Rows.Length} 个样品计算。导出包含全部颜色值与计算条件。"
                     : _differencePreviews
                         ? $"已完成 {table.Rows.Length} 行计算。公式参数见列名，复制及导出保留参数和预览 HEX。"
-                        : $"已显示 {table.Rows.Length} 行数据，可复制或下载 CSV。";
+                        : $"已显示 {table.Rows.Length} 行数据，可复制或下载 CSV。");
             }
             catch (Exception ex) when (ex is ArgumentException or ArithmeticException or InvalidOperationException)
             { ShowError(ex.Message); }

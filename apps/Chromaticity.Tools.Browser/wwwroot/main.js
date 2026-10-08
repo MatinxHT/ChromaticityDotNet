@@ -1,4 +1,4 @@
-const toolNames = { spectrum: '光谱计算', difference: '色差计算', conversion: '颜色转换', illuminant: '标准光源查询' };
+const toolNames = { spectrum: '光谱计算', difference: '色差计算', conversion: '颜色转换', illuminant: '标准光源查询', grades: '色差分级色卡' };
 const requestedTool = document.body.dataset.tool;
 const tool = Object.hasOwn(toolNames, requestedTool) ? requestedTool : 'spectrum';
 document.title = `${toolNames[tool]} · ChromaticityDotNet`;
