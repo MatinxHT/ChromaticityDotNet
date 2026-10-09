@@ -90,11 +90,23 @@ All methods below are static members of `ChromaticityConversion`; color models b
 | Method | Input → output |
 | --- | --- |
 | `XYZ2Labch(xyz, illuminant, observer)` / `Labch2XYZ(lab, illuminant, observer)` | XYZ ↔ Lab; `CIELABCH` automatically calculates C* and h° |
+| `LabToLch(lab)` | Lab → read-only `CIELCH`; derives C* and h° directly from a*/b* without intermediate rounding |
 | `XYZ2Luv(xyz, illuminant, observer)` / `Luv2XYZ(luv, illuminant, observer)` | XYZ ↔ L*u*v* |
 | `XYZ2RGB(xyz)` / `RGB2XYZ(rgb)` | XYZ ↔ sRGB, with RGB components stored as bytes from 0 to 255 |
+| `RGBToHSL(rgb)` / `RGBToHSV(rgb)` | sRGB → `DataModel.CIEHSL` / `DataModel.CIEHSV`; H in [0,360) degrees, S/L/V in [0,1] |
+| `RGBToHex(rgb)` | sRGB → uppercase `#RRGGBB` string |
 | `XYZ2xyY(xyz)` / `xy2XYZ(xyY)` | XYZ ↔ xyY |
 | `xy2uv(xyY)` | xyY → CIE 1976 u′v′ chromaticity coordinates |
 | `xy2CCT(xyY)` | Approximate correlated color temperature from xy chromaticity |
+
+HSL/HSV use gamma-encoded sRGB channels without linearization and retain intermediate precision. Multiply S/L/V by 100 for percentage display. Black and gray return valid coordinates with S = 0 and H = 0 as an undefined-hue placeholder; white also returns finite values. HSL/HSV are not CIE color spaces; their model names follow the library's naming convention.
+
+```csharp
+var rgb = new CIERGB { redValue = 32, greenValue = 160, blueValue = 144 };
+var hsl = ChromaticityConversion.RGBToHSL(rgb); // H=172.5°, S≈0.6667, L≈0.3765
+var hsv = ChromaticityConversion.RGBToHSV(rgb); // H=172.5°, S=0.8, V≈0.6275
+var hex = ChromaticityConversion.RGBToHex(rgb); // #20A090
+```
 
 The following example uses the same `using` directives as above:
 
@@ -164,6 +176,93 @@ double cmc21 = ChromaticityDeltaEFormulations.DeltaEcmc(standard, sample, 2, 1);
 - Weights should be finite and positive. CIE94 currently has no option to switch to textile parameters.
 - CIEDE2000 includes a chroma–hue cross term; its total cannot be reconstructed solely as the square root of the sum of squares of the three `Delta*only` components.
 - Intermediate calculations retain `double` precision. Returned values are rounded to four decimal places, with midpoints rounded away from zero; use `F4` to display exactly four decimal places.
+
+## Color comparison and English evaluation
+
+`ChromaticityMatch.CompareColors(CIELABCH reference, CIELABCH sample, ColorComparisonOptions? options = null)`
+calculates CIE76, CMC and CIEDE2000 together. It returns numeric results, structured enum evaluations,
+short independent English comments, and immutable input/parameter snapshots. Types are in `ChromaticityDotNet.Model`.
+Every direction and difference describes **sample relative to reference**. Inputs must share the same
+white point and observer; no chromatic adaptation is performed.
+
+```csharp
+using ChromaticityDotNet.Controller;
+using ChromaticityDotNet.Model;
+using static ChromaticityDotNet.Model.DataModel;
+
+var reference = new CIELABCH(50, 20, 20);
+var sample = new CIELABCH(52, 18, 24);
+var result = ChromaticityMatch.CompareColors(reference, sample);
+// Defaults: CMC 1:1, CIEDE2000 1:1:1; achromatic when L* < 10 OR C* < 5.
+double de76 = result.DeltaE1976;
+double cmc = result.DeltaECmc;
+double de00 = result.DeltaE2000;
+string lightness = result.Evaluation.LightnessCommentsEnglish; // Lighter
+string chroma = result.Evaluation.ChromaCommentsEnglish;       // Higher chroma
+string hue = result.Evaluation.HueCommentsEnglish;             // More yellowish
+bool achromatic = result.Evaluation.IsAchromatic;
+string neutrality = result.Evaluation.AchromaticCommentsEnglish; // Both chromatic
+string overall = result.Evaluation.TotalCommentsEnglish;         // Not evaluated
+
+var options = new ColorComparisonOptions
+{
+    Cmc = new CmcParameters(l: 2, c: 1), // Explicitly choose 2:1 for a textile application, for example.
+    Ciede2000 = new Ciede2000Parameters(kL: 1, kC: 1, kH: 1),
+    AchromaticLightnessThreshold = 10,
+    AchromaticChromaThreshold = 5,
+    Evaluation = new ColorEvaluationOptions
+    {
+        Formula = ComparisonFormula.Ciede2000,
+        AcceptanceTolerance = 1.0, // Application example, not a universal acceptance standard.
+        PerceptibilityThreshold = 0.5,
+        LightnessTolerance = 0.0001,
+        ChromaTolerance = 0.0001,
+        HueAngleToleranceDegrees = 0.0001
+    }
+};
+options.HueAxes[0] = new HueAxis("Red", 20, "More reddish");
+var configured = ChromaticityMatch.CompareColors(reference, sample, options);
+```
+
+| Result property | Purpose |
+| --- | --- |
+| `Reference` / `Sample` | Read-only Lab, unrounded C*/h°, and `IsAchromatic`; `ToLab()` returns an independent copy |
+| `DeltaE1976` / `DeltaECmc` / `DeltaE2000` | Total differences, using the existing formulas' four-decimal outputs |
+| `Differences` | `DeltaL`, `DeltaA`, `DeltaB`, `DeltaChroma`, `HueAngleDifferenceDegrees`, rounded to four decimals |
+| `Evaluation.Lightness` / `Chroma` | `Lower` / `Unchanged` / `Higher` and English text; decisions use unrounded differences |
+| `Evaluation.Hue` | `NotApplicable` / `Unchanged` / `Shifted`, increasing/decreasing direction, nearest sample axis, and one target axis |
+| `Evaluation.Neutrality` | Separate reference/sample achromatic flags and English text |
+| `Evaluation.Overall` | Selected formula and its difference, acceptance and perceptibility statuses |
+| `AppliedParameters` | Actual weights, thresholds, tolerances, and read-only axes sorted by h° |
+| `Evaluation.IsAchromatic` | True when either input falls in the configured achromatic range |
+| `Evaluation.LightnessCommentsEnglish` / `ChromaCommentsEnglish` / `HueCommentsEnglish` | Independent short comments, such as `Lighter`, `Higher chroma`, `More yellowish`; unchanged is `No change`, inapplicable hue is `Not applicable` |
+| `Evaluation.AchromaticCommentsEnglish` / `TotalCommentsEnglish` | Achromatic classification and overall threshold assessment; `Not evaluated` when no overall thresholds were supplied |
+
+The API does not assemble a paragraph. Consumers choose numeric, enum or comment fields and compose or translate them as needed.
+
+### Achromatic and single hue-bias rules
+
+- A color is achromatic when **L* is strictly below its threshold OR C* is strictly below its threshold**.
+  With the defaults, L*=10 and C*=5 is chromatic. Classification uses unrounded C*.
+- If either input is achromatic, hue bias is skipped; `HueAngleDifferenceDegrees` and `TargetAxis` are null.
+  Zero chroma also skips hue bias even with both thresholds set to zero. All three differences and L/C evaluations still run.
+- Chromatic colors use h° from `ChromaticityConversion.LabToLch`. The difference is sample.h minus reference.h,
+  wrapped to `(-180, 180]`: 359° → 1° is +2°; a 180° tie uses increasing hue.
+  This differs from the legacy E00 `DH` field's direct corrected-hue difference.
+- Default axes: Red 22°, Yellow 85°, Green 158°, Blue 263°, Purple 310°.
+  Increasing h selects the first axis ahead of the sample hue; decreasing h selects the first axis behind it.
+  An axis exactly at the sample hue is skipped. For example, 40° → 50° yields `More yellowish`,
+  while 60° → 50° yields `More reddish`. Exactly one bias phrase is emitted; chroma-only changes do not produce hue bias.
+- `HueAxes` requires at least two axes, unique names (case-insensitive), and distinct angles in `[0, 360)`.
+  Input order is unrestricted. `SampleMainAxis` reports the nearest axis by circular distance,
+  with ties resolved by the lower angle. Axis coordinates and labels are configurable library rules.
+
+Weights must be finite and positive and are used without normalization. Thresholds/tolerances must be finite and nonnegative;
+hue tolerance must not exceed 180°. Lab coordinates must be finite with nonnegative L*; L* above 100 is allowed.
+Calculation overflow throws an exception. Acceptance and perceptibility are `NotEvaluated` by default.
+When configured, acceptance uses `DeltaE <= AcceptanceTolerance`; perceptibility uses `DeltaE >= PerceptibilityThreshold`.
+Weights do not change Lab direction decisions. Input/options mutations after the call cannot change the returned result.
+Consumers should use enums and numeric fields rather than parse the English text.
 
 ## License
 

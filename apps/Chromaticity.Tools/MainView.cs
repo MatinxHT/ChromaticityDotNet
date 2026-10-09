@@ -62,7 +62,7 @@ public sealed partial class MainView : UserControl
                 plot.SetData(data.Values, data.Start, data.Step); plot.IsVisible = true;
                 return data.Table;
             }))),
-            Note("D65 / A：360–830 nm；CWF / F7 / TL84 / U30：380–780 nm。\nLab / Luv 使用库的固定白点，可能与所选波段的积分白点略有不同。sRGB 预览仅在 D65 / 2° 下显示，会裁剪超色域颜色。\n曲线淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"), plot);
+            Note("D65 / A：360–830 nm；CWF / F7 / TL84 / U30：380–780 nm。\nLab / Luv 使用库的固定白点，可能与所选波段的积分白点略有不同。sRGB 预览在 D65 下显示，会裁剪超色域颜色。\n曲线淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"), plot);
         Watch(result, () => plot.IsVisible = false, input, start, end, step, light, observer, units);
         return Stack(Card(form), result);
     }
@@ -93,6 +93,7 @@ public sealed partial class MainView : UserControl
         UpdateComparison();
         var kl = SmallInput("1"); var kc = SmallInput("1"); var kh = SmallInput("1");
         var cmc = Select(["1:1", "2:1"]);
+        var evaluationInputs = new ColorComparisonInputs("Difference");
         var columns = new ResponsiveColumns { Name = "DifferenceInputs" };
         foreach (var item in new[] { ("标准 Lab", standard), ("样品 Lab", sample) })
         {
@@ -103,6 +104,7 @@ public sealed partial class MainView : UserControl
             Note("导入一个六列 CSV：前三列标准 L*、a*、b*，后三列样品 L*、a*、b*。一对多时只填写一行标准，其余标准三列留空；一对一时每行填写对应的标准和样品。表头可选，列名不限；标准与样品必须使用相同白点和观察者条件。"),
             Fields(("CMC l:c", cmc)),
             Fields(("ΔE00 kL", kl), ("ΔE00 kC", kc), ("ΔE00 kH", kh)),
+            evaluationInputs.View,
             columns,
             comparison,
             Note("也可在两个输入框分别粘贴或修改三列 Lab 数据，支持中英文逗号、制表符或空格分列。比较方式随标准和样品行数自动更新。"),
@@ -113,11 +115,15 @@ public sealed partial class MainView : UserControl
                     var data = await CsvDataFiles.ReadDifferenceAsync(fileName, stream);
                     standard.Text = data.Standards; sample.Text = data.Samples;
                 }),
-                Primary("计算色差", () => result.Run(() => ToolCalculations.DifferenceAuto(standard.Text ?? "", sample.Text ?? "",
+                Primary("计算色差", () => result.Run(() =>
+                {
+                    var options = evaluationInputs.Options();
+                    return ToolCalculations.DifferenceAuto(standard.Text ?? "", sample.Text ?? "",
                     ToolCalculations.Positive(kl.Text ?? "", "kL"), ToolCalculations.Positive(kc.Text ?? "", "kC"), ToolCalculations.Positive(kh.Text ?? "", "kH"),
-                    cmc.SelectedIndex == 0 ? 1 : 2, 1)))),
-            Note("先显示标样与样品的 sRGB 屏幕预览，随后显示标样 L*、a*、b* 和样品 L*、a*、b* 六列输入值，再显示 ΔL*、Δa*、Δb*、ΔC*、Δh° 及 ΔE76、CMC、ΔE00。\n差值方向为样品减标样，Δh° 为 Lab 色相角的最短有符号差；预览按 D65 / 2° 计算并裁剪超色域值。公式参数显示在列名中；一次最多 10,000 行。"));
-        Watch(result, null, standard, sample, kl, kc, kh, cmc);
+                    cmc.SelectedIndex == 0 ? 1 : 2, 1, options.AchromaticLightnessThreshold, options.AchromaticChromaThreshold);
+                }))),
+            Note("先显示标样与样品的 sRGB 屏幕预览，随后显示标样 L*、a*、b* 和样品 L*、a*、b* 六列输入值，再显示 ΔL*、Δa*、Δb*、ΔC*、Δh° 及 ΔE76、CMC、ΔE00。\n差值方向为样品减标样，Δh° 为 Lab 色相角的最短有符号差；预览按 D65 / 10° 计算并裁剪超色域值。公式参数显示在列名中；一次最多 10,000 行。"));
+        Watch(result, null, standard, sample, kl, kc, kh, cmc, evaluationInputs.Lightness, evaluationInputs.Chroma);
         return Stack(Card(form), result);
     }
 
@@ -187,21 +193,21 @@ public sealed partial class MainView : UserControl
         {
             var current = (InputSpace)space.SelectedIndex;
             var isRgb = current is InputSpace.sRGB or InputSpace.HEX;
-            if (isRgb) { light.SelectedIndex = 0; observer.SelectedIndex = 0; }
-            light.IsEnabled = observer.IsEnabled = !isRgb;
+            if (isRgb) light.SelectedIndex = 0;
+            light.IsEnabled = !isRgb;
             help.Text = current switch
             {
                 InputSpace.XYZ => "输入顺序：X, Y, Z。参考白亮度 Y = 100。",
                 InputSpace.Lab => "输入顺序：L*, a*, b*。L* ≥ 0。",
                 InputSpace.Luv => "输入顺序：L*, u*, v*。L* ≥ 0；黑色为 0,0,0。",
                 InputSpace.xyY => "输入顺序：x, y, Y。x ≥ 0，y > 0，x + y ≤ 1，Y ≥ 0。",
-                InputSpace.sRGB => "输入顺序：R, G, B。每个通道为 0–255 整数，固定 D65 / 2°。",
-                _ => "每行一个 #RRGGBB，例如 #20A090。固定 D65 / 2°。"
+                InputSpace.sRGB => "输入顺序：R, G, B。每个通道为 0–255 整数，固定 D65；Lab/Luv 使用所选观察者。",
+                _ => "每行一个 #RRGGBB，例如 #20A090。固定 D65；Lab/Luv 使用所选观察者。"
             };
         }
         space.SelectionChanged += (_, _) => UpdateHelp(); UpdateHelp();
         var form = Stack(Text("颜色转换", 24, true),
-            Note("支持单个或批量输入，每个颜色以卡片展示 XYZ、Lab、LCh、Luv、xyY，以及 sRGB 屏幕预览和 HEX。"),
+            Note("支持单个或批量输入，每个颜色以卡片展示 XYZ、Lab、LCh、Luv、xyY、sRGB、HSL、HSV 和 HEX。HSL/HSV 的 H 为角度，S/L/V 显示为百分数。"),
             Fields(("输入空间", space), ("参考照明体", light), ("观察者", observer)), help,
             Note("每行一个颜色；仅导入 CSV，可有表头，列名不限。模板随输入空间切换。粘贴数值支持中英文逗号、制表符或空格分列。"), input,
             Actions(Button("载入示例", () => input.Text = (InputSpace)space.SelectedIndex switch
@@ -215,7 +221,7 @@ public sealed partial class MainView : UserControl
             }), TemplateButton(input, result, () => CsvDataFiles.ColorTemplate((InputSpace)space.SelectedIndex)),
                 ImportButton(input, result, CsvInputKind.Color, () => (InputSpace)space.SelectedIndex),
                 Primary("转换颜色", () => result.Run(() => ToolCalculations.ConvertColors(input.Text ?? "", (InputSpace)space.SelectedIndex, SelectedLight(light), SelectedObserver(observer))))),
-            Note("sRGB 预览由 XYZ 直接映射并裁剪超色域值；其他照明体或观察者条件下为未经色适应的屏幕近似。\n黑色的 x、y 未定义，显示为 —。LCh 为库内 Lab 的派生输出。"));
+            Note("sRGB 预览由 XYZ 直接映射并裁剪超色域值；其他照明体或观察者条件下为未经色适应的屏幕近似。\n黑色的 x、y 未定义，显示为 —。LCh 为库内 Lab 的派生输出。\nHSL/HSV 基于显示的 sRGB 值；灰色的 H 使用 0 作为占位值。"));
         Watch(result, null, input, space, light, observer);
         return Stack(Card(form), result);
     }
@@ -295,7 +301,12 @@ public sealed partial class MainView : UserControl
     private static Standardilluminant SelectedLight(ComboBox combo) => ToolCalculations.Illuminants[combo.SelectedIndex];
     private static StandardObserver SelectedObserver(ComboBox combo) => combo.SelectedIndex == 0 ? StandardObserver.Degree2 : StandardObserver.Degree10;
     private static ComboBox Light() => Select(ToolCalculations.Illuminants.Select(x => x.ToString()).ToArray());
-    private static ComboBox Observer() => Select(["2° · CIE 1931", "10° · CIE 1964"]);
+    private static ComboBox Observer()
+    {
+        var observer = Select(["2° · CIE 1931", "10° · CIE 1964"]);
+        observer.SelectedIndex = ToolCalculations.DefaultObserver == StandardObserver.Degree10 ? 1 : 0;
+        return observer;
+    }
     private static ComboBox Select(string[] items) => new()
     {
         ItemsSource = items, SelectedIndex = 0, MinWidth = 155,
@@ -388,8 +399,10 @@ public sealed partial class MainView : UserControl
         values.Children.Add(Values("LCh", "C*", "h°"));
         values.Children.Add(Values("Luv", "L* (Luv)", "u*", "v*"));
         values.Children.Add(Values("xyY", "x", "y", "Y"));
+        values.Children.Add(Values("HSL", "H (HSL) / °", "S (HSL) / %", "L (HSL) / %"));
+        values.Children.Add(Values("HSV", "H (HSV) / °", "S (HSV) / %", "V (HSV) / %"));
         return Card(Stack(Text($"颜色 {Value("行")}", 20, true), Text("sRGB 屏幕预览", 16, true), preview,
-            Note(hex == "—" ? "当前条件不提供 sRGB 预览（仅支持 D65 / 2°）。"
+            Note(hex == "—" ? "当前条件不提供 sRGB 预览（仅支持 D65）。"
                 : $"{hex}    R {Value("R")} · G {Value("G")} · B {Value("B")}"),
             values, Note(Value("计算条件"))));
     }
@@ -505,7 +518,7 @@ public sealed partial class MainView : UserControl
                         {
                             Header = header,
                             Width = new DataGridLength(_differencePreviews
-                                ? i switch { 0 => 64, 1 or 2 => 116, >= 3 and <= 8 => 100, 15 => 108, 16 => 160, _ => 82 }
+                                ? i switch { 0 => 64, 1 or 2 => 116, >= 3 and <= 8 => 100, 15 => 108, 16 => 160, 17 or 18 => 140, 19 => 130, 20 => 190, _ => 82 }
                                 : i == 0 ? 160 : 260),
                             CellTemplate = new FuncDataTemplate<string[]>((row, _) =>
                             {

@@ -1,4 +1,5 @@
-﻿using static ChromaticityDotNet.Model.DataModel;
+﻿using ChromaticityDotNet.Model;
+using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
@@ -11,6 +12,58 @@ namespace ChromaticityDotNet.Controller
     {
         private const double CieEpsilon = 216.0 / 24389.0;
         private const double CieKappa = 24389.0 / 27.0;
+
+        /// <summary>Converts gamma-encoded 8-bit sRGB to HSL without intermediate rounding.</summary>
+        /// <returns>H in [0, 360) degrees; S and L in [0, 1]. Gray uses H = 0 as a placeholder.</returns>
+        public static CIEHSL RGBToHSL(CIERGB rgbColor)
+        {
+            var (hue, minimum, maximum) = RgbHueAndRange(rgbColor);
+            double lightness = (maximum + minimum) / 2;
+            double delta = maximum - minimum;
+            return new CIEHSL
+            {
+                H = hue,
+                S = delta == 0 ? 0 : Math.Min(1, delta / (1 - Math.Abs(2 * lightness - 1))),
+                L = lightness
+            };
+        }
+
+        /// <summary>Converts gamma-encoded 8-bit sRGB to HSV without intermediate rounding.</summary>
+        /// <returns>H in [0, 360) degrees; S and V in [0, 1]. Gray uses H = 0 as a placeholder.</returns>
+        public static CIEHSV RGBToHSV(CIERGB rgbColor)
+        {
+            var (hue, minimum, maximum) = RgbHueAndRange(rgbColor);
+            return new CIEHSV
+            {
+                H = hue,
+                S = maximum == 0 ? 0 : (maximum - minimum) / maximum,
+                V = maximum
+            };
+        }
+
+        /// <summary>Formats 8-bit sRGB as an uppercase #RRGGBB string.</summary>
+        public static string RGBToHex(CIERGB rgbColor)
+        {
+            if (rgbColor is null) throw new ArgumentNullException(nameof(rgbColor));
+            return $"#{rgbColor.redValue:X2}{rgbColor.greenValue:X2}{rgbColor.blueValue:X2}";
+        }
+
+        private static (double Hue, double Minimum, double Maximum) RgbHueAndRange(CIERGB rgbColor)
+        {
+            if (rgbColor is null) throw new ArgumentNullException(nameof(rgbColor));
+            double red = rgbColor.redValue / 255.0;
+            double green = rgbColor.greenValue / 255.0;
+            double blue = rgbColor.blueValue / 255.0;
+            double maximum = Math.Max(red, Math.Max(green, blue));
+            double minimum = Math.Min(red, Math.Min(green, blue));
+            double delta = maximum - minimum;
+            if (delta == 0) return (0, minimum, maximum);
+            double sector = maximum == red ? (green - blue) / delta
+                : maximum == green ? (blue - red) / delta + 2
+                : (red - green) / delta + 4;
+            double hue = sector * 60;
+            return (hue < 0 ? hue + 360 : hue, minimum, maximum);
+        }
 
         #region From Ref to ...
 
@@ -302,6 +355,31 @@ namespace ChromaticityDotNet.Controller
                 blueValue = blueValue,
             };
 
+        }
+
+        #endregion
+
+        #region From Lab to ...
+
+        /// <summary>Converts Lab to LCh directly from L*, a*, b*, retaining double precision.</summary>
+        /// <remarks>Requires finite coordinates and nonnegative L*. L* above 100 is allowed.
+        /// Ignores the rounded C/H properties of CIELABCH. Zero chroma has no defined hue;
+        /// its returned hue is zero as a placeholder.</remarks>
+        public static CIELCH LabToLch(CIELABCH labColor)
+        {
+            if (labColor is null) throw new ArgumentNullException(nameof(labColor));
+            ValidateLightness(labColor.CIEL, nameof(labColor));
+            ValidateFinite(labColor.CIEA, nameof(labColor));
+            ValidateFinite(labColor.CIEB, nameof(labColor));
+
+            double chroma = Math.Sqrt(labColor.CIEA * labColor.CIEA + labColor.CIEB * labColor.CIEB);
+            if (double.IsInfinity(chroma))
+                throw new ArgumentException("Lab coordinates overflow the finite chroma range.", nameof(labColor));
+            double hue = chroma == 0 ? 0 : Math.Atan2(labColor.CIEB, labColor.CIEA) * 180.0 / Math.PI;
+            if (hue < 0) hue += 360.0;
+            // Adding 360 to a very small negative angle can round to exactly 360.
+            if (hue >= 360.0) hue = 0;
+            return new CIELCH(labColor.CIEL, chroma, hue);
         }
 
         #endregion

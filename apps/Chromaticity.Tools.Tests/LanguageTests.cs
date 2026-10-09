@@ -7,6 +7,12 @@ public class LanguageTests
 {
     [Theory]
     [InlineData("色差计算", "Color difference")]
+    [InlineData("无彩色 L* 阈值", "Achromatic L* threshold")]
+    [InlineData("无彩色 C* 阈值", "Achromatic C* threshold")]
+    [InlineData("色相偏色", "Hue bias")]
+    [InlineData("偏红", "More reddish")]
+    [InlineData("偏黄", "More yellowish")]
+    [InlineData("偏红 ← 标样 → 偏黄", "More reddish ← Standard → More yellowish")]
     [InlineData("下载数据模板", "Download data template")]
     [InlineData("导入 CSV", "Import CSV")]
     [InlineData("导入失败：第 4 行需要恰好 3 列数据。", "Import failed: Row 4 needs exactly 3 data columns.")]
@@ -63,6 +69,20 @@ public class LanguageTests
     }
 
     [Fact]
+    public void EnglishGradeEvaluationAndNewUiNotesHaveNoUntranslatedChinese()
+    {
+        var result = ColorGradeCalculations.Analyze("50,30,20", "53,32,18", new(ColorGradeFormula.Cmc));
+        Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", UiLanguage.TranslateTable(result.Table, UiLanguage.English).ToCsv());
+        foreach (var message in new[]
+        {
+            "L* 低于阈值或 C* 低于阈值，满足任一项即按无彩色评价；标样或样品为无彩色时不评价色相偏色。阈值允许设为 0。",
+            "偏红 ← 标样 → 偏黄",
+            "无彩色判定：均为有彩色",
+            "HSL/HSV 基于显示的 sRGB 值；灰色的 H 使用 0 作为占位值。"
+        }) Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", UiLanguage.Translate(message, UiLanguage.English));
+    }
+
+    [Fact]
     public void EnglishExportsTranslateHeadersAndKeepTheOriginalSchemaAndNumbers()
     {
         var original = ToolCalculations.Difference("50,20,-30", "52,18,-28", false, 1, 1, 1, 2, 1);
@@ -70,7 +90,8 @@ public class LanguageTests
         Assert.Equal("序号", original.Headers[0]);
         Assert.Equal("No.", translated.Headers[0]);
         Assert.Equal(new[] { "Standard L*", "Standard a*", "Standard b*", "Sample L*", "Sample a*", "Sample b*" }, translated.Headers[3..9]);
-        Assert.Equal(original.Rows[0], translated.Rows[0]);
+        Assert.Equal(original.Rows[0][..17], translated.Rows[0][..17]);
+        Assert.Equal(new[] { "Lighter", "Lower chroma", "More bluish", "Both chromatic" }, translated.Rows[0][17..]);
         Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", translated.ToCsv());
         Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", translated.ToTsv());
     }

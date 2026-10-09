@@ -90,11 +90,23 @@ var fastXyz = ChromaticityConversion.REFtoXYZ(
 | 函数 | 输入 → 输出 |
 | --- | --- |
 | `XYZ2Labch(xyz, illuminant, observer)` / `Labch2XYZ(lab, illuminant, observer)` | XYZ ↔ Lab；`CIELABCH` 自动计算 C*、h° |
+| `LabToLch(lab)` | Lab → 只读 `CIELCH`；直接由 a*、b* 计算 C*、h°，保留中间精度 |
 | `XYZ2Luv(xyz, illuminant, observer)` / `Luv2XYZ(luv, illuminant, observer)` | XYZ ↔ L*u*v* |
 | `XYZ2RGB(xyz)` / `RGB2XYZ(rgb)` | XYZ ↔ sRGB，RGB 为 0–255 字节 |
+| `RGBToHSL(rgb)` / `RGBToHSV(rgb)` | sRGB → `DataModel.CIEHSL` / `DataModel.CIEHSV`；H 为 [0,360) 度，S/L/V 为 [0,1] 比例 |
+| `RGBToHex(rgb)` | sRGB → 大写 `#RRGGBB` 字符串 |
 | `XYZ2xyY(xyz)` / `xy2XYZ(xyY)` | XYZ ↔ xyY |
 | `xy2uv(xyY)` | xyY → CIE 1976 u′v′ 色度坐标 |
 | `xy2CCT(xyY)` | 从 xy 色度近似计算相关色温 |
+
+HSL/HSV 基于编码后的 sRGB 通道，不先做线性化，返回值保留中间精度；界面可将 S/L/V 乘以 100 显示为百分数。黑色和灰色均返回有效结果，S = 0、H = 0（无确定色相时的占位值），白色也不会产生 NaN。HSL/HSV 不是 CIE 色彩空间，模型名称沿用本库的数据模型命名。
+
+```csharp
+var rgb = new CIERGB { redValue = 32, greenValue = 160, blueValue = 144 };
+var hsl = ChromaticityConversion.RGBToHSL(rgb); // H=172.5°, S≈0.6667, L≈0.3765
+var hsv = ChromaticityConversion.RGBToHSV(rgb); // H=172.5°, S=0.8, V≈0.6275
+var hex = ChromaticityConversion.RGBToHex(rgb); // #20A090
+```
 
 以下示例沿用上面的 `using`：
 
@@ -164,6 +176,93 @@ double cmc21 = ChromaticityDeltaEFormulations.DeltaEcmc(standard, sample, 2, 1);
 - 权重应为有限正数；CIE94 当前不提供纺织参数切换。
 - CIEDE2000 总色差包含彩度与色相的交叉项，不能仅由三个 `Delta*only` 分量平方和开方重建。
 - 中间计算保留 `double` 精度，返回数值保留四位小数，中点远离零舍入；显示固定四位小数可用 `F4`。
+
+## 颜色比较与英文评价
+
+`ChromaticityMatch.CompareColors(CIELABCH reference, CIELABCH sample, ColorComparisonOptions? options = null)`
+同时计算 ΔE1976、CMC、CIEDE2000，返回数值、枚举判断、分项简短英文评价，以及只读的输入和配置快照。
+参数及结果类型位于 `ChromaticityDotNet.Model`；所有差值和方向均为 **sample 相对于 reference**。
+两种 Lab 必须使用相同的白点、观察者条件；接口不执行色适应。
+
+```csharp
+using ChromaticityDotNet.Controller;
+using ChromaticityDotNet.Model;
+using static ChromaticityDotNet.Model.DataModel;
+
+var reference = new CIELABCH(50, 20, 20);
+var sample = new CIELABCH(52, 18, 24);
+
+// 默认 CMC 1:1、E00 1:1:1，无彩色条件为 L* < 10 或 C* < 5。
+var result = ChromaticityMatch.CompareColors(reference, sample);
+double de76 = result.DeltaE1976;
+double cmc = result.DeltaECmc;
+double de00 = result.DeltaE2000;
+string lightness = result.Evaluation.LightnessCommentsEnglish; // Lighter
+string chroma = result.Evaluation.ChromaCommentsEnglish;       // Higher chroma
+string hue = result.Evaluation.HueCommentsEnglish;             // More yellowish
+bool achromatic = result.Evaluation.IsAchromatic;
+string neutrality = result.Evaluation.AchromaticCommentsEnglish; // Both chromatic
+string overall = result.Evaluation.TotalCommentsEnglish;         // Not evaluated
+
+var options = new ColorComparisonOptions
+{
+    Cmc = new CmcParameters(l: 2, c: 1), // 例如纺织应用显式选择 2:1
+    Ciede2000 = new Ciede2000Parameters(kL: 1, kC: 1, kH: 1),
+    AchromaticLightnessThreshold = 10,
+    AchromaticChromaThreshold = 5,
+    Evaluation = new ColorEvaluationOptions
+    {
+        Formula = ComparisonFormula.Ciede2000,
+        AcceptanceTolerance = 1.0, // 业务示例，不是通用验收标准
+        PerceptibilityThreshold = 0.5,
+        LightnessTolerance = 0.0001,
+        ChromaTolerance = 0.0001,
+        HueAngleToleranceDegrees = 0.0001
+    }
+};
+// 可替换各轴坐标、名称及单一英文偏色描述，也可替换整份 HueAxes 列表。
+options.HueAxes[0] = new HueAxis("Red", 20, "More reddish");
+var configured = ChromaticityMatch.CompareColors(reference, sample, options);
+```
+
+| 结果属性 | 用途 |
+| --- | --- |
+| `Reference` / `Sample` | 只读 Lab、未舍入的 C*/h°、`IsAchromatic`；`ToLab()` 返回独立副本 |
+| `DeltaE1976` / `DeltaECmc` / `DeltaE2000` | 三种总色差，沿用已有公式的四位小数输出 |
+| `Differences` | `DeltaL`、`DeltaA`、`DeltaB`、`DeltaChroma`、`HueAngleDifferenceDegrees`，保留四位小数 |
+| `Evaluation.Lightness` / `Chroma` | `Lower` / `Unchanged` / `Higher` 枚举及英文文字；使用未舍入差值与容差判断 |
+| `Evaluation.Hue` | `NotApplicable` / `Unchanged` / `Shifted`、增减方向、样品最近主色轴和唯一目标主色轴 |
+| `Evaluation.Neutrality` | 标准色、样品各自的无彩色判断及英文说明 |
+| `Evaluation.Overall` | 选择的公式及其色差、验收和可感知阈值评价 |
+| `AppliedParameters` | 实际权重、阈值、容差与按 h° 排序的只读主色轴列表 |
+| `Evaluation.IsAchromatic` | 任一输入落入无彩色范围时为 `true` |
+| `Evaluation.LightnessCommentsEnglish` / `ChromaCommentsEnglish` / `HueCommentsEnglish` | 独立简短评价，例如 `Lighter`、`Higher chroma`、`More yellowish`；无变化为 `No change`，色相不适用为 `Not applicable` |
+| `Evaluation.AchromaticCommentsEnglish` / `TotalCommentsEnglish` | 无彩色判定和整体阈值评价；未设置整体阈值时为 `Not evaluated` |
+
+接口不拼接评价段落；开发者按需引用数值、枚举或文字字段，组合和翻译由调用方完成。
+
+### 无彩色与单一色相偏色规则
+
+- 各颜色满足 **L* 严格低于明度阈值，或 C* 严格低于彩度阈值** 即为无彩色。
+  默认 `L*=10, C*=5` 不属于无彩色。用未舍入的 C* 判断，避免边界值先舍入造成误判。
+- 任一输入是无彩色时，不判断色相偏差，`HueAngleDifferenceDegrees` 和 `TargetAxis` 为 `null`。
+  即使把两项阈值设为零，C*=0 仍没有色相，跳过偏色判断；三种色差、明度和彩度评价照常计算。
+- 有彩色通过 `ChromaticityConversion.LabToLch` 获取 h°，计算 `sample.h - reference.h`，
+  在色相环上折算到 `(-180, 180]`。例如 359° → 1° 为 +2°，相差 180° 统一取正方向。
+  这与旧 E00 返回字段 `DH` 的修正色相角直接差值不同。
+- 默认主色轴为 Red 22°、Yellow 85°、Green 158°、Blue 263°、Purple 310°。
+  h 增大取样品 h 前方最近的主色轴，h 减小取后方最近的主色轴；与样品 h 重合的轴跳过。
+  例如 40° → 50° 输出 `More yellowish`，60° → 50° 输出 `More reddish`。
+  只输出一个目标轴的偏色描述，不同时输出两种偏色；仅彩度变化而 h 不变时不报告偏色。
+- `HueAxes` 至少有两项，名称不区分大小写时不能重复，坐标在 `[0, 360)` 且不能重复；输入顺序不限。
+  `SampleMainAxis` 仅供查看样品最近的轴，以环形距离判断，等距时取角度较小者。
+  偏色名称和坐标是可配置的库规则，不用于反推配方或荧光情况。
+
+权重必须有限且大于零，按传入数值使用，不约分。阈值和容差必须有限且非负，色相角容差不超过 180°。
+Lab 坐标必须有限、L* 非负，允许 L* 超过 100；计算溢出时抛出异常。
+默认不指定验收或可感知阈值，对应状态为 `NotEvaluated`；调用方配置后，验收按 `ΔE ≤ AcceptanceTolerance`，
+可感知按 `ΔE ≥ PerceptibilityThreshold` 判断。修改权重不改变 Lab 的方向判断。
+配置和输入不会被修改，返回结果也不会随调用方之后的修改而改变；二次开发应根据枚举和数值判断，不解析英文句子。
 
 ## 许可
 

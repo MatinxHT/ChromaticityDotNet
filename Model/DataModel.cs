@@ -136,6 +136,28 @@ namespace ChromaticityDotNet.Model
             public byte blueValue { get; set; }
         }
 
+        /// <summary>HSL derived from gamma-encoded sRGB; not a CIE color space.</summary>
+        public class CIEHSL
+        {
+            /// <summary>Hue in [0, 360) degrees; zero for gray.</summary>
+            public double H { get; set; }
+            /// <summary>Saturation in [0, 1].</summary>
+            public double S { get; set; }
+            /// <summary>Lightness in [0, 1].</summary>
+            public double L { get; set; }
+        }
+
+        /// <summary>HSV derived from gamma-encoded sRGB; not a CIE color space.</summary>
+        public class CIEHSV
+        {
+            /// <summary>Hue in [0, 360) degrees; zero for gray.</summary>
+            public double H { get; set; }
+            /// <summary>Saturation in [0, 1].</summary>
+            public double S { get; set; }
+            /// <summary>Value in [0, 1].</summary>
+            public double V { get; set; }
+        }
+
         #endregion
 
     }

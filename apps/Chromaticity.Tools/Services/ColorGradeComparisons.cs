@@ -1,3 +1,6 @@
+using ChromaticityDotNet.Controller;
+using ChromaticityDotNet.Model;
+
 namespace Chromaticity.Tools.Services;
 
 public sealed record ColorGradePathStep(ColorGradeLab Reference, ColorGradeLab Sample, double DeltaE);
@@ -9,14 +12,14 @@ public sealed record ColorAxisGrade(ColorGradeAxis Axis, ColorGradeLab Start, Co
 }
 public sealed record ColorGradeComparison(ColorGradeLab Standard, ColorGradeLab Sample,
     string StandardHex, string SampleHex, ColorGradeSettings Settings, double DeltaE,
-    IReadOnlyList<ColorAxisGrade> Components, CalculationTable Table, ColorGradeRounding? Rounding = null)
+    IReadOnlyList<ColorAxisGrade> Components, CalculationTable Table, ColorComparisonResult ColorComparison,
+    ColorGradeRounding? Rounding = null)
 {
     public double DeltaL => Sample.L - Standard.L;
     public double DeltaA => Sample.A - Standard.A;
     public double DeltaB => Sample.B - Standard.B;
     public double DeltaC => Sample.Chroma - Standard.Chroma;
-    public double? DeltaHue => Standard.Chroma == 0 || Sample.Chroma == 0
-        ? null : ColorGradeCalculations.SignedHueDifference(Standard.Hue, Sample.Hue);
+    public double? DeltaHue => ColorComparison.Differences.HueAngleDifferenceDegrees;
 }
 
 public static partial class ColorGradeCalculations
@@ -24,7 +27,8 @@ public static partial class ColorGradeCalculations
     public const int MaxAnalysisLevels = 1000;
 
     /// <summary>Apply signed integer grades in L, C, h order, rebasing each step on its actual predecessor.</summary>
-    public static ColorGradeComparison Compose(ColorGradeResult card, int lightness, int chroma, int hue)
+    public static ColorGradeComparison Compose(ColorGradeResult card, int lightness, int chroma, int hue,
+        ColorComparisonOptions? comparisonOptions = null)
     {
         ValidateSettings(card.Settings);
         var requested = new[] { lightness, chroma, hue };
@@ -48,12 +52,12 @@ public static partial class ColorGradeCalculations
             }
             components.Add(new(axis, origin, current, level, Difference(origin, current, card.Settings), "有效", steps) { Grade = level });
         }
-        return Comparison(card.Standard, current, card.Settings, components, "按等级推算目标色");
+        return Comparison(card.Standard, current, card.Settings, components, "按等级推算目标色", comparisonOptions: comparisonOptions);
     }
 
     /// <summary>Reverse the same sequential L/C/h path. Fractional grade is the final partial-step ΔE / threshold.</summary>
     public static ColorGradeComparison Analyze(string standardLab, string sampleLab, ColorGradeSettings settings,
-        ColorGradeRounding rounding = ColorGradeRounding.Nearest)
+        ColorGradeRounding rounding = ColorGradeRounding.Nearest, ColorComparisonOptions? comparisonOptions = null)
     {
         ValidateSettings(settings);
         if (!Enum.IsDefined(rounding)) throw new ArgumentException("请选择有效的等级计算方式。");
@@ -75,7 +79,7 @@ public static partial class ColorGradeCalculations
         var components = new[] { Measure(ColorGradeAxis.Lightness, standard, afterL, settings), c, h }
             .Select(component => component with { Grade = component.RawGrade.HasValue
                 ? RoundGrade(component.RawGrade.Value, rounding) : null }).ToArray();
-        return Comparison(standard, sample, settings, components, "标样与样本分级分析", rounding);
+        return Comparison(standard, sample, settings, components, "标样与样本分级分析", rounding, comparisonOptions);
     }
 
     // Grade magnitude is rounded independently of its direction; this is not signed mathematical ceiling.
@@ -146,24 +150,55 @@ public static partial class ColorGradeCalculations
     };
 
     private static ColorGradeComparison Comparison(ColorGradeLab standard, ColorGradeLab sample,
-        ColorGradeSettings settings, IReadOnlyList<ColorAxisGrade> components, string mode, ColorGradeRounding? rounding = null)
+        ColorGradeSettings settings, IReadOnlyList<ColorAxisGrade> components, string mode, ColorGradeRounding? rounding = null,
+        ColorComparisonOptions? comparisonOptions = null)
     {
-        var conditions = FormattableString.Invariant($"{mode}; {settings.FormulaName}; grade threshold ΔE={settings.StepDeltaE}; order: L -> C -> h; each full step reference: previous color; fractional grade: final partial ΔE / threshold; overall reference: original standard; hue: shortest signed Lab angle, 180° tie positive; preview: D65 / 2°, clipped sRGB");
+        var comparison = Compare(standard, sample, settings, comparisonOptions);
+        var conditions = FormattableString.Invariant($"{mode}; {settings.FormulaName}; grade threshold ΔE={settings.StepDeltaE}; order: L -> C -> h; each full step reference: previous color; fractional grade: final partial ΔE / threshold; overall reference: original standard; hue: shortest signed Lab angle, 180° tie positive; preview: D65 / 10°, clipped sRGB");
+        conditions += FormattableString.Invariant($"; achromatic: L* < {comparison.AppliedParameters.AchromaticLightnessThreshold} OR C* < {comparison.AppliedParameters.AchromaticChromaThreshold}");
         if (rounding.HasValue) conditions += $"; integer grades: {RoundingTitle(rounding.Value)}, magnitude rounded before applying direction";
         static string F(double? value) => value.HasValue ? ToolCalculations.F(value.Value) : "—";
-        string[] Row(string stage, ColorGradeLab lab, ColorAxisGrade? component) =>
-        [
-            stage, F(lab.L), F(lab.A), F(lab.B), F(lab.Chroma), lab.Chroma == 0 ? "—" : F(lab.Hue), Hex(lab),
-            F(lab.L - standard.L), F(lab.A - standard.A), F(lab.B - standard.B), F(lab.Chroma - standard.Chroma),
-            standard.Chroma == 0 || lab.Chroma == 0 ? "—" : F(SignedHueDifference(standard.Hue, lab.Hue)),
-            F(Difference(standard, lab, settings)), F(component?.DeltaE), component?.Grade?.ToString(Invariant) ?? "—", component?.Status ?? "有效",
-            settings.FormulaName, F(settings.StepDeltaE), conditions
-        ];
+        string[] Row(string stage, ColorGradeLab lab, ColorAxisGrade? component)
+        {
+            var evaluation = Compare(standard, lab, settings, comparisonOptions);
+            return [
+                stage, F(lab.L), F(lab.A), F(lab.B), F(lab.Chroma), lab.Chroma == 0 ? "—" : F(lab.Hue), Hex(lab),
+                F(lab.L - standard.L), F(lab.A - standard.A), F(lab.B - standard.B), F(lab.Chroma - standard.Chroma),
+                F(evaluation.Differences.HueAngleDifferenceDegrees),
+                F(Difference(standard, lab, settings)), F(component?.DeltaE), component?.Grade?.ToString(Invariant) ?? "—", component?.Status ?? "有效",
+                settings.FormulaName, F(settings.StepDeltaE), conditions, ..ColorEvaluationPresentation.Comments(evaluation)
+            ];
+        }
         var rows = new[] { Row("原始标样", standard, null) }.Concat(components.Select(component =>
             Row($"{AxisTitle(component.Axis)}完成{(component.Axis == ColorGradeAxis.Hue ? "（目标/样本）" : "（中间值）")}", component.End, component))).ToArray();
         var table = new CalculationTable(["阶段", "L*", "a*", "b*", "C*", "h°", "HEX",
             "相对标样 ΔL*", "相对标样 Δa*", "相对标样 Δb*", "相对标样 ΔC*", "相对标样 Δh°",
-            "相对标样 ΔE", "本方向总 ΔE", "本方向有符号等级", "等级状态", "色差公式及参数", "目标级间 ΔE", "计算条件"], rows, conditions);
-        return new(standard, sample, Hex(standard), Hex(sample), settings, Difference(standard, sample, settings), components, table, rounding);
+            "相对标样 ΔE", "本方向总 ΔE", "本方向有符号等级", "等级状态", "色差公式及参数", "目标级间 ΔE", "计算条件", ..ColorEvaluationPresentation.Headers], rows, conditions);
+        return new(standard, sample, Hex(standard), Hex(sample), settings, Difference(standard, sample, settings), components, table, comparison, rounding);
+    }
+
+    // Grade paths retain their selected metric. Descriptive evaluation uses that metric
+    // and the same CMC factors, without mutating caller-supplied comparison options.
+    private static ColorComparisonResult Compare(ColorGradeLab standard, ColorGradeLab sample,
+        ColorGradeSettings settings, ColorComparisonOptions? options)
+    {
+        options ??= new ColorComparisonOptions();
+        return ChromaticityMatch.CompareColors(standard.ToLab(), sample.ToLab(), new ColorComparisonOptions
+        {
+            Cmc = settings.Formula == ColorGradeFormula.Cmc ? new(settings.CmcL, settings.CmcC) : options.Cmc,
+            Ciede2000 = new(),
+            AchromaticLightnessThreshold = options.AchromaticLightnessThreshold,
+            AchromaticChromaThreshold = options.AchromaticChromaThreshold,
+            HueAxes = options.HueAxes,
+            Evaluation = new()
+            {
+                Formula = (ComparisonFormula)settings.Formula,
+                AcceptanceTolerance = options.Evaluation.AcceptanceTolerance,
+                PerceptibilityThreshold = options.Evaluation.PerceptibilityThreshold,
+                LightnessTolerance = options.Evaluation.LightnessTolerance,
+                ChromaTolerance = options.Evaluation.ChromaTolerance,
+                HueAngleToleranceDegrees = options.Evaluation.HueAngleToleranceDegrees
+            }
+        });
     }
 }

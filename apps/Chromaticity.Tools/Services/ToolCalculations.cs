@@ -30,6 +30,7 @@ public enum InputSpace { XYZ, Lab, Luv, xyY, sRGB, HEX }
 public static class ToolCalculations
 {
     public const int MaxRows = 10000;
+    public const StandardObserver DefaultObserver = StandardObserver.Degree10;
     public const int MaxTextLength = 2_000_000;
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
     public static readonly Standardilluminant[] Illuminants = Enum.GetValues<Standardilluminant>();
@@ -130,39 +131,47 @@ public static class ToolCalculations
     }
 
     public static CalculationTable DifferenceAuto(string standards, string samples,
-        double kl, double kc, double kh, double cmcL, double cmcC) =>
-        Difference(standards, samples, ParseRows(standards).Length > 1, kl, kc, kh, cmcL, cmcC);
+        double kl, double kc, double kh, double cmcL, double cmcC,
+        double achromaticLightnessThreshold = 10, double achromaticChromaThreshold = 5) =>
+        Difference(standards, samples, ParseRows(standards).Length > 1, kl, kc, kh, cmcL, cmcC,
+            achromaticLightnessThreshold, achromaticChromaThreshold);
 
     public static CalculationTable Difference(string standards, string samples, bool paired,
-        double kl, double kc, double kh, double cmcL, double cmcC)
+        double kl, double kc, double kh, double cmcL, double cmcC,
+        double achromaticLightnessThreshold = 10, double achromaticChromaThreshold = 5)
     {
         if (new[] { kl, kc, kh, cmcL, cmcC }.Any(v => !double.IsFinite(v) || v <= 0))
             throw new ArgumentException("色差权重必须是有限正数。");
+        var options = new ColorComparisonOptions
+        {
+            Cmc = new(cmcL, cmcC), Ciede2000 = new(kl, kc, kh),
+            AchromaticLightnessThreshold = achromaticLightnessThreshold,
+            AchromaticChromaThreshold = achromaticChromaThreshold
+        };
         var reference = ParseRows(standards).Select((r, i) => Lab(Triple(r, i + 1))).ToArray();
         var test = ParseRows(samples).Select((r, i) => Lab(Triple(r, i + 1))).ToArray();
         if (paired ? reference.Length != test.Length : reference.Length != 1)
             throw new ArgumentException(paired ? "逐行配对时，标准和样品的行数必须相同。" : "一对多模式只允许一行标准色。");
-        var conditions = FormattableString.Invariant($"CMC l:c={cmcL}:{cmcC}; CIEDE2000 kL:kC:kH={kl}:{kc}:{kh}; preview: D65 / 2°; differences: sample minus standard; hue: signed shortest Lab hue angle");
+        var conditions = FormattableString.Invariant($"CMC l:c={cmcL}:{cmcC}; CIEDE2000 kL:kC:kH={kl}:{kc}:{kh}; achromatic: L* < {achromaticLightnessThreshold} OR C* < {achromaticChromaThreshold}; preview: D65 / 10°; differences: sample minus standard; hue: signed shortest Lab hue angle, skipped for achromatic colors");
         var result = test.Select((sample, i) =>
         {
             var standard = reference[paired ? i : 0];
-            var de00 = ChromaticityDeltaEFormulations.DeltaE2000(standard, sample, kl, kc, kh);
-            var hue = sample.CIEH - standard.CIEH;
-            if (hue > 180) hue -= 360;
-            if (hue < -180) hue += 360;
+            var comparison = ChromaticityMatch.CompareColors(standard, sample, options);
+            var delta = comparison.Differences;
             string Swatch(CIELABCH lab) => Hex(ChromaticityConversion.XYZ2RGB(
-                ChromaticityConversion.Labch2XYZ(lab, Standardilluminant.D65, StandardObserver.Degree2)));
-            return new[] { (i + 1).ToString(Invariant), Swatch(standard), Swatch(sample),
+                ChromaticityConversion.Labch2XYZ(lab, Standardilluminant.D65, DefaultObserver)));
+            return new string[] { (i + 1).ToString(Invariant), Swatch(standard), Swatch(sample),
                 F(standard.CIEL), F(standard.CIEA), F(standard.CIEB),
                 F(sample.CIEL), F(sample.CIEA), F(sample.CIEB),
-                F(de00.DL), F(de00.DA), F(de00.DB), F(de00.DC), F(hue),
-                F(ChromaticityDeltaEFormulations.DeltaE1976(standard, sample)),
-                F(ChromaticityDeltaEFormulations.DeltaEcmc(standard, sample, cmcL, cmcC)), F(de00.DeltaE) };
+                F(delta.DeltaL), F(delta.DeltaA), F(delta.DeltaB), F(delta.DeltaChroma),
+                delta.HueAngleDifferenceDegrees.HasValue ? F(delta.HueAngleDifferenceDegrees.Value) : "—",
+                F(comparison.DeltaE1976), F(comparison.DeltaECmc), F(comparison.DeltaE2000) }
+                .Concat(ColorEvaluationPresentation.Comments(comparison)).ToArray();
         }).ToArray();
         return new(["序号", "标样 sRGB", "样品 sRGB", "标样 L*", "标样 a*", "标样 b*", "样品 L*", "样品 a*", "样品 b*",
             "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE76",
             FormattableString.Invariant($"CMC\nl:c = {cmcL}:{cmcC}"),
-            FormattableString.Invariant($"ΔE00\nkL:kC:kH = {kl}:{kc}:{kh}")], result, conditions);
+            FormattableString.Invariant($"ΔE00\nkL:kC:kH = {kl}:{kc}:{kh}"), ..ColorEvaluationPresentation.Headers], result, conditions);
     }
 
     public static SpectrumResult Reflectance(string text, int start, int end, int step, bool fraction,
@@ -194,7 +203,7 @@ public static class ToolCalculations
         Standardilluminant illuminant, StandardObserver observer)
     {
         if (space is InputSpace.sRGB or InputSpace.HEX && !CanPreview(illuminant, observer))
-            throw new ArgumentException("sRGB / HEX 输入使用 D65 / 2°。库尚未执行色适应，请选择对应条件。");
+            throw new ArgumentException("sRGB / HEX 输入使用 D65。库尚未执行色适应，请选择对应光源。");
         var conditions = $"{space}; {Condition(illuminant, observer)}; Lab/Luv: library fixed white";
         if (!CanPreview(illuminant, observer)) conditions += "; sRGB: screen approximation, no chromatic adaptation";
         var rows = ParseRows(text).Select((row, i) =>
@@ -233,7 +242,7 @@ public static class ToolCalculations
         $"{light} / {(observer == StandardObserver.Degree2 ? "2°" : "10°")}";
 
     public static bool CanPreview(Standardilluminant light, StandardObserver observer) =>
-        light == Standardilluminant.D65 && observer == StandardObserver.Degree2;
+        light == Standardilluminant.D65 && observer is StandardObserver.Degree2 or StandardObserver.Degree10;
 
     public static string? Preview(CIEXYZ xyz, Standardilluminant light, StandardObserver observer)
     {
@@ -242,9 +251,10 @@ public static class ToolCalculations
         return Hex(rgb);
     }
 
-    private static string Hex(CIERGB rgb) => $"#{rgb.redValue:X2}{rgb.greenValue:X2}{rgb.blueValue:X2}";
+    private static string Hex(CIERGB rgb) => ChromaticityConversion.RGBToHex(rgb);
 
-    private static readonly string[] ColorHeaders = ["行", "X", "Y", "Z", "L*", "a*", "b*", "C*", "h°", "L* (Luv)", "u*", "v*", "x", "y", "R", "G", "B", "HEX", "计算条件"];
+    private static readonly string[] ColorHeaders = ["行", "X", "Y", "Z", "L*", "a*", "b*", "C*", "h°", "L* (Luv)", "u*", "v*", "x", "y", "R", "G", "B", "HEX", "计算条件",
+        "H (HSL) / °", "S (HSL) / %", "L (HSL) / %", "H (HSV) / °", "S (HSV) / %", "V (HSV) / %"];
 
     private static string[] ColorRow(int index, CIEXYZ xyz, Standardilluminant light, StandardObserver observer, string conditions, bool alwaysPreview = false)
     {
@@ -255,9 +265,13 @@ public static class ToolCalculations
         var sum = xyz.CIEX + xyz.CIEY + xyz.CIEZ;
         var xy = sum == 0 ? null : ChromaticityConversion.XYZ2xyY(xyz);
         var rgb = alwaysPreview || CanPreview(light, observer) ? ChromaticityConversion.XYZ2RGB(xyz) : null;
+        var hsl = rgb is null ? null : ChromaticityConversion.RGBToHSL(rgb);
+        var hsv = rgb is null ? null : ChromaticityConversion.RGBToHSV(rgb);
         return [index.ToString(Invariant), ..coordinates, F(lab.CIEL), F(lab.CIEA), F(lab.CIEB), F(lab.CIEC), F(lab.CIEH),
             F(luv.CIEL), F(luv.CIEu), F(luv.CIEv), xy is null ? "—" : F(xy.CIEx), xy is null ? "—" : F(xy.CIEy),
             rgb?.redValue.ToString(Invariant) ?? "—", rgb?.greenValue.ToString(Invariant) ?? "—", rgb?.blueValue.ToString(Invariant) ?? "—",
-            rgb is null ? "—" : Hex(rgb), conditions];
+            rgb is null ? "—" : Hex(rgb), conditions,
+            hsl is null ? "—" : F(hsl.H), hsl is null ? "—" : F(hsl.S * 100), hsl is null ? "—" : F(hsl.L * 100),
+            hsv is null ? "—" : F(hsv.H), hsv is null ? "—" : F(hsv.S * 100), hsv is null ? "—" : F(hsv.V * 100)];
     }
 }

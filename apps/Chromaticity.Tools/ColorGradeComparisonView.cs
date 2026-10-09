@@ -41,21 +41,16 @@ public sealed partial class MainView
         if (comparison.Rounding.HasValue) conditionText += " · 等级计算：" + ColorGradeCalculations.RoundingTitle(comparison.Rounding.Value);
         var condition = Note(conditionText);
         condition.TextAlignment = TextAlignment.Center;
-        var hueDelta = comparison.DeltaHue.HasValue ? Signed(comparison.DeltaHue.Value) + "°" : "—（色相未定义）";
+        var hueDelta = comparison.DeltaHue.HasValue ? Signed(comparison.DeltaHue.Value) + "°" : "—（不评价色相）";
         var quantified = Center($"ΔL* {Signed(comparison.DeltaL)} · Δa* {Signed(comparison.DeltaA)} · Δb* {Signed(comparison.DeltaB)}\n" +
             $"ΔC* {Signed(comparison.DeltaC)} · Δh° {hueDelta}");
         var grades = new ResponsiveColumns { MaximumColumns = 3 };
+        var comments = ColorEvaluationPresentation.Comments(comparison.ColorComparison);
         foreach (var component in comparison.Components)
         {
             var grade = component.Grade.HasValue ? component.Grade.Value.ToString("+0;-0;0", System.Globalization.CultureInfo.InvariantCulture) + " 级" : "—";
             var label = ColorGradeCalculations.AxisTitle(component.Axis);
-            var direction = !component.Grade.HasValue ? "等级未定义" : component.RawGrade == 0 ? "无该方向偏差" :
-                component.Axis switch
-                {
-                    ColorGradeAxis.Lightness => component.RawGrade > 0 ? "更亮" : "更暗",
-                    ColorGradeAxis.Chroma => component.RawGrade > 0 ? "更艳" : "更灰",
-                    _ => component.RawGrade > 0 ? "h° 增大" : "h° 减小"
-                };
+            var direction = comments[(int)component.Axis];
             grades.Children.Add(new Border { Padding = new Thickness(16), Background = Brush.Parse("#F5F5F5"),
                 Child = Stack(Center(label, 16, true), Center(grade, 21, true), Center(direction),
                     Center($"本方向总 ΔE {ToolCalculations.F(component.DeltaE)}"),
@@ -63,7 +58,7 @@ public sealed partial class MainView
                         ? "逐级计算后，按所选方式取整。" : "每个完整等级按阈值逐级计算。" : component.Status)) });
         }
         return Stack(preview, condition, Center($"标样 → 目标 / 样本 ΔE = {ToolCalculations.F(comparison.DeltaE)}", 22, true),
-            quantified, grades,
+            quantified, grades, Note($"无彩色判定：{comments[3]}"),
             Note("等级按 L* → C* → h° 路径拆分；各方向总 ΔE、级数 × 阈值和最终色差可能不同。色相角差 Δh° 单位为度。"));
     }
 }

@@ -11,10 +11,10 @@ public sealed partial class MainView
 {
     private Control ColorGradePage()
     {
-        var result = new ResultPanel(_downloader, title: "色差分级色卡", renderResult: ColorGradeCards,
+        ColorGradeResult? generated = null;
+        var result = new ResultPanel(_downloader, title: "色差分级色卡", renderResult: _ => ColorGradeCards(generated!),
             successMessage: "已生成色卡。各方向按所选公式和阈值逐级展开。", allowExport: false);
         result.Name = "GradeResult";
-        ColorGradeResult? generated = null;
         ColorGradeComparison? composed = null;
         ColorGradeComparison? analyzed = null;
         var composedResult = new ResultPanel(_downloader, title: "目标色与标样比较",
@@ -36,6 +36,7 @@ public sealed partial class MainView
         var thresholdSelect = Select(["0.5", "1", "1.5", "2", "3", "自定义"]);
         thresholdSelect.SelectedIndex = 2; thresholdSelect.Name = "GradeThresholdSelect";
         var threshold = SmallInput("1.5"); threshold.Name = "GradeThresholdCustom";
+        var evaluationInputs = new ColorComparisonInputs("Grade");
         var thresholdFields = Fields(("自定义阈值 ΔE", threshold));
         var cmcFields = Fields(("CMC l:c", cmcRatio));
         var customFields = Fields(("CMC l", cmcL), ("CMC c", cmcC));
@@ -97,7 +98,7 @@ public sealed partial class MainView
                 if (control is ComboBox combo) combo.SelectionChanged += (_, _) => invalidate();
             }
         }
-        Observe(Invalidate, l, a, b, cmcL, cmcC, threshold);
+        Observe(Invalidate, l, a, b, cmcL, cmcC, threshold, evaluationInputs.Lightness, evaluationInputs.Chroma);
         Observe(InvalidateComposition, lGrade, cGrade, hGrade);
         Observe(InvalidateAnalysis, analysisL, analysisA, analysisB, sampleL, sampleA, sampleB, rounding);
         foreach (var combo in new[] { formula, cmcRatio, levels, thresholdSelect })
@@ -110,7 +111,7 @@ public sealed partial class MainView
             {
                 var card = generated ?? throw new InvalidOperationException("请先生成色卡。");
                 composed = ColorGradeCalculations.Compose(card, lGrade.SelectedIndex - card.Levels,
-                    cGrade.SelectedIndex - card.Levels, hGrade.SelectedIndex - card.Levels);
+                    cGrade.SelectedIndex - card.Levels, hGrade.SelectedIndex - card.Levels, evaluationInputs.Options());
                 useTarget.IsEnabled = true;
                 return composed.Table;
             });
@@ -136,7 +137,8 @@ public sealed partial class MainView
             {
                 var card = generated ?? throw new InvalidOperationException("请先生成色卡。");
                 analyzed = ColorGradeCalculations.Analyze($"{analysisL.Text}\t{analysisA.Text}\t{analysisB.Text}",
-                    $"{sampleL.Text}\t{sampleA.Text}\t{sampleB.Text}", card.Settings, (ColorGradeRounding)rounding.SelectedIndex);
+                    $"{sampleL.Text}\t{sampleA.Text}\t{sampleB.Text}", card.Settings, (ColorGradeRounding)rounding.SelectedIndex,
+                    evaluationInputs.Options());
                 return analyzed.Table;
             });
         });
@@ -165,7 +167,7 @@ public sealed partial class MainView
                 var step = ToolCalculations.Number(thresholdSelect.SelectedIndex == 5 ? threshold.Text ?? "" :
                     thresholdSelect.SelectedItem?.ToString() ?? "", "等级阈值 ΔE");
                 var card = ColorGradeCalculations.Generate($"{l.Text}\t{a.Text}\t{b.Text}", currentFormula,
-                    levels.SelectedIndex + 1, weightL, weightC, step);
+                    levels.SelectedIndex + 1, weightL, weightC, step, evaluationInputs.Options());
                 foreach (var combo in new[] { lGrade, cGrade, hGrade })
                 {
                     combo.ItemsSource = Enumerable.Range(-card.Levels, card.Levels * 2 + 1)
@@ -183,15 +185,17 @@ public sealed partial class MainView
             Note("以一个标样为中心，沿明度、彩度、色相分别向两侧展开。每向外一级，按所选公式与前一级保持所选等级阈值，默认 ΔE = 1.5。"),
             Fields(("标样 L*（0–100）", l), ("标样 a*", a), ("标样 b*", b)),
             parameterFields,
+            evaluationInputs.View,
             Actions(Button("载入示例", () =>
             {
                 l.Text = "50"; a.Text = "30"; b.Text = "20"; levels.SelectedIndex = 3;
             }), generate),
-            Note("ΔE00 固定 kL:kC:kH = 1:1:1；CMC 可选择或自定义 l:c。阈值支持最多四位小数，最小 0.0001。\n级别是沿该方向的步数；相对标样的累计 ΔE 不一定等于级数 × 阈值。CMC 每步以前一级作标样，向外计算。\n预览使用 D65 / 2°，超出 sRGB 色域会裁剪。达到坐标边界或无法满足阈值的位置显示为不可生成。"))), result, generatedTools);
+            Note("ΔE00 固定 kL:kC:kH = 1:1:1；CMC 可选择或自定义 l:c。阈值支持最多四位小数，最小 0.0001。\n级别是沿该方向的步数；相对标样的累计 ΔE 不一定等于级数 × 阈值。CMC 每步以前一级作标样，向外计算。\n预览使用 D65 / 10°，超出 sRGB 色域会裁剪。达到坐标边界或无法满足阈值的位置显示为不可生成。"))), result, generatedTools);
     }
 
-    private static Control ColorGradeCards(CalculationTable table)
+    private static Control ColorGradeCards(ColorGradeResult result)
     {
+        var table = result.Table;
         static TextBlock CenteredText(string value, double size = 14, bool bold = false)
         {
             var text = Text(value, size, bold);
@@ -201,14 +205,12 @@ public sealed partial class MainView
         var content = new StackPanel { Spacing = 24 };
         content.Children.Add(CenteredText(table.Rows[0][Array.IndexOf(table.Headers, "色差公式及参数")] +
             " · 一级 ΔE = " + table.Rows[0][Array.IndexOf(table.Headers, "目标级间 ΔE")], 16, true));
-        foreach (var group in table.Rows.GroupBy(row => row[0]))
+        foreach (var scale in result.Scales)
         {
-            var ends = group.Key switch
-            {
-                "明度 L*" => "更暗 ← 标样 → 更亮",
-                "彩度 C*" => "更灰 ← 标样 → 更艳",
-                _ => "h° 减小 ← 标样 → h° 增大"
-            };
+            var group = table.Rows.Where(row => row[0] == scale.Title);
+            var ends = scale.Axis == ColorGradeAxis.Hue && scale.NegativeLabel == "不适用" && scale.PositiveLabel == "不适用"
+                ? "色相偏色：不适用" : $"{scale.NegativeLabel} ← 标样 → {scale.PositiveLabel}";
+            var commentHeader = ColorEvaluationPresentation.Headers[(int)scale.Axis];
             var strip = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0,
                 HorizontalAlignment = HorizontalAlignment.Center };
             foreach (var row in group)
@@ -237,6 +239,7 @@ public sealed partial class MainView
                     details.Children.Add(CenteredText($"L* {Value("L*")}\na* {Value("a*")}\nb* {Value("b*")}", 11));
                     details.Children.Add(CenteredText($"C* {Value("C*")}\nh° {Value("h°")}", 11));
                     details.Children.Add(CenteredText($"标样 ΔE {Value("相对标样 ΔE")}", 11));
+                    details.Children.Add(CenteredText(Value(commentHeader), 13, true));
                 }
                 else
                 {
@@ -251,7 +254,7 @@ public sealed partial class MainView
                 strip.Children.Add(column);
             }
             var direction = Note(ends); direction.TextAlignment = TextAlignment.Center;
-            content.Children.Add(Stack(CenteredText(group.Key, 18, true), direction, new ScrollViewer
+            content.Children.Add(Stack(CenteredText(scale.Title, 18, true), direction, new ScrollViewer
             {
                 Content = strip, HorizontalContentAlignment = HorizontalAlignment.Center,
                 HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,

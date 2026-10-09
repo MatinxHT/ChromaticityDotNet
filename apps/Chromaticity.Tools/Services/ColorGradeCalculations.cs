@@ -1,5 +1,6 @@
 using System.Globalization;
 using ChromaticityDotNet.Controller;
+using ChromaticityDotNet.Model;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
@@ -17,7 +18,7 @@ public readonly record struct ColorGradeLab(double L, double A, double B)
 }
 
 public sealed record ColorGradeChip(int Level, ColorGradeLab? Lab, string? Hex,
-    double? StepDeltaE, double? StandardDeltaE, string? UnavailableReason);
+    double? StepDeltaE, double? StandardDeltaE, string? UnavailableReason, ColorComparisonResult? Comparison = null);
 public sealed record ColorGradeScale(ColorGradeAxis Axis, string Title, string NegativeLabel,
     string PositiveLabel, IReadOnlyList<ColorGradeChip> Chips);
 public sealed record ColorGradeSettings(ColorGradeFormula Formula, double StepDeltaE = 1.5, double CmcL = 2, double CmcC = 1)
@@ -44,7 +45,8 @@ public static partial class ColorGradeCalculations
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
     public static ColorGradeResult Generate(string standardLab, ColorGradeFormula formula,
-        int levels = 4, double cmcL = 2, double cmcC = 1, double stepDeltaE = DefaultStepDeltaE)
+        int levels = 4, double cmcL = 2, double cmcC = 1, double stepDeltaE = DefaultStepDeltaE,
+        ColorComparisonOptions? comparisonOptions = null)
     {
         var settings = new ColorGradeSettings(formula, stepDeltaE, cmcL, cmcC);
         ValidateSettings(settings);
@@ -53,7 +55,7 @@ public static partial class ColorGradeCalculations
         var standardHex = Hex(standard);
         var formulaName = settings.FormulaName;
         var stepText = stepDeltaE.ToString("0.####", Invariant);
-        var conditions = $"{formulaName}; outward adjacent ΔE={stepText}; reference: previous chip; cumulative reference: original standard; preview: D65 / 2°, clipped sRGB; levels per side: {levels}";
+        var conditions = $"{formulaName}; outward adjacent ΔE={stepText}; reference: previous chip; cumulative reference: original standard; preview: D65 / 10°, clipped sRGB; levels per side: {levels}";
         double Delta(ColorGradeLab reference, ColorGradeLab sample) => Difference(reference, sample, settings);
         var scales = new List<ColorGradeScale>();
         foreach (var axis in Enum.GetValues<ColorGradeAxis>())
@@ -86,13 +88,18 @@ public static partial class ColorGradeCalculations
                 }
             }
             chips.Add(new(0, standard, standardHex, 0, 0, null));
+            var evaluated = chips.OrderBy(chip => chip.Level).Select(chip => chip.Lab.HasValue
+                ? chip with { Comparison = Compare(standard, chip.Lab.Value, settings, comparisonOptions) }
+                : chip).ToArray();
+            string HueLabel(int direction) => evaluated.First(chip => chip.Level == direction).Comparison is { } comparison
+                ? ColorEvaluationPresentation.Label(comparison.Evaluation.HueCommentsEnglish) : "不可生成";
             var (title, negative, positive) = axis switch
             {
                 ColorGradeAxis.Lightness => ("明度 L*", "更暗", "更亮"),
                 ColorGradeAxis.Chroma => ("彩度 C*", "更灰", "更艳"),
-                _ => ("色相 h°", "h° 减小", "h° 增大")
+                _ => ("色相 h°", HueLabel(-1), HueLabel(1))
             };
-            scales.Add(new(axis, title, negative, positive, chips.OrderBy(chip => chip.Level).ToArray()));
+            scales.Add(new(axis, title, negative, positive, evaluated));
         }
         static string F(double? value) => value?.ToString("F4", Invariant) ?? "—";
         var export = scales.SelectMany(scale => scale.Chips.Select(chip => new[]
@@ -100,9 +107,9 @@ public static partial class ColorGradeCalculations
             scale.Title, chip.Level.ToString(Invariant), F(chip.Lab?.L), F(chip.Lab?.A), F(chip.Lab?.B),
             F(chip.Lab?.Chroma), F(chip.Lab?.Hue), chip.Hex ?? "—", F(chip.StepDeltaE), F(chip.StandardDeltaE),
             formulaName, F(stepDeltaE), chip.UnavailableReason ?? "有效", conditions
-        })).ToArray();
+        }.Concat(chip.Comparison is { } comparison ? ColorEvaluationPresentation.Comments(comparison) : ["—", "—", "—", "—"]).ToArray())).ToArray();
         return new(formulaName, scales, new(["方向", "级别", "L*", "a*", "b*", "C*", "h°", "HEX",
-            "向外相邻 ΔE", "相对标样 ΔE", "色差公式及参数", "目标级间 ΔE", "状态", "计算条件"], export, conditions),
+            "向外相邻 ΔE", "相对标样 ΔE", "色差公式及参数", "目标级间 ΔE", "状态", "计算条件", ..ColorEvaluationPresentation.Headers], export, conditions),
             standard, settings, levels);
     }
 
@@ -202,7 +209,7 @@ public static partial class ColorGradeCalculations
 
     private static string Hex(ColorGradeLab lab)
     {
-        var xyz = ChromaticityConversion.Labch2XYZ(lab.ToLab(), Standardilluminant.D65, StandardObserver.Degree2);
+        var xyz = ChromaticityConversion.Labch2XYZ(lab.ToLab(), Standardilluminant.D65, ToolCalculations.DefaultObserver);
         if (!double.IsFinite(xyz.CIEX) || !double.IsFinite(xyz.CIEY) || !double.IsFinite(xyz.CIEZ))
             throw new ArgumentException("颜色坐标过大，无法生成屏幕预览。");
         var rgb = ChromaticityConversion.XYZ2RGB(xyz);
