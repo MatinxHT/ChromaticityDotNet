@@ -14,7 +14,7 @@ public readonly record struct ColorGradeLab(double L, double A, double B)
     // Keep the path unrounded; the library's derived C/H properties are rounded to four decimals.
     public double Chroma => Math.Sqrt(A * A + B * B);
     public double Hue => (Math.Atan2(B, A) * 180 / Math.PI + 360) % 360;
-    public CIELABCH ToLab() => new(L, A, B);
+    public CIELAB ToLab() => new(L, A, B);
 }
 
 public sealed record ColorGradeChip(int Level, ColorGradeLab? Lab, string? Hex,
@@ -209,10 +209,10 @@ public static partial class ColorGradeCalculations
 
     private static string Hex(ColorGradeLab lab)
     {
-        var xyz = ChromaticityConversion.Labch2XYZ(lab.ToLab(), Standardilluminant.D65, ToolCalculations.DefaultObserver);
+        var xyz = ChromaticityConversion.LabToXYZ(lab.ToLab(), "D65", ToolCalculations.DefaultObserver);
         if (!double.IsFinite(xyz.CIEX) || !double.IsFinite(xyz.CIEY) || !double.IsFinite(xyz.CIEZ))
             throw new ArgumentException("颜色坐标过大，无法生成屏幕预览。");
-        var rgb = ChromaticityConversion.XYZ2RGB(xyz);
+        var rgb = ChromaticityConversion.XYZToRGB(xyz);
         return $"#{rgb.redValue:X2}{rgb.greenValue:X2}{rgb.blueValue:X2}";
     }
 }

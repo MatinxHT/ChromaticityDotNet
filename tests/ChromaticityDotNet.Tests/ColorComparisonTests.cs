@@ -8,14 +8,14 @@ namespace ChromaticityDotNet.Tests;
 
 public class ColorComparisonTests
 {
-    private static CIELABCH AtHue(double hue, double l = 50, double c = 30) =>
+    private static CIELAB AtHue(double hue, double l = 50, double c = 30) =>
         new(l, c * Math.Cos(hue * Math.PI / 180), c * Math.Sin(hue * Math.PI / 180));
 
     [Fact]
     public void DefaultsCalculateAllThreeFormulasWithUnitWeights()
     {
-        var reference = new CIELABCH(50, 20, 20);
-        var sample = new CIELABCH(52, 18, 24);
+        var reference = new CIELAB(50, 20, 20);
+        var sample = new CIELAB(52, 18, 24);
         var result = ChromaticityMatch.CompareColors(reference, sample);
 
         Assert.Equal(ChromaticityDeltaEFormulations.DeltaE1976(reference, sample), result.DeltaE1976);
@@ -40,8 +40,8 @@ public class ColorComparisonTests
     [Fact]
     public void BothWeightSetsAreIndependentAndDoNotChangeDirection()
     {
-        var reference = new CIELABCH(50, 20, 20);
-        var sample = new CIELABCH(60, 18, 24);
+        var reference = new CIELAB(50, 20, 20);
+        var sample = new CIELAB(60, 18, 24);
         var normal = ChromaticityMatch.CompareColors(reference, sample);
         var weighted = ChromaticityMatch.CompareColors(reference, sample, new ColorComparisonOptions
         {
@@ -65,7 +65,7 @@ public class ColorComparisonTests
     [InlineData(50, 30, false)]
     public void AchromaticClassificationUsesStrictOrAndUnroundedChroma(double l, double c, bool expected)
     {
-        var result = ChromaticityMatch.CompareColors(new CIELABCH(50, 30, 0), new CIELABCH(l, c, 0));
+        var result = ChromaticityMatch.CompareColors(new CIELAB(50, 30, 0), new CIELAB(l, c, 0));
         Assert.Equal(expected, result.Sample.IsAchromatic);
         Assert.Equal(expected, result.Evaluation.Neutrality.SampleIsAchromatic);
         Assert.Equal(expected ? HueShiftStatus.NotApplicable : HueShiftStatus.Unchanged, result.Evaluation.Hue.Status);
@@ -101,7 +101,7 @@ public class ColorComparisonTests
 
         options.AchromaticLightnessThreshold = 0;
         options.AchromaticChromaThreshold = 0;
-        var zero = ChromaticityMatch.CompareColors(new CIELABCH(50, 0, 0), sample, options);
+        var zero = ChromaticityMatch.CompareColors(new CIELAB(50, 0, 0), sample, options);
         Assert.False(zero.Reference.IsAchromatic);
         Assert.Equal(HueShiftStatus.NotApplicable, zero.Evaluation.Hue.Status);
     }
@@ -131,7 +131,7 @@ public class ColorComparisonTests
         var decreasing = ChromaticityMatch.CompareColors(AtHue(90), AtHue(85));
         Assert.Equal("Green", increasing.Evaluation.Hue.TargetAxis!.Name);
         Assert.Equal("Red", decreasing.Evaluation.Hue.TargetAxis!.Name);
-        var opposite = ChromaticityMatch.CompareColors(new CIELABCH(50, 30, 0), new CIELABCH(50, -30, 0));
+        var opposite = ChromaticityMatch.CompareColors(new CIELAB(50, 30, 0), new CIELAB(50, -30, 0));
         Assert.Equal(180, opposite.Differences.HueAngleDifferenceDegrees);
         Assert.Equal(HueShiftDirection.Increasing, opposite.Evaluation.Hue.Direction);
     }
@@ -139,7 +139,7 @@ public class ColorComparisonTests
     [Fact]
     public void ChromaOnlyChangeDoesNotGenerateHueBias()
     {
-        var result = ChromaticityMatch.CompareColors(new CIELABCH(50, 20, 20), new CIELABCH(50, 40, 40));
+        var result = ChromaticityMatch.CompareColors(new CIELAB(50, 20, 20), new CIELAB(50, 40, 40));
         Assert.Equal(HueShiftStatus.Unchanged, result.Evaluation.Hue.Status);
         Assert.Null(result.Evaluation.Hue.TargetAxis);
         Assert.Equal(0, result.Differences.HueAngleDifferenceDegrees);
@@ -186,8 +186,8 @@ public class ColorComparisonTests
     [InlineData(ComparisonFormula.Ciede2000)]
     public void OverallAssessmentUsesTheSelectedFormulaAndIncludesThresholdBoundaries(ComparisonFormula formula)
     {
-        var reference = new CIELABCH(50, 30, 0);
-        var sample = new CIELABCH(53, 30, 0);
+        var reference = new CIELAB(50, 30, 0);
+        var sample = new CIELAB(53, 30, 0);
         var initial = ChromaticityMatch.CompareColors(reference, sample);
         double selected = formula switch
         {
@@ -269,14 +269,15 @@ public class ColorComparisonTests
     [Fact]
     public void InvalidInputsOptionsAndNonfiniteFormulaResultsAreRejected()
     {
-        var valid = new CIELABCH(50, 30, 0);
+        var valid = new CIELAB(50, 30, 0);
         Assert.Throws<ArgumentNullException>(() => ChromaticityMatch.CompareColors(null!, valid));
         Assert.Throws<ArgumentNullException>(() => ChromaticityMatch.CompareColors(valid, null!));
-        foreach (var invalid in new[] { new CIELABCH(-1, 0, 0), new CIELABCH(double.NaN, 0, 0),
-            new CIELABCH(50, double.PositiveInfinity, 0), new CIELABCH(50, 0, double.NaN) })
+        Assert.Throws<ArgumentOutOfRangeException>(() => new CIELAB(50, double.PositiveInfinity, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new CIELAB(50, 0, double.NaN));
+        foreach (var invalid in new[] { new CIELAB(-1, 0, 0), new CIELAB(double.NaN, 0, 0) })
             Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityMatch.CompareColors(invalid, valid));
-        Assert.Throws<ArgumentException>(() => ChromaticityMatch.CompareColors(new CIELABCH(50, 1e200, 0), valid));
-        Assert.Throws<ArgumentException>(() => ChromaticityMatch.CompareColors(valid, new CIELABCH(60, 30, 0),
+        Assert.Throws<ArgumentException>(() => ChromaticityMatch.CompareColors(new CIELAB(50, 1e200, 0), valid));
+        Assert.Throws<ArgumentException>(() => ChromaticityMatch.CompareColors(valid, new CIELAB(60, 30, 0),
             new ColorComparisonOptions { Cmc = new CmcParameters(double.Epsilon, 1) }));
 
         foreach (var options in new[]
@@ -310,13 +311,13 @@ public class ColorComparisonTests
     [Fact]
     public void LabToLchUsesOriginalCoordinatesInsteadOfRoundedDerivedProperties()
     {
-        var lab = new CIELABCH(50, 4.99999, 0);
+        var lab = new CIELAB(50, 4.99999, 0);
         Assert.Equal(5, lab.CIEC);
         var lch = ChromaticityConversion.LabToLch(lab);
         Assert.Equal(4.99999, lch.CIEC);
         Assert.Equal(0, lch.CIEH);
-        Assert.Equal(270, ChromaticityConversion.LabToLch(new CIELABCH(50, 0, -30)).CIEH);
-        Assert.Equal(0, ChromaticityConversion.LabToLch(new CIELABCH(50, 0, 0)).CIEH);
+        Assert.Equal(270, ChromaticityConversion.LabToLch(new CIELAB(50, 0, -30)).CIEH);
+        Assert.Equal(0, ChromaticityConversion.LabToLch(new CIELAB(50, 0, 0)).CIEH);
         Assert.Throws<ArgumentNullException>(() => ChromaticityConversion.LabToLch(null!));
     }
 }

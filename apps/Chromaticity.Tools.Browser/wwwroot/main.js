@@ -1,6 +1,6 @@
 import { getLanguage, getToolName, onLanguageChange } from './language.js';
 import { createStartupProgress } from './startup.js';
-const toolNames = ['spectrum', 'difference', 'conversion', 'illuminant', 'grades'];
+const toolNames = ['spectrum', 'difference', 'conversion', 'illuminant', 'grades', 'wavelength'];
 const requestedTool = document.body.dataset.tool;
 const tool = toolNames.includes(requestedTool) ? requestedTool : 'spectrum';
 document.title = `${getToolName(tool)} · ChromaticityDotNet`;

@@ -15,7 +15,7 @@ namespace ChromaticityDotNet.Controller
         /// <param name="standard">standard</param>
         /// <param name="sample">sample</param>
         /// <returns>DeltaE1976</returns>
-        public static double DeltaE1976(CIELABCH standard, CIELABCH sample)
+        public static double DeltaE1976(CIELAB standard, CIELAB sample)
         {
             return NumericPrecision.Round(Math.Sqrt(
                 Math.Pow(sample.CIEL - standard.CIEL, 2) +
@@ -29,7 +29,7 @@ namespace ChromaticityDotNet.Controller
         /// <param name="standard">standard</param>
         /// <param name="sample">sample</param>
         /// <returns>DeltaE1994</returns>
-        public static double DeltaE1994(CIELABCH standard, CIELABCH sample)
+        public static double DeltaE1994(CIELAB standard, CIELAB sample)
         {
             double deltaL = sample.CIEL - standard.CIEL;
             double standardChroma = Math.Sqrt(
@@ -67,7 +67,7 @@ namespace ChromaticityDotNet.Controller
         /// <param name="kC"></param>
         /// <param name="kH"></param>
         /// <returns>DeltaE2000</returns>
-        public static ColorDifferenceEquationResults DeltaE2000(CIELABCH standard, CIELABCH sample, double kL, double kC, double kH)
+        public static ColorDifferenceEquationResults DeltaE2000(CIELAB standard, CIELAB sample, double kL, double kC, double kH)
         {
             double Ls = standard.CIEL;
             double As = standard.CIEA;
@@ -154,7 +154,7 @@ namespace ChromaticityDotNet.Controller
         /// <param name="pc">Chroma weighting factor (c).</param>
         /// <returns>DeltaEcmc rounded to four decimal places, with midpoint rounding away from zero.</returns>
         /// <remarks>All weighting terms use the standard color. Swapping standard and sample can change the result.</remarks>
-        public static double DeltaEcmc(CIELABCH standard, CIELABCH sample, double pl, double pc)
+        public static double DeltaEcmc(CIELAB standard, CIELAB sample, double pl, double pc)
         {
 
             double Ls = standard.CIEL;
@@ -164,7 +164,7 @@ namespace ChromaticityDotNet.Controller
             double A = sample.CIEA;
             double B = sample.CIEB;
 
-            // Derive unrounded chroma and hue from Lab; CIELABCH.CIEC/CIEH are rounded.
+            // Derive unrounded chroma and hue from Lab; CIELAB.CIEC/CIEH are rounded.
             double Cab_standard = Math.Sqrt(Math.Pow(As, 2) + Math.Pow(Bs, 2));
             double Cab_sample = Math.Sqrt(Math.Pow(A, 2) + Math.Pow(B, 2));
             //注意角度和值的修正

@@ -18,7 +18,7 @@ dotnet add package ChromaticityDotNet
 
 ## Online evaluation tools
 
-[`apps/`](apps/README.md) provides browser-based tools built with Avalonia Browser for reflectance-spectrum calculations, batch color-difference calculations, color-space conversions, and standard illuminant queries. These tools reuse this library's existing data and algorithms. The website uses a separate solution and is built and deployed by Cloudflare Pages through Git integration, without adding Avalonia dependencies to the NuGet package. Try [ChromaticityDotNet online](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME).
+[`apps/`](apps/README.md) provides browser-based tools built with Avalonia Browser for reflectance-spectrum calculations, batch color-difference calculations, color-space conversions, standard illuminant queries, color grade charts, and dominant/complementary wavelengths. These tools reuse this library's existing data and algorithms. The website uses a separate solution and is built and deployed by Cloudflare Pages through Git integration, without adding Avalonia dependencies to the NuGet package. Try [ChromaticityDotNet online](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME).
 
 ## Data sources
 
@@ -43,9 +43,9 @@ Conversion methods belong to `ChromaticityConversion`; `Spectrum` belongs to `Da
 
 | Method | Purpose |
 | --- | --- |
-| `REFtoXYZ(Spectrum, Standardilluminant, StandardObserver)` | Primary entry point: reflectance percentages → XYZ, normalized to Y = 100 for a perfect reflector |
-| `REFtoXYZ(Spectrum, Spectrum, StandardObserver)` | Use a custom illuminant spectrum; the first two arguments are reflectance and illuminant, respectively |
-| `SPDtoXYZ(Spectrum, StandardObserver)` | Unnormalized XYZ weighted sums for self-luminous SPD; scale conventions remain a [TODO](TODO.md) |
+| `REFToXYZ(Spectrum, Standardilluminant, StandardObserver)` | Primary entry point: reflectance percentages → XYZ, normalized to Y = 100 for a perfect reflector |
+| `REFToXYZ(Spectrum, Spectrum, StandardObserver)` | Use a custom illuminant spectrum; the first two arguments are reflectance and illuminant, respectively |
+| `SPDToXYZ(Spectrum, StandardObserver)` | Unnormalized XYZ weighted sums for self-luminous SPD; scale conventions remain a [TODO](TODO.md) |
 | `CieSpectralData.Illuminants` | IDs, source files, native wavelength ranges, sampling intervals, and quality metadata for 50 illuminants |
 | `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | Get an independent copy of an illuminant spectrum using the legacy enum or a catalog ID, preserving its native sampling grid |
 | `CieSpectralData.GetColorMatchingFunctions(observer)` | Get independent copies of the matching-function spectra `(X, Y, Z)` |
@@ -64,16 +64,16 @@ var reflectance = new Spectrum
     WavelengthInterval = 1,
     Spectrums = Enumerable.Repeat(18.0, 401).ToArray() // 18% reflectance
 };
-var xyz = ChromaticityConversion.REFtoXYZ(
+var xyz = ChromaticityConversion.REFToXYZ(
     reflectance, Standardilluminant.D65, StandardObserver.Degree2); // Y = 18
 
 // Pass an illuminant Spectrum directly, or replace it with a custom spectrum.
 var light = CieSpectralData.GetIlluminantSpectrum("D50"); // Also accepts catalog IDs such as "LED-B1", "FL3.1", and "HP1".
-var customXyz = ChromaticityConversion.REFtoXYZ(reflectance, light, StandardObserver.Degree2);
+var customXyz = ChromaticityConversion.REFToXYZ(reflectance, light, StandardObserver.Degree2);
 var (xBar, yBar, zBar) = CieSpectralData.GetColorMatchingFunctions(StandardObserver.Degree2);
 
 // Legacy fast calculation: exactly 31 points, 400–700 nm at 10 nm intervals.
-var fastXyz = ChromaticityConversion.REFtoXYZ(
+var fastXyz = ChromaticityConversion.REFToXYZ(
     Enumerable.Repeat(18.0, 31).ToArray(), Standardilluminant.D65, StandardObserver.Degree2);
 ```
 
@@ -81,7 +81,7 @@ var fastXyz = ChromaticityConversion.REFtoXYZ(
 - Reflectance is supplied as percentages; values above 100 are allowed. Samples are linearly interpolated to 1 nm and summed over the input range, which must lie within both observer and illuminant coverage. No extrapolation or automatic clipping is applied.
 - The new entry points round XYZ results to four decimal places, with midpoints rounded away from zero. The illuminant's reference luminance over the calculation range must be positive; invalid inputs and numeric overflow throw exceptions.
 - Both `double[]` entry points retain the original tables and algorithms for **fast 31-point calculations over 400–700 nm at 10 nm intervals**.
-- `SPDtoXYZ` currently does not resample, multiply by the wavelength interval, or normalize Y. Results depend on the sampling interval and do not represent absolute photometric XYZ.
+- `SPDToXYZ` currently does not resample, multiply by the wavelength interval, or normalize Y. Results depend on the sampling interval and do not represent absolute photometric XYZ.
 
 ## Color-space conversions
 
@@ -89,15 +89,16 @@ All methods below are static members of `ChromaticityConversion`; color models b
 
 | Method | Input → output |
 | --- | --- |
-| `XYZ2Labch(xyz, illuminant, observer)` / `Labch2XYZ(lab, illuminant, observer)` | XYZ ↔ Lab; `CIELABCH` automatically calculates C* and h° |
+| `XYZToLab(xyz, illuminant, observer)` / `LabToXYZ(lab, illuminant, observer)` | XYZ ↔ Lab; `CIELAB` automatically calculates C* and h° |
 | `LabToLch(lab)` | Lab → read-only `CIELCH`; derives C* and h° directly from a*/b* without intermediate rounding |
-| `XYZ2Luv(xyz, illuminant, observer)` / `Luv2XYZ(luv, illuminant, observer)` | XYZ ↔ L*u*v* |
-| `XYZ2RGB(xyz)` / `RGB2XYZ(rgb)` | XYZ ↔ sRGB, with RGB components stored as bytes from 0 to 255 |
+| `XYZToLuv(xyz, illuminant, observer)` / `LuvToXYZ(luv, illuminant, observer)` | XYZ ↔ L*u*v* |
+| `XYZToRGB(xyz)` / `RGBToXYZ(rgb)` | XYZ ↔ sRGB, with RGB components stored as bytes from 0 to 255 |
 | `RGBToHSL(rgb)` / `RGBToHSV(rgb)` | sRGB → `DataModel.CIEHSL` / `DataModel.CIEHSV`; H in [0,360) degrees, S/L/V in [0,1] |
 | `RGBToHex(rgb)` | sRGB → uppercase `#RRGGBB` string |
-| `XYZ2xyY(xyz)` / `xy2XYZ(xyY)` | XYZ ↔ xyY |
-| `xy2uv(xyY)` | xyY → CIE 1976 u′v′ chromaticity coordinates |
-| `xy2CCT(xyY)` | Approximate correlated color temperature from xy chromaticity |
+| `XYZToxyY(xyz)` / `xyToXYZ(xyY)` | XYZ ↔ xyY |
+| `xyTouv(xyY)` | xyY → CIE 1976 u′v′ chromaticity coordinates |
+| `xyToCCT(xyY)` | Approximate correlated color temperature from xy chromaticity |
+| `xyYToWavelengths(color, observer, whitePoint / illuminant)` | xyY → dominant/complementary wavelengths in nm, rounded to two decimals |
 
 HSL/HSV use gamma-encoded sRGB channels without linearization and retain intermediate precision. Multiply S/L/V by 100 for percentage display. Black and gray return valid coordinates with S = 0 and H = 0 as an undefined-hue placeholder; white also returns finite values. HSL/HSV are not CIE color spaces; their model names follow the library's naming convention.
 
@@ -111,15 +112,15 @@ var hex = ChromaticityConversion.RGBToHex(rgb); // #20A090
 The following example uses the same `using` directives as above:
 
 ```csharp
-var lab = new CIELABCH(50.0, 20.0, -30.0);
-var fromLab = ChromaticityConversion.Labch2XYZ(
+var lab = new CIELAB(50.0, 20.0, -30.0);
+var fromLab = ChromaticityConversion.LabToXYZ(
     lab, Standardilluminant.D65, StandardObserver.Degree2);
 // XYZ = (21.4643, 18.4187, 40.4654)
 
-var fromRgb = ChromaticityConversion.RGB2XYZ(
+var fromRgb = ChromaticityConversion.RGBToXYZ(
     new CIERGB { redValue = 255, greenValue = 0, blueValue = 0 });
 // XYZ = (41.2391, 21.2639, 1.9331)
-var red = ChromaticityConversion.XYZ2RGB(fromRgb); // RGB = (255, 0, 0)
+var red = ChromaticityConversion.XYZToRGB(fromRgb); // RGB = (255, 0, 0)
 
 var white = ChromaticityMatch.GetStandardWhitePoint(
     Standardilluminant.D65, StandardObserver.Degree2);
@@ -127,18 +128,71 @@ var white = ChromaticityMatch.GetStandardWhitePoint(
 
 ### White points and precision
 
-- Lab/Luv conversions use an XYZ reference white with Y = 100. Use the same illuminant and observer in both directions. These conversions still use legacy fixed white points, which may differ from whites obtained by the new spectral integration.
+- Lab/Luv conversions use an XYZ reference white with Y = 100. Use the same illuminant and observer in both directions. `Standardilluminant` enum overloads retain legacy fixed whites. String illuminant IDs use spectrally integrated whites for all 50 catalog entries; explicit `CIEXYZ` white points are also supported.
 - Inverse conversions retain `double` precision internally and round XYZ outputs to four decimal places, with midpoints rounded away from zero. Reference tests allow an error of at most 0.00005 per component; XYZ → Lab/Luv → XYZ round-trip tests use a tolerance of 0.0003.
 - Lab/Luv inverse conversions require finite coordinates and nonnegative L*; L* above 100 is allowed. Luv(0,0,0) returns black. Zero L* with nonzero u*/v*, nonpositive reconstructed v′, or numeric overflow throws an exception.
 - sRGB uses D65 chromaticity `(0.3127, 0.3290)` and an XYZ white point of `(95.0456, 100, 108.9058)`, which differs slightly from the library's fixed D65/2° white point `(95.047, 100, 108.883)`. No chromatic adaptation is performed.
-- `XYZ2RGB` clips colors outside the sRGB gamut and rounds to bytes, so arbitrary XYZ values cannot be round-tripped losslessly.
+- `XYZToRGB` clips colors outside the sRGB gamut and rounds to bytes, so arbitrary XYZ values cannot be round-tripped losslessly.
 
 The sRGB conversion matrices follow [W3C CSS Color 4](https://www.w3.org/TR/css-color-4/#color-conversion-code); the Luv inverse formula was checked against the [Colour documentation](https://colour.readthedocs.io/en/develop/_modules/colour/models/cie_luv.html#Luv_to_XYZ).
+
+### Integrated catalog white points
+
+`ChromaticityMatch.GetStandardWhitePoint("D50", observer)` integrates the illuminant and selected matching functions over their shared coverage on a 1 nm grid, then normalizes Y to 100. Native 5 nm spectra are linearly interpolated without extrapolation; the returned white retains full precision. A custom `Spectrum` and explicit wavelength bounds are also supported.
+
+```csharp
+var observer = StandardObserver.Degree10;
+var white = ChromaticityMatch.GetStandardWhitePoint("LED-B1", observer);
+var lab = ChromaticityConversion.XYZToLab(white, "LED-B1", observer); // (100, 0, 0)
+var xyz = ChromaticityConversion.LabToXYZ(lab, "LED-B1", observer);
+var rangeWhite = ChromaticityMatch.GetStandardWhitePoint("D50", observer, 380, 780);
+var reflected = ChromaticityConversion.REFToXYZ(reflectance, "D50", observer);
+var reflectedLab = ChromaticityConversion.XYZToLab(reflected, rangeWhite);
+```
+
+Use the same integration range as the reflectance data for Lab/Luv. Explicit bounds must be covered by both datasets. Invalid IDs, observers, ranges, nonpositive luminance and overflow are rejected. App tools 01, 03 and 06 use integrated catalog whites: 01 follows the input reflectance range; 03/06 use the full shared illuminant/observer range.
+
+`CIELAB` and `LabToLch` share a scaled chroma calculation that avoids intermediate square overflow/underflow. Hue lies in [0,360), with zero for zero chroma. Model C*/h° properties use four decimals and reset a rounded 360° to zero; `LabToLch` retains full precision. Nonfinite a*/b* or true chroma overflow is rejected at construction/update, and failed setters preserve the existing state. All conversion API names now use `To`; this is a source-breaking rename.
+
+## Dominant and complementary wavelengths
+
+`ChromaticityConversion.xyYToWavelengths` accepts `DataModel.CIExyY`, a `StandardObserver`, and either
+an explicit `CIExyY` white, a catalog illuminant ID such as `"D50"` (integrated white), or a
+`Standardilluminant` (legacy fixed white). White XYZ is converted to xy without intermediate rounding.
+
+```csharp
+var sample = new CIExyY { CIEx = 0.3, CIEy = 0.6, CIEY = 100 };
+var white = new CIExyY { CIEx = 0.3127, CIEy = 0.3290, CIEY = 100 };
+var result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, white);
+// DominantWavelength = 549.13 nm; ComplementaryWavelength = null
+var d65Result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, Standardilluminant.D65);
+```
+
+The immutable `ChromaticityWavelengthResult` has nullable `DominantWavelength` and `ComplementaryWavelength`
+properties in nm, and `IsAchromatic`. Rays from the white toward and away from the sample intersect the
+spectrum locus. A direction toward the purple boundary has a null wavelength; some colors have both
+wavelengths. A sample within 1e-12 in xy of the white is achromatic and has two nulls.
+See the [CIE dominant wavelength](https://cie.co.at/eilvterm/17-23-062) and
+[complementary wavelength](https://cie.co.at/eilvterm/17-23-063) definitions.
+
+- Both observers use unrounded 360–830 nm / 1 nm matching functions, with linear interpolation between
+  locus points and final rounding to two decimals away from zero at midpoints. This output resolution
+  does not imply 0.01 nm measurement accuracy.
+- Inputs require finite x, y, Y and nonnegative Y. Y does not affect wavelengths. Samples must lie
+  inside or on the physical gamut; whites must be strictly inside. Inputs must share the observer.
+- Gamut validation uses the convex hull of spectral chromaticities to handle the 10-degree red tail's
+  retracing and small tabulation irregularities. Wavelength intersection uses the original 1 nm locus.
+  Indistinguishable red intersections keep the shortest wavelength; xy cannot recover a spectrum.
+- `CieSpectralData.GetSpectralLocus(observer)` and `GetChromaticityBoundary(observer)` expose immutable
+  coordinates shared by the API and diagram. Near-white wavelengths are sensitive to xy errors.
+
+The Lab model is now `DataModel.CIELAB`, retaining automatically derived C* and h°. Its conversion
+methods are `XYZToLab` and `LabToXYZ`. This source compatibility change requires updating callers.
 
 ## Color differences
 
 All methods below are static members of `ChromaticityDeltaEFormulations`. `standard` is the reference color and `sample` is the test color.
-Both use `CIELABCH` and should share the same reference white and observer conditions.
+Both use `CIELAB` and should share the same reference white and observer conditions.
 
 | Formula / method | Parameters and calculation conventions | Return value |
 | --- | --- | --- |
@@ -151,8 +205,8 @@ Both use `CIELABCH` and should share the same reference white and observer condi
 using ChromaticityDotNet.Controller;
 using static ChromaticityDotNet.Model.DataModel;
 
-var standard = new CIELABCH(50, 20, 0);
-var sample = new CIELABCH(50, 0, 20);
+var standard = new CIELAB(50, 20, 0);
+var sample = new CIELAB(50, 0, 20);
 
 double de76 = ChromaticityDeltaEFormulations.DeltaE1976(standard, sample); // 28.2843
 double de94 = ChromaticityDeltaEFormulations.DeltaE1994(standard, sample); // 21.7571
@@ -179,7 +233,7 @@ double cmc21 = ChromaticityDeltaEFormulations.DeltaEcmc(standard, sample, 2, 1);
 
 ## Color comparison and English evaluation
 
-`ChromaticityMatch.CompareColors(CIELABCH reference, CIELABCH sample, ColorComparisonOptions? options = null)`
+`ChromaticityMatch.CompareColors(CIELAB reference, CIELAB sample, ColorComparisonOptions? options = null)`
 calculates CIE76, CMC and CIEDE2000 together. It returns numeric results, structured enum evaluations,
 short independent English comments, and immutable input/parameter snapshots. Types are in `ChromaticityDotNet.Model`.
 Every direction and difference describes **sample relative to reference**. Inputs must share the same
@@ -190,8 +244,8 @@ using ChromaticityDotNet.Controller;
 using ChromaticityDotNet.Model;
 using static ChromaticityDotNet.Model.DataModel;
 
-var reference = new CIELABCH(50, 20, 20);
-var sample = new CIELABCH(52, 18, 24);
+var reference = new CIELAB(50, 20, 20);
+var sample = new CIELAB(52, 18, 24);
 var result = ChromaticityMatch.CompareColors(reference, sample);
 // Defaults: CMC 1:1, CIEDE2000 1:1:1; achromatic when L* < 10 OR C* < 5.
 double de76 = result.DeltaE1976;

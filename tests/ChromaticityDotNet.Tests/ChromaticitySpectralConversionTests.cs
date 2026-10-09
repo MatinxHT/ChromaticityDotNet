@@ -22,7 +22,7 @@ public class ChromaticitySpectralConversionTests
     public void PerfectReflectorsMatchIndependentOfficialDataFixtures(Standardilluminant illuminant,
         StandardObserver observer, int start, int end, double x, double z)
     {
-        AssertXyz(ChromaticityConversion.REFtoXYZ(Grid(start, end, 1, _ => 100), illuminant, observer), x, 100, z);
+        AssertXyz(ChromaticityConversion.REFToXYZ(Grid(start, end, 1, _ => 100), illuminant, observer), x, 100, z);
     }
 
     [Theory]
@@ -37,15 +37,15 @@ public class ChromaticitySpectralConversionTests
     public void TenNanometreRampInterpolatesToIndependentOneNanometreFixture(Standardilluminant illuminant,
         StandardObserver observer, int start, int end, double x, double y, double z)
     {
-        AssertXyz(ChromaticityConversion.REFtoXYZ(Grid(start, end, 10, w => 100.0 * (w - start) / (end - start)), illuminant, observer), x, y, z);
+        AssertXyz(ChromaticityConversion.REFToXYZ(Grid(start, end, 10, w => 100.0 * (w - start) / (end - start)), illuminant, observer), x, y, z);
     }
 
     [Theory]
     [MemberData(nameof(ChromaticityConversionTests.MeasurementConditions), MemberType = typeof(ChromaticityConversionTests))]
     public void BlackAndGreyPreserveReflectanceScale(Standardilluminant illuminant, StandardObserver observer)
     {
-        AssertXyz(ChromaticityConversion.REFtoXYZ(Grid(380, 780, 5, _ => 0), illuminant, observer), 0, 0, 0);
-        Assert.Equal(18, ChromaticityConversion.REFtoXYZ(Grid(380, 780, 5, _ => 18), illuminant, observer).CIEY);
+        AssertXyz(ChromaticityConversion.REFToXYZ(Grid(380, 780, 5, _ => 0), illuminant, observer), 0, 0, 0);
+        Assert.Equal(18, ChromaticityConversion.REFToXYZ(Grid(380, 780, 5, _ => 18), illuminant, observer).CIEY);
     }
 
     [Fact]
@@ -54,8 +54,8 @@ public class ChromaticitySpectralConversionTests
         var reflectance = Grid(401, 701, 5, w => 10 + (w - 401) * 0.2);
         var coarse = Grid(400, 710, 10, w => 1 + (w - 400) * 0.01);
         var fine = Grid(400, 710, 1, w => (1 + (w - 400) * 0.01) * 1000);
-        var expected = ChromaticityConversion.REFtoXYZ(reflectance, fine, StandardObserver.Degree2);
-        AssertXyz(ChromaticityConversion.REFtoXYZ(reflectance, coarse, StandardObserver.Degree2), expected.CIEX, expected.CIEY, expected.CIEZ);
+        var expected = ChromaticityConversion.REFToXYZ(reflectance, fine, StandardObserver.Degree2);
+        AssertXyz(ChromaticityConversion.REFToXYZ(reflectance, coarse, StandardObserver.Degree2), expected.CIEX, expected.CIEY, expected.CIEZ);
     }
 
     [Theory]
@@ -66,7 +66,7 @@ public class ChromaticitySpectralConversionTests
     {
         var (x, y, z) = CieSpectralData.GetColorMatchingFunctions(StandardObserver.Degree2);
         int i = wavelength - 360;
-        AssertXyz(ChromaticityConversion.SPDtoXYZ(Grid(wavelength, wavelength, 1, _ => 1), StandardObserver.Degree2),
+        AssertXyz(ChromaticityConversion.SPDToXYZ(Grid(wavelength, wavelength, 1, _ => 1), StandardObserver.Degree2),
             Math.Round(x.Spectrums![i], 4, MidpointRounding.AwayFromZero),
             Math.Round(y.Spectrums![i], 4, MidpointRounding.AwayFromZero),
             Math.Round(z.Spectrums![i], 4, MidpointRounding.AwayFromZero));
@@ -77,7 +77,7 @@ public class ChromaticitySpectralConversionTests
     {
         var spd = Grid(500, 510, 10, _ => 1);
         // Official 1931 functions at 500 and 510 nm; deliberately no 10 nm factor.
-        AssertXyz(ChromaticityConversion.SPDtoXYZ(spd, StandardObserver.Degree2), 0.0142, 0.8260, 0.4302);
+        AssertXyz(ChromaticityConversion.SPDToXYZ(spd, StandardObserver.Degree2), 0.0142, 0.8260, 0.4302);
     }
 
     public static IEnumerable<object[]> InvalidSpectra()
@@ -97,31 +97,31 @@ public class ChromaticitySpectralConversionTests
     [MemberData(nameof(InvalidSpectra))]
     public void InvalidSpectraFailBeforeCalculation(Spectrum spectrum)
     {
-        Assert.ThrowsAny<ArgumentException>(() => ChromaticityConversion.REFtoXYZ(spectrum, Standardilluminant.D65, StandardObserver.Degree2));
-        Assert.ThrowsAny<ArgumentException>(() => ChromaticityConversion.SPDtoXYZ(spectrum, StandardObserver.Degree2));
+        Assert.ThrowsAny<ArgumentException>(() => ChromaticityConversion.REFToXYZ(spectrum, Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.ThrowsAny<ArgumentException>(() => ChromaticityConversion.SPDToXYZ(spectrum, StandardObserver.Degree2));
     }
 
     [Fact]
     public void NullUnknownConditionsAndUncoveredRangesAreRejected()
     {
         var valid = Grid(380, 780, 1, _ => 100);
-        Assert.Throws<ArgumentNullException>(() => ChromaticityConversion.REFtoXYZ((Spectrum)null!, Standardilluminant.D65, StandardObserver.Degree2));
-        Assert.Throws<ArgumentNullException>(() => ChromaticityConversion.SPDtoXYZ((Spectrum)null!, StandardObserver.Degree2));
-        Assert.Throws<ArgumentNullException>(() => ChromaticityConversion.REFtoXYZ(valid, (Spectrum)null!, StandardObserver.Degree2));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityConversion.REFtoXYZ(valid, (Standardilluminant)999, StandardObserver.Degree2));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityConversion.REFtoXYZ(valid, Standardilluminant.D65, (StandardObserver)999));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityConversion.SPDtoXYZ(valid, (StandardObserver)999));
-        Assert.Throws<ArgumentException>(() => ChromaticityConversion.REFtoXYZ(Grid(360, 830, 1, _ => 100), Standardilluminant.CWF, StandardObserver.Degree2));
-        Assert.Throws<ArgumentException>(() => ChromaticityConversion.REFtoXYZ(valid, Grid(400, 700, 1, _ => 1), StandardObserver.Degree2));
-        Assert.Throws<ArgumentException>(() => ChromaticityConversion.REFtoXYZ(valid, Grid(380, 780, 1, _ => 0), StandardObserver.Degree2));
+        Assert.Throws<ArgumentNullException>(() => ChromaticityConversion.REFToXYZ((Spectrum)null!, Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentNullException>(() => ChromaticityConversion.SPDToXYZ((Spectrum)null!, StandardObserver.Degree2));
+        Assert.Throws<ArgumentNullException>(() => ChromaticityConversion.REFToXYZ(valid, (Spectrum)null!, StandardObserver.Degree2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityConversion.REFToXYZ(valid, (Standardilluminant)999, StandardObserver.Degree2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityConversion.REFToXYZ(valid, Standardilluminant.D65, (StandardObserver)999));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityConversion.SPDToXYZ(valid, (StandardObserver)999));
+        Assert.Throws<ArgumentException>(() => ChromaticityConversion.REFToXYZ(Grid(360, 830, 1, _ => 100), Standardilluminant.CWF, StandardObserver.Degree2));
+        Assert.Throws<ArgumentException>(() => ChromaticityConversion.REFToXYZ(valid, Grid(400, 700, 1, _ => 1), StandardObserver.Degree2));
+        Assert.Throws<ArgumentException>(() => ChromaticityConversion.REFToXYZ(valid, Grid(380, 780, 1, _ => 0), StandardObserver.Degree2));
     }
 
     [Fact]
     public void NumericOverflowIsRejected()
     {
         var huge = Grid(380, 780, 1, _ => double.MaxValue);
-        Assert.Throws<ArgumentException>(() => ChromaticityConversion.SPDtoXYZ(huge, StandardObserver.Degree2));
-        Assert.Throws<ArgumentException>(() => ChromaticityConversion.REFtoXYZ(huge, huge, StandardObserver.Degree2));
+        Assert.Throws<ArgumentException>(() => ChromaticityConversion.SPDToXYZ(huge, StandardObserver.Degree2));
+        Assert.Throws<ArgumentException>(() => ChromaticityConversion.REFToXYZ(huge, huge, StandardObserver.Degree2));
     }
 
     // Frozen results from the pre-migration 31-point tables and formula for a 0–100% ramp.
@@ -141,7 +141,7 @@ public class ChromaticitySpectralConversionTests
     public void LegacyFastPathRetainsItsNumericalResults(Standardilluminant illuminant, StandardObserver observer, double x, double y, double z)
     {
         double[] values = Enumerable.Range(0, 31).Select(i => i * 100.0 / 30).ToArray();
-        AssertXyz(ChromaticityConversion.REFtoXYZ(values, illuminant, observer), x, y, z);
+        AssertXyz(ChromaticityConversion.REFToXYZ(values, illuminant, observer), x, y, z);
     }
 
     private static Spectrum Grid(int start, int end, int step, Func<int, double> value) => new()

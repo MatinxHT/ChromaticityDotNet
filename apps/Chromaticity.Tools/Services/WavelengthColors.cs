@@ -24,7 +24,7 @@ public static class WavelengthColors
         {
             var i = wavelength - x.StartingWavelength;
             var sum = x.Spectrums![i] + y.Spectrums![i] + z.Spectrums![i];
-            var rgb = ChromaticityConversion.XYZ2RGB(new CIEXYZ
+            var rgb = ChromaticityConversion.XYZToRGB(new CIEXYZ
             {
                 CIEX = x.Spectrums[i] / sum * 100,
                 CIEY = y.Spectrums[i] / sum * 100,

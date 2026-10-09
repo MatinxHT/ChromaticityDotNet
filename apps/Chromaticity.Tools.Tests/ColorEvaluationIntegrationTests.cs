@@ -104,8 +104,8 @@ public class ColorEvaluationIntegrationTests
         var difference = ToolCalculations.DifferenceAuto("50,30,20", "53,32,18", 1, 1, 1, 1, 1);
         Assert.Contains("preview: D65 / 10°", difference.Conditions);
         var expectedHex = ChromaticityDotNet.Controller.ChromaticityConversion.RGBToHex(
-            ChromaticityDotNet.Controller.ChromaticityConversion.XYZ2RGB(
-                ChromaticityDotNet.Controller.ChromaticityConversion.Labch2XYZ(new(50,30,20), Standardilluminant.D65, ToolCalculations.DefaultObserver)));
+            ChromaticityDotNet.Controller.ChromaticityConversion.XYZToRGB(
+                ChromaticityDotNet.Controller.ChromaticityConversion.LabToXYZ(new(50,30,20), "D65", ToolCalculations.DefaultObserver)));
         Assert.Equal(expectedHex, difference.Rows[0][1]);
         Assert.Equal(expectedHex, ColorGradeCalculations.Generate("50,30,20", ColorGradeFormula.Cie76).Scales[0].Chips.Single(chip => chip.Level == 0).Hex);
     }

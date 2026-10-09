@@ -48,9 +48,19 @@ these modifications. The fluorescent and LED 1 nm data are identified by CIE met
 `approximated`. The browser query uses linear interpolation when a requested
 wavelength lies between original samples, and does not extrapolate. Its visible
 wavelength background is a gamut-clipped, brightness-normalized sRGB display
-approximation derived from the CIE 1931 observer; it does not modify the spectra. No CIE endorsement is implied.
+approximation derived from the CIE 1931 observer; it does not modify the spectra.
+The wavelength API derives unrounded xy spectrum loci from the 1931/1964 matching
+functions and linearly interpolates between their 1 nm coordinates. Its physical
+gamut boundary is the convex hull of those coordinates. The browser xy horseshoe
+uses the same observer-specific coordinates, with a gamut-clipped,
+brightness-normalized sRGB display background. These derived coordinates and
+display approximations do not modify the archived spectra. No CIE endorsement is implied.
 
 For every archived dataset, the adjacent JSON preserves the official title,
 creator, DOI, related publication, rights, data-quality and processing metadata,
 together with the source URLs and downloaded CSV checksum. See `reference/README.md`
 in the source repository for the inventory and update procedure.
+
+Reference whites derived by the library integrate the archived illuminant spectra and observer
+matching functions on a 1 nm grid over their shared or explicitly selected range. Native 5 nm
+spectra are linearly interpolated; XYZ is normalized to Y = 100 without intermediate rounding.

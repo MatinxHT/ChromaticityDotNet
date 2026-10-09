@@ -146,13 +146,13 @@ namespace ChromaticityDotNet.Model
         public double HueAngleDegrees { get; }
         public bool IsAchromatic { get; }
 
-        internal ColorComparisonColor(CIELABCH lab, CIELCH lch, bool isAchromatic)
+        internal ColorComparisonColor(CIELAB lab, CIELCH lch, bool isAchromatic)
         {
             L = lab.CIEL; A = lab.CIEA; B = lab.CIEB;
             Chroma = lch.CIEC; HueAngleDegrees = lch.CIEH; IsAchromatic = isAchromatic;
         }
 
-        public CIELABCH ToLab() => new CIELABCH(L, A, B);
+        public CIELAB ToLab() => new CIELAB(L, A, B);
     }
 
     /// <summary>Raw sample-minus-reference differences, rounded to four decimals.</summary>

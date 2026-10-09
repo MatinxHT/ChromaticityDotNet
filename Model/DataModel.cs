@@ -1,4 +1,4 @@
-﻿using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
+using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
 namespace ChromaticityDotNet.Model
 {
@@ -18,7 +18,7 @@ namespace ChromaticityDotNet.Model
 
         /// <summary>Uniformly sampled spectrum, with an inclusive wavelength range in nanometres.
         /// Sample count must equal (EndingWavelength - StartingWavelength) / WavelengthInterval + 1.
-        /// Values are reflectance percentages for REFtoXYZ, or nonnegative spectral values for SPD.</summary>
+        /// Values are reflectance percentages for REFToXYZ, or nonnegative spectral values for SPD.</summary>
         public class Spectrum
         {
             public int StartingWavelength { get; set; }
@@ -38,9 +38,11 @@ namespace ChromaticityDotNet.Model
         }
 
         /// <summary>
-        /// CIELAB 1976 Lab color space.Chroma and Hue will be auto calculate.
+        /// CIELAB 1976 coordinates with safely derived, four-decimal chroma and normalized hue.
         /// </summary>
-        public class CIELABCH
+        /// <remarks>Nonfinite a*/b* and finite-chroma overflow are rejected. Failed component updates
+        /// preserve all existing values. LabToLch uses the same calculation with unrounded output.</remarks>
+        public class CIELAB
         {
             private double _ciel;
             private double _ciea;
@@ -56,13 +58,13 @@ namespace ChromaticityDotNet.Model
             public double CIEA
             {
                 get { return _ciea; }
-                set { _ciea = value; UpdateCH(); }
+                set { UpdateCH(value, _cieb, nameof(CIEA)); _ciea = value; }
             }
 
             public double CIEB
             {
                 get { return _cieb; }
-                set { _cieb = value; UpdateCH(); }
+                set { UpdateCH(_ciea, value, nameof(CIEB)); _cieb = value; }
             }
 
             public double CIEC
@@ -79,23 +81,24 @@ namespace ChromaticityDotNet.Model
 
 
             // 构造函数，初始化属性
-            public CIELABCH(double ciel, double ciea, double cieb)
+            public CIELAB(double ciel, double ciea, double cieb)
             {
                 CIEL = ciel;
                 CIEA = ciea;
                 CIEB = cieb;
             }
 
-            public CIELABCH()
+            public CIELAB()
             {
 
             }
 
-            private void UpdateCH()
+            private void UpdateCH(double a, double b, string parameter)
             {
-                _ciec = NumericPrecision.Round(Math.Sqrt(_ciea * _ciea + _cieb * _cieb));  // 计算色度
-                _cieh = NumericPrecision.Round(Math.Atan2(_cieb, _ciea) * (180 / Math.PI)); // 计算色调，转换为度
-                if (_cieh < 0) _cieh += 360; // 确保色调为正值
+                var polar = LabPolarCoordinates.Calculate(a, b, parameter);
+                _ciec = NumericPrecision.Round(polar.Chroma);
+                _cieh = NumericPrecision.Round(polar.Hue);
+                if (_cieh >= 360.0) _cieh = 0;
             }
         }
 

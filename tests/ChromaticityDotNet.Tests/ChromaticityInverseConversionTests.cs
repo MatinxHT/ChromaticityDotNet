@@ -23,8 +23,8 @@ public class ChromaticityInverseConversionTests
     [InlineData(8, -20, 20, 0.353547248350, 0.885645167904, -0.433942662676)]
     public void LabToXyzMatchesReferenceValues(double l, double a, double b, double x, double y, double z)
     {
-        CIEXYZ result = ChromaticityConversion.Labch2XYZ(
-            new CIELABCH(l, a, b), Standardilluminant.D65, StandardObserver.Degree2);
+        CIEXYZ result = ChromaticityConversion.LabToXYZ(
+            new CIELAB(l, a, b), Standardilluminant.D65, StandardObserver.Degree2);
 
         AssertReferenceXyz(result, x, y, z);
     }
@@ -43,7 +43,7 @@ public class ChromaticityInverseConversionTests
     [InlineData(120, 0, 0, 153.172630612161, 161.154618885563, 175.469983681168)]
     public void LuvToXyzMatchesReferenceValues(double l, double u, double v, double x, double y, double z)
     {
-        CIEXYZ result = ChromaticityConversion.Luv2XYZ(
+        CIEXYZ result = ChromaticityConversion.LuvToXYZ(
             new CIELuv { CIEL = l, CIEu = u, CIEv = v },
             Standardilluminant.D65, StandardObserver.Degree2);
 
@@ -66,7 +66,7 @@ public class ChromaticityInverseConversionTests
     [InlineData(255, 128, 32, 49.218596987804, 36.805840904802, 5.878960123318)]
     public void RgbToXyzMatchesReferenceValues(byte r, byte g, byte b, double x, double y, double z)
     {
-        CIEXYZ result = ChromaticityConversion.RGB2XYZ(
+        CIEXYZ result = ChromaticityConversion.RGBToXYZ(
             new CIERGB { redValue = r, greenValue = g, blueValue = b });
 
         AssertReferenceXyz(result, x, y, z);
@@ -77,8 +77,8 @@ public class ChromaticityInverseConversionTests
     public void NeutralWhiteUsesSelectedIlluminantAndObserver(Standardilluminant illuminant, StandardObserver observer)
     {
         CIEXYZ white = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
-        CIEXYZ labResult = ChromaticityConversion.Labch2XYZ(new CIELABCH(100, 0, 0), illuminant, observer);
-        CIEXYZ luvResult = ChromaticityConversion.Luv2XYZ(new CIELuv { CIEL = 100 }, illuminant, observer);
+        CIEXYZ labResult = ChromaticityConversion.LabToXYZ(new CIELAB(100, 0, 0), illuminant, observer);
+        CIEXYZ luvResult = ChromaticityConversion.LuvToXYZ(new CIELuv { CIEL = 100 }, illuminant, observer);
 
         AssertReferenceXyz(labResult, white.CIEX, white.CIEY, white.CIEZ);
         AssertReferenceXyz(luvResult, white.CIEX, white.CIEY, white.CIEZ);
@@ -99,10 +99,10 @@ public class ChromaticityInverseConversionTests
 
         foreach (CIEXYZ color in colors)
         {
-            CIELABCH lab = ChromaticityConversion.XYZ2Labch(color, illuminant, observer);
-            CIELuv luv = ChromaticityConversion.XYZ2Luv(color, illuminant, observer);
-            CIEXYZ labResult = ChromaticityConversion.Labch2XYZ(lab, illuminant, observer);
-            CIEXYZ luvResult = ChromaticityConversion.Luv2XYZ(luv, illuminant, observer);
+            CIELAB lab = ChromaticityConversion.XYZToLab(color, illuminant, observer);
+            CIELuv luv = ChromaticityConversion.XYZToLuv(color, illuminant, observer);
+            CIEXYZ labResult = ChromaticityConversion.LabToXYZ(lab, illuminant, observer);
+            CIEXYZ luvResult = ChromaticityConversion.LuvToXYZ(luv, illuminant, observer);
 
             // Each public conversion rounds to four decimals; allow accumulated rounding.
             AssertCloseXyz(color, labResult, 0.0003);
@@ -130,7 +130,7 @@ public class ChromaticityInverseConversionTests
     public void XyzToLabIsAccurateAcrossDarkBranchBoundary(double relativeX, double expectedA)
     {
         // Y/Yn and Z/Zn are at the exact CIE threshold; a* was calculated independently in Python.
-        CIELABCH result = ChromaticityConversion.XYZ2Labch(
+        CIELAB result = ChromaticityConversion.XYZToLab(
             new CIEXYZ { CIEX = 95.047 * relativeX, CIEY = 100 * (216.0 / 24389.0), CIEZ = 108.883 * (216.0 / 24389.0) },
             Standardilluminant.D65, StandardObserver.Degree2);
 
@@ -142,9 +142,9 @@ public class ChromaticityInverseConversionTests
     [Fact]
     public void InverseConversionsRejectNull()
     {
-        Assert.Throws<ArgumentNullException>("labColor", () => ChromaticityConversion.Labch2XYZ(null!, Standardilluminant.D65, StandardObserver.Degree2));
-        Assert.Throws<ArgumentNullException>("luvColor", () => ChromaticityConversion.Luv2XYZ(null!, Standardilluminant.D65, StandardObserver.Degree2));
-        Assert.Throws<ArgumentNullException>("rgbColor", () => ChromaticityConversion.RGB2XYZ(null!));
+        Assert.Throws<ArgumentNullException>("labColor", () => ChromaticityConversion.LabToXYZ(null!, Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentNullException>("luvColor", () => ChromaticityConversion.LuvToXYZ(null!, Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentNullException>("rgbColor", () => ChromaticityConversion.RGBToXYZ(null!));
     }
 
     [Theory]
@@ -153,22 +153,24 @@ public class ChromaticityInverseConversionTests
     [InlineData(double.NegativeInfinity)]
     public void InverseConversionsRejectEveryNonFiniteCoordinate(double value)
     {
-        foreach (CIELABCH color in new[] { new CIELABCH(value, 0, 0), new CIELABCH(50, value, 0), new CIELABCH(50, 0, value) })
-            Assert.Throws<ArgumentOutOfRangeException>("labColor", () => ChromaticityConversion.Labch2XYZ(color, Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentOutOfRangeException>("labColor", () => ChromaticityConversion.LabToXYZ(new CIELAB(value, 0, 0), Standardilluminant.D65, StandardObserver.Degree2));
+        // The Lab model now rejects non-finite a*/b* before conversion.
+        Assert.Throws<ArgumentOutOfRangeException>("CIEA", () => new CIELAB(50, value, 0));
+        Assert.Throws<ArgumentOutOfRangeException>("CIEB", () => new CIELAB(50, 0, value));
 
         foreach (CIELuv color in new[] { new CIELuv { CIEL = value }, new CIELuv { CIEL = 50, CIEu = value }, new CIELuv { CIEL = 50, CIEv = value } })
-            Assert.Throws<ArgumentOutOfRangeException>("luvColor", () => ChromaticityConversion.Luv2XYZ(color, Standardilluminant.D65, StandardObserver.Degree2));
+            Assert.Throws<ArgumentOutOfRangeException>("luvColor", () => ChromaticityConversion.LuvToXYZ(color, Standardilluminant.D65, StandardObserver.Degree2));
     }
 
     [Fact]
     public void InverseConversionsRejectNegativeLightnessAndUndefinedConditions()
     {
-        Assert.Throws<ArgumentOutOfRangeException>("labColor", () => ChromaticityConversion.Labch2XYZ(new CIELABCH(-1, 0, 0), Standardilluminant.D65, StandardObserver.Degree2));
-        Assert.Throws<ArgumentOutOfRangeException>("luvColor", () => ChromaticityConversion.Luv2XYZ(new CIELuv { CIEL = -1 }, Standardilluminant.D65, StandardObserver.Degree2));
-        Assert.Throws<ArgumentOutOfRangeException>("illuminant", () => ChromaticityConversion.Labch2XYZ(new CIELABCH(), (Standardilluminant)999, StandardObserver.Degree2));
-        Assert.Throws<ArgumentOutOfRangeException>("illuminant", () => ChromaticityConversion.Luv2XYZ(new CIELuv(), (Standardilluminant)999, StandardObserver.Degree2));
-        Assert.Throws<ArgumentOutOfRangeException>("observer", () => ChromaticityConversion.Labch2XYZ(new CIELABCH(), Standardilluminant.D65, (StandardObserver)999));
-        Assert.Throws<ArgumentOutOfRangeException>("observer", () => ChromaticityConversion.Luv2XYZ(new CIELuv(), Standardilluminant.D65, (StandardObserver)999));
+        Assert.Throws<ArgumentOutOfRangeException>("labColor", () => ChromaticityConversion.LabToXYZ(new CIELAB(-1, 0, 0), Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentOutOfRangeException>("luvColor", () => ChromaticityConversion.LuvToXYZ(new CIELuv { CIEL = -1 }, Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentOutOfRangeException>("illuminant", () => ChromaticityConversion.LabToXYZ(new CIELAB(), (Standardilluminant)999, StandardObserver.Degree2));
+        Assert.Throws<ArgumentOutOfRangeException>("illuminant", () => ChromaticityConversion.LuvToXYZ(new CIELuv(), (Standardilluminant)999, StandardObserver.Degree2));
+        Assert.Throws<ArgumentOutOfRangeException>("observer", () => ChromaticityConversion.LabToXYZ(new CIELAB(), Standardilluminant.D65, (StandardObserver)999));
+        Assert.Throws<ArgumentOutOfRangeException>("observer", () => ChromaticityConversion.LuvToXYZ(new CIELuv(), Standardilluminant.D65, (StandardObserver)999));
     }
 
     [Theory]
@@ -176,7 +178,7 @@ public class ChromaticityInverseConversionTests
     [InlineData(0, -1)]
     public void LuvToXyzRejectsNonzeroChromaAtZeroLightness(double u, double v)
     {
-        Assert.Throws<ArgumentException>("luvColor", () => ChromaticityConversion.Luv2XYZ(
+        Assert.Throws<ArgumentException>("luvColor", () => ChromaticityConversion.LuvToXYZ(
             new CIELuv { CIEL = 0, CIEu = u, CIEv = v }, Standardilluminant.D65, StandardObserver.Degree2));
     }
 
@@ -188,15 +190,15 @@ public class ChromaticityInverseConversionTests
         double referenceV = 900.0 / (95.047 + 1500.0 + 3.0 * 108.883);
         CIELuv color = new() { CIEL = 50, CIEv = -13.0 * 50.0 * referenceV + offset };
 
-        Assert.Throws<ArgumentException>("luvColor", () => ChromaticityConversion.Luv2XYZ(color, Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentException>("luvColor", () => ChromaticityConversion.LuvToXYZ(color, Standardilluminant.D65, StandardObserver.Degree2));
     }
 
     [Fact]
     public void InverseConversionsRejectOverflow()
     {
-        Assert.Throws<ArgumentException>("labColor", () => ChromaticityConversion.Labch2XYZ(new CIELABCH(double.MaxValue, 0, 0), Standardilluminant.D65, StandardObserver.Degree2));
-        Assert.Throws<ArgumentException>("labColor", () => ChromaticityConversion.Labch2XYZ(new CIELABCH(50, double.MaxValue, 0), Standardilluminant.D65, StandardObserver.Degree2));
-        Assert.Throws<ArgumentException>("luvColor", () => ChromaticityConversion.Luv2XYZ(new CIELuv { CIEL = double.MaxValue }, Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentException>("labColor", () => ChromaticityConversion.LabToXYZ(new CIELAB(double.MaxValue, 0, 0), Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentException>("labColor", () => ChromaticityConversion.LabToXYZ(new CIELAB(50, double.MaxValue, 0), Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentException>("luvColor", () => ChromaticityConversion.LuvToXYZ(new CIELuv { CIEL = double.MaxValue }, Standardilluminant.D65, StandardObserver.Degree2));
     }
 
     private static void AssertReferenceXyz(CIEXYZ result, double x, double y, double z)
@@ -219,7 +221,7 @@ public class ChromaticityInverseConversionTests
 
     private static void AssertRgbRoundTrip(byte r, byte g, byte b)
     {
-        CIERGB result = ChromaticityConversion.XYZ2RGB(ChromaticityConversion.RGB2XYZ(
+        CIERGB result = ChromaticityConversion.XYZToRGB(ChromaticityConversion.RGBToXYZ(
             new CIERGB { redValue = r, greenValue = g, blueValue = b }));
 
         Assert.Equal(r, result.redValue);

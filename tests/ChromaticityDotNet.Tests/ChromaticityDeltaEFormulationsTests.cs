@@ -48,8 +48,8 @@ public class ChromaticityDeltaEFormulationsTests
     [Fact]
     public void DeltaE1976UsesEuclideanLabDistance()
     {
-        CIELABCH standard = new(50.0, 0.0, 0.0);
-        CIELABCH sample = new(53.0, 4.0, 12.0);
+        CIELAB standard = new(50.0, 0.0, 0.0);
+        CIELAB sample = new(53.0, 4.0, 12.0);
 
         double result = ChromaticityDeltaEFormulations.DeltaE1976(standard, sample);
 
@@ -62,26 +62,26 @@ public class ChromaticityDeltaEFormulationsTests
         Assert.Equal(
             1.0,
             ChromaticityDeltaEFormulations.DeltaE1994(
-                new CIELABCH(50.0, 20.0, 0.0),
-                new CIELABCH(51.0, 20.0, 0.0)));
+                new CIELAB(50.0, 20.0, 0.0),
+                new CIELAB(51.0, 20.0, 0.0)));
         Assert.Equal(
             0.5263,
             ChromaticityDeltaEFormulations.DeltaE1994(
-                new CIELABCH(50.0, 20.0, 0.0),
-                new CIELABCH(50.0, 21.0, 0.0)));
+                new CIELAB(50.0, 20.0, 0.0),
+                new CIELAB(50.0, 21.0, 0.0)));
         Assert.Equal(
             21.7571,
             ChromaticityDeltaEFormulations.DeltaE1994(
-                new CIELABCH(50.0, 20.0, 0.0),
-                new CIELABCH(50.0, 0.0, 20.0)));
+                new CIELAB(50.0, 20.0, 0.0),
+                new CIELAB(50.0, 0.0, 20.0)));
     }
 
     [Fact]
     public void DeltaE1994HandlesHueWrapWithoutArtificialLargeDifference()
     {
         double result = ChromaticityDeltaEFormulations.DeltaE1994(
-            new CIELABCH(50.0, 1.0, -0.01),
-            new CIELABCH(50.0, 1.0, 0.01));
+            new CIELAB(50.0, 1.0, -0.01),
+            new CIELAB(50.0, 1.0, 0.01));
 
         Assert.Equal(0.0197, result);
     }
@@ -99,8 +99,8 @@ public class ChromaticityDeltaEFormulationsTests
     {
         ColorDifferenceEquationResults result =
             ChromaticityDeltaEFormulations.DeltaE2000(
-                new CIELABCH(l1, a1, b1),
-                new CIELABCH(l2, a2, b2),
+                new CIELAB(l1, a1, b1),
+                new CIELAB(l2, a2, b2),
                 1.0,
                 1.0,
                 1.0);
@@ -112,7 +112,7 @@ public class ChromaticityDeltaEFormulationsTests
     [Fact]
     public void DeltaE2000ReturnsZeroComponentsForIdenticalColors()
     {
-        CIELABCH color = new(50.0, 10.0, -20.0);
+        CIELAB color = new(50.0, 10.0, -20.0);
 
         ColorDifferenceEquationResults result =
             ChromaticityDeltaEFormulations.DeltaE2000(color, color, 1.0, 1.0, 1.0);
@@ -131,7 +131,7 @@ public class ChromaticityDeltaEFormulationsTests
     [Fact]
     public void CmcReturnsZeroForIdenticalColors()
     {
-        CIELABCH color = new(50.0, 10.0, -20.0);
+        CIELAB color = new(50.0, 10.0, -20.0);
 
         double result =
             ChromaticityDeltaEFormulations.DeltaEcmc(color, color, 1.0, 1.0);
@@ -143,8 +143,8 @@ public class ChromaticityDeltaEFormulationsTests
     public void CmcAppliesReferenceLightnessWeight()
     {
         double result = ChromaticityDeltaEFormulations.DeltaEcmc(
-            new CIELABCH(50.0, 0.0, 0.0),
-            new CIELABCH(51.0, 0.0, 0.0),
+            new CIELAB(50.0, 0.0, 0.0),
+            new CIELAB(51.0, 0.0, 0.0),
             1.0,
             1.0);
 
@@ -183,7 +183,7 @@ public class ChromaticityDeltaEFormulationsTests
         double pl, double pc, double expected)
     {
         double result = ChromaticityDeltaEFormulations.DeltaEcmc(
-            new CIELABCH(l1, a1, b1), new CIELABCH(l2, a2, b2), pl, pc);
+            new CIELAB(l1, a1, b1), new CIELAB(l2, a2, b2), pl, pc);
 
         Assert.Equal(Math.Round(expected, 4, MidpointRounding.AwayFromZero), result);
         Assert.InRange(Math.Abs(result - expected), 0.0, 0.00005);
@@ -191,7 +191,7 @@ public class ChromaticityDeltaEFormulationsTests
     }
 
     // Independently calculated with the same Python reference as above.
-    // The neighboring hues round to the boundary in CIELABCH.CIEH, so these
+    // The neighboring hues round to the boundary in CIELAB.CIEH, so these
     // also verify that CMC uses unrounded Lab-derived hue for branch selection.
     [Theory]
     [InlineData(163.99999, 19.733031297774)]
@@ -203,10 +203,10 @@ public class ChromaticityDeltaEFormulationsTests
     public void CmcUsesReferenceHueAtPiecewiseBoundaries(double hue, double expected)
     {
         double radians = hue * (Math.PI / 180.0);
-        CIELABCH standard = new(50.0, 20.0 * Math.Cos(radians), 20.0 * Math.Sin(radians));
+        CIELAB standard = new(50.0, 20.0 * Math.Cos(radians), 20.0 * Math.Sin(radians));
 
         double result = ChromaticityDeltaEFormulations.DeltaEcmc(
-            standard, new CIELABCH(50.0, 0.0, 20.0), 1.0, 1.0);
+            standard, new CIELAB(50.0, 0.0, 20.0), 1.0, 1.0);
 
         Assert.Equal(Math.Round(expected, 4, MidpointRounding.AwayFromZero), result);
         Assert.InRange(Math.Abs(result - expected), 0.0, 0.00005);
@@ -222,8 +222,8 @@ public class ChromaticityDeltaEFormulationsTests
         // With an achromatic black reference, DeltaE = sampleLightness / 0.511.
         // These inputs straddle 0.00005 and include the midpoint 0.00045.
         double result = ChromaticityDeltaEFormulations.DeltaEcmc(
-            new CIELABCH(0.0, 0.0, 0.0),
-            new CIELABCH(sampleLightness, 0.0, 0.0), 1.0, 1.0);
+            new CIELAB(0.0, 0.0, 0.0),
+            new CIELAB(sampleLightness, 0.0, 0.0), 1.0, 1.0);
 
         Assert.Equal(expected, result);
     }

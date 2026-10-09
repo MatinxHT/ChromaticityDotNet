@@ -71,7 +71,7 @@ FL/LED 优先采用已归档的官方 1 nm 版本；对应 5 nm CSV 仍保留作
 
 旧 `Standardilluminant` 白点/31 点计算枚举保持兼容；CWF→FL2、F7→FL7、
 TL84→FL11、U30→FL12 是库内别名约定，不保证任意同名实物灯具等同于该光谱。
-完整目录的光谱可以传入 `REFtoXYZ(Spectrum, Spectrum, StandardObserver)`。
+完整目录的光谱可以传入 `REFToXYZ(Spectrum, Spectrum, StandardObserver)`。
 其他类别的参考文件仍只归档，不代表对应评价算法已实现。
 
 ## 已知数据处理事项

@@ -29,7 +29,7 @@ public class ChromaticityConversionTests
         double[] spd = new double[31];
         spd[0] = 1.0;
 
-        CIEXYZ result = ChromaticityConversion.SPDtoXYZ(spd, observer);
+        CIEXYZ result = ChromaticityConversion.SPDToXYZ(spd, observer);
 
         Assert.Equal(expectedX, result.CIEX);
         Assert.Equal(expectedY, result.CIEY);
@@ -39,7 +39,7 @@ public class ChromaticityConversionTests
     [Fact]
     public void SpdToXyzReturnsZeroForZeroSpectrum()
     {
-        CIEXYZ result = ChromaticityConversion.SPDtoXYZ(
+        CIEXYZ result = ChromaticityConversion.SPDToXYZ(
             new double[31],
             StandardObserver.Degree2);
 
@@ -56,7 +56,7 @@ public class ChromaticityConversionTests
     {
         double[] perfectReflector = Enumerable.Repeat(100.0, 31).ToArray();
 
-        CIEXYZ result = ChromaticityConversion.REFtoXYZ(
+        CIEXYZ result = ChromaticityConversion.REFToXYZ(
             perfectReflector,
             illuminant,
             observer);
@@ -74,7 +74,7 @@ public class ChromaticityConversionTests
     [InlineData(StandardObserver.Degree10)]
     public void ZeroReflectanceProducesZeroXyz(StandardObserver observer)
     {
-        CIEXYZ result = ChromaticityConversion.REFtoXYZ(
+        CIEXYZ result = ChromaticityConversion.REFToXYZ(
             new double[31],
             Standardilluminant.D65,
             observer);
@@ -93,7 +93,7 @@ public class ChromaticityConversionTests
             Standardilluminant.D65,
             observer);
 
-        CIELABCH result = ChromaticityConversion.XYZ2Labch(
+        CIELAB result = ChromaticityConversion.XYZToLab(
             white,
             Standardilluminant.D65,
             observer);
@@ -107,7 +107,7 @@ public class ChromaticityConversionTests
     [Fact]
     public void XyzToLabMatchesKnownSrgbRed()
     {
-        CIELABCH result = ChromaticityConversion.XYZ2Labch(
+        CIELAB result = ChromaticityConversion.XYZToLab(
             new CIEXYZ { CIEX = 41.24, CIEY = 21.26, CIEZ = 1.93 },
             Standardilluminant.D65,
             StandardObserver.Degree2);
@@ -123,7 +123,7 @@ public class ChromaticityConversionTests
     [Fact]
     public void XyzToXyYConvertsD65White()
     {
-        CIExyY result = ChromaticityConversion.XYZ2xyY(new CIEXYZ
+        CIExyY result = ChromaticityConversion.XYZToxyY(new CIEXYZ
         {
             CIEX = 95.047,
             CIEY = 100.0,
@@ -138,7 +138,7 @@ public class ChromaticityConversionTests
     [Fact]
     public void XyYToXyzUsesLuminanceScale()
     {
-        CIEXYZ result = ChromaticityConversion.xy2XYZ(new CIExyY
+        CIEXYZ result = ChromaticityConversion.xyToXYZ(new CIExyY
         {
             CIEx = 0.25,
             CIEy = 0.40,
@@ -153,7 +153,7 @@ public class ChromaticityConversionTests
     [Fact]
     public void XyToUvConvertsD65Chromaticity()
     {
-        CIEuv result = ChromaticityConversion.xy2uv(new CIExyY
+        CIEuv result = ChromaticityConversion.xyTouv(new CIExyY
         {
             CIEx = 0.3127,
             CIEy = 0.3290,
@@ -167,7 +167,7 @@ public class ChromaticityConversionTests
     [Fact]
     public void XyToUvReturnsSentinelWhenDenominatorIsZero()
     {
-        CIEuv result = ChromaticityConversion.xy2uv(new CIExyY
+        CIEuv result = ChromaticityConversion.xyTouv(new CIExyY
         {
             CIEx = 1.5,
             CIEy = 0.0
@@ -180,7 +180,7 @@ public class ChromaticityConversionTests
     [Fact]
     public void D65ReferenceWhiteMapsToNeutralLuv()
     {
-        CIELuv result = ChromaticityConversion.XYZ2Luv(
+        CIELuv result = ChromaticityConversion.XYZToLuv(
             new CIEXYZ { CIEX = 95.047, CIEY = 100.0, CIEZ = 108.883 },
             Standardilluminant.D65,
             StandardObserver.Degree2);
@@ -193,7 +193,7 @@ public class ChromaticityConversionTests
     [Fact]
     public void XyzToLuvMatchesKnownSrgbRedRange()
     {
-        CIELuv result = ChromaticityConversion.XYZ2Luv(
+        CIELuv result = ChromaticityConversion.XYZToLuv(
             new CIEXYZ { CIEX = 41.24, CIEY = 21.26, CIEZ = 1.93 },
             Standardilluminant.D65,
             StandardObserver.Degree2);
@@ -218,7 +218,7 @@ public class ChromaticityConversionTests
         byte expectedGreen,
         byte expectedBlue)
     {
-        CIERGB result = ChromaticityConversion.XYZ2RGB(new CIEXYZ
+        CIERGB result = ChromaticityConversion.XYZToRGB(new CIEXYZ
         {
             CIEX = x,
             CIEY = y,
@@ -233,7 +233,7 @@ public class ChromaticityConversionTests
     [Fact]
     public void XyToCctApproximatesD65()
     {
-        double result = ChromaticityConversion.xy2CCT(new CIExyY
+        double result = ChromaticityConversion.xyToCCT(new CIExyY
         {
             CIEx = 0.3127,
             CIEy = 0.3290

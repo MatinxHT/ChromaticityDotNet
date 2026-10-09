@@ -45,6 +45,21 @@ namespace ChromaticityDotNet.Controller
             }
         }
 
+        /// <summary>Integrates a catalog illuminant with the selected CIE observer on a 1 nm grid,
+        /// normalizing Y to 100 and retaining full precision.</summary>
+        /// <remarks>Default range is the intersection of the illuminant's native coverage with 360–830 nm.
+        /// Explicit bounds must be covered by both datasets. 5 nm spectra are linearly interpolated;
+        /// no extrapolation occurs. Use the same bounds as REFToXYZ for reflectance Lab/Luv.</remarks>
+        public static CIEXYZ GetStandardWhitePoint(string illuminantId, StandardObserver observer,
+            int? startingWavelength = null, int? endingWavelength = null) =>
+            GetStandardWhitePoint(CieSpectralData.GetIlluminantSpectrum(illuminantId), observer,
+                startingWavelength, endingWavelength);
+
+        /// <summary>Integrates a supplied illuminant spectrum into an unrounded Y = 100 reference white.</summary>
+        public static CIEXYZ GetStandardWhitePoint(Spectrum illuminant, StandardObserver observer,
+            int? startingWavelength = null, int? endingWavelength = null) =>
+            ChromaticityConversion.CalculateWhitePoint(illuminant, observer, startingWavelength, endingWavelength);
+
         /// <summary>Compares two Lab colors using CIE76, CMC and CIEDE2000, with structured and English evaluations.</summary>
         /// <remarks>Inputs must share the same reference white and observer. All differences describe sample minus
         /// reference. Defaults: CMC 1:1, CIEDE2000 1:1:1; L* &lt; 10 OR C* &lt; 5 is achromatic.
@@ -52,14 +67,14 @@ namespace ChromaticityDotNet.Controller
         /// its shortest signed difference selects the first main axis ahead of the sample hue in that direction.
         /// A 180-degree tie selects increasing hue. No overall acceptance/perceptibility limits are assumed.
         /// Inputs and options are not modified. Returned snapshots are read-only.</remarks>
-        public static ColorComparisonResult CompareColors(CIELABCH reference, CIELABCH sample, ColorComparisonOptions? options = null)
+        public static ColorComparisonResult CompareColors(CIELAB reference, CIELAB sample, ColorComparisonOptions? options = null)
         {
             if (reference is null) throw new ArgumentNullException(nameof(reference));
             if (sample is null) throw new ArgumentNullException(nameof(sample));
             var parameters = new ColorComparisonParameters(options ?? new ColorComparisonOptions());
             // Copy mutable inputs once so all calculations and returned snapshots use the same coordinates.
-            var referenceLab = new CIELABCH(reference.CIEL, reference.CIEA, reference.CIEB);
-            var sampleLab = new CIELABCH(sample.CIEL, sample.CIEA, sample.CIEB);
+            var referenceLab = new CIELAB(reference.CIEL, reference.CIEA, reference.CIEB);
+            var sampleLab = new CIELAB(sample.CIEL, sample.CIEA, sample.CIEB);
             var referenceLch = ChromaticityConversion.LabToLch(referenceLab);
             var sampleLch = ChromaticityConversion.LabToLch(sampleLab);
             bool referenceAchromatic = IsAchromatic(referenceLch, parameters);

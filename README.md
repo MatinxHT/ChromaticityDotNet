@@ -18,7 +18,7 @@ dotnet add package ChromaticityDotNet
 
 ## 浏览器在线评估工具
 
-[`apps/`](apps/README.md) 提供基于 Avalonia Browser 的反射光谱计算、批量色差计算、颜色空间转换、标准光源查询和色差分级色卡工具，复用本库已有数据与算法。网站采用独立 solution，由 Cloudflare Pages 拉取仓库构建部署，不向 NuGet 包引入 Avalonia 依赖。欢迎使用 [ChromaticityDotNet](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME)。
+[`apps/`](apps/README.md) 提供基于 Avalonia Browser 的反射光谱计算、批量色差计算、颜色空间转换、标准光源查询、色差分级色卡以及主波长与补色波长工具，复用本库已有数据与算法。网站采用独立 solution，由 Cloudflare Pages 拉取仓库构建部署，不向 NuGet 包引入 Avalonia 依赖。欢迎使用 [ChromaticityDotNet](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME)。
 
 ## 数据来源
 
@@ -43,9 +43,9 @@ CSV 供 Codex 和维护者核对、转入代码；运行时使用编译后的常
 
 | 函数 | 用途 |
 | --- | --- |
-| `REFtoXYZ(Spectrum, Standardilluminant, StandardObserver)` | 主入口：反射率百分数转 XYZ，完全反射体归一化到 Y = 100 |
-| `REFtoXYZ(Spectrum, Spectrum, StandardObserver)` | 使用自定义照明体光谱，前两个参数依次为反射率、照明体 |
-| `SPDtoXYZ(Spectrum, StandardObserver)` | 自发光 SPD 的未归一化 XYZ 加权和，尺度约定见 [TODO](TODO.md) |
+| `REFToXYZ(Spectrum, Standardilluminant, StandardObserver)` | 主入口：反射率百分数转 XYZ，完全反射体归一化到 Y = 100 |
+| `REFToXYZ(Spectrum, Spectrum, StandardObserver)` | 使用自定义照明体光谱，前两个参数依次为反射率、照明体 |
+| `SPDToXYZ(Spectrum, StandardObserver)` | 自发光 SPD 的未归一化 XYZ 加权和，尺度约定见 [TODO](TODO.md) |
 | `CieSpectralData.Illuminants` | 50 条光源的 ID、来源、原始波段、间隔和质量标注 |
 | `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | 获取旧枚举或完整目录中光源光谱的独立副本，保留原始采样网格 |
 | `CieSpectralData.GetColorMatchingFunctions(observer)` | 获取配色函数光谱的独立副本 `(X, Y, Z)` |
@@ -64,16 +64,16 @@ var reflectance = new Spectrum
     WavelengthInterval = 1,
     Spectrums = Enumerable.Repeat(18.0, 401).ToArray() // 18% 反射率
 };
-var xyz = ChromaticityConversion.REFtoXYZ(
+var xyz = ChromaticityConversion.REFToXYZ(
     reflectance, Standardilluminant.D65, StandardObserver.Degree2); // Y = 18
 
 // 直接传入照明体 Spectrum；也可替换为自定义光谱。
 var light = CieSpectralData.GetIlluminantSpectrum("D50"); // 也可使用 "LED-B1"、"FL3.1"、"HP1" 等目录 ID
-var customXyz = ChromaticityConversion.REFtoXYZ(reflectance, light, StandardObserver.Degree2);
+var customXyz = ChromaticityConversion.REFToXYZ(reflectance, light, StandardObserver.Degree2);
 var (xBar, yBar, zBar) = CieSpectralData.GetColorMatchingFunctions(StandardObserver.Degree2);
 
 // 旧版快速计算：400–700 nm、10 nm 间隔，固定 31 点。
-var fastXyz = ChromaticityConversion.REFtoXYZ(
+var fastXyz = ChromaticityConversion.REFToXYZ(
     Enumerable.Repeat(18.0, 31).ToArray(), Standardilluminant.D65, StandardObserver.Degree2);
 ```
 
@@ -81,7 +81,7 @@ var fastXyz = ChromaticityConversion.REFtoXYZ(
 - 反射率以百分数输入，允许超过 100。按线性插值生成 1 nm 数据，在输入范围内求和；范围必须同时位于观察者和照明体覆盖区间内，不外推、不自动裁剪。
 - 新入口的 XYZ 结果保留四位小数，中点向远离零的方向舍入。照明体在计算范围内的参考亮度必须大于零；无效输入和数值溢出会抛出异常。
 - 两个裸数组 `double[]` 入口均保留旧表和旧算法，用于 **31 点、400–700 nm、10 nm 间隔的快速计算**。
-- `SPDtoXYZ` 暂不重采样、不乘波长间隔、不做 Y 归一化；结果随采样间隔变化，不代表绝对光度 XYZ。
+- `SPDToXYZ` 暂不重采样、不乘波长间隔、不做 Y 归一化；结果随采样间隔变化，不代表绝对光度 XYZ。
 
 ## 颜色空间转换
 
@@ -89,15 +89,16 @@ var fastXyz = ChromaticityConversion.REFtoXYZ(
 
 | 函数 | 输入 → 输出 |
 | --- | --- |
-| `XYZ2Labch(xyz, illuminant, observer)` / `Labch2XYZ(lab, illuminant, observer)` | XYZ ↔ Lab；`CIELABCH` 自动计算 C*、h° |
+| `XYZToLab(xyz, illuminant, observer)` / `LabToXYZ(lab, illuminant, observer)` | XYZ ↔ Lab；`CIELAB` 自动计算 C*、h° |
 | `LabToLch(lab)` | Lab → 只读 `CIELCH`；直接由 a*、b* 计算 C*、h°，保留中间精度 |
-| `XYZ2Luv(xyz, illuminant, observer)` / `Luv2XYZ(luv, illuminant, observer)` | XYZ ↔ L*u*v* |
-| `XYZ2RGB(xyz)` / `RGB2XYZ(rgb)` | XYZ ↔ sRGB，RGB 为 0–255 字节 |
+| `XYZToLuv(xyz, illuminant, observer)` / `LuvToXYZ(luv, illuminant, observer)` | XYZ ↔ L*u*v* |
+| `XYZToRGB(xyz)` / `RGBToXYZ(rgb)` | XYZ ↔ sRGB，RGB 为 0–255 字节 |
 | `RGBToHSL(rgb)` / `RGBToHSV(rgb)` | sRGB → `DataModel.CIEHSL` / `DataModel.CIEHSV`；H 为 [0,360) 度，S/L/V 为 [0,1] 比例 |
 | `RGBToHex(rgb)` | sRGB → 大写 `#RRGGBB` 字符串 |
-| `XYZ2xyY(xyz)` / `xy2XYZ(xyY)` | XYZ ↔ xyY |
-| `xy2uv(xyY)` | xyY → CIE 1976 u′v′ 色度坐标 |
-| `xy2CCT(xyY)` | 从 xy 色度近似计算相关色温 |
+| `XYZToxyY(xyz)` / `xyToXYZ(xyY)` | XYZ ↔ xyY |
+| `xyTouv(xyY)` | xyY → CIE 1976 u′v′ 色度坐标 |
+| `xyToCCT(xyY)` | 从 xy 色度近似计算相关色温 |
+| `xyYToWavelengths(color, observer, whitePoint / illuminant)` | xyY → 主波长、补色波长（nm，两位小数） |
 
 HSL/HSV 基于编码后的 sRGB 通道，不先做线性化，返回值保留中间精度；界面可将 S/L/V 乘以 100 显示为百分数。黑色和灰色均返回有效结果，S = 0、H = 0（无确定色相时的占位值），白色也不会产生 NaN。HSL/HSV 不是 CIE 色彩空间，模型名称沿用本库的数据模型命名。
 
@@ -111,15 +112,15 @@ var hex = ChromaticityConversion.RGBToHex(rgb); // #20A090
 以下示例沿用上面的 `using`：
 
 ```csharp
-var lab = new CIELABCH(50.0, 20.0, -30.0);
-var fromLab = ChromaticityConversion.Labch2XYZ(
+var lab = new CIELAB(50.0, 20.0, -30.0);
+var fromLab = ChromaticityConversion.LabToXYZ(
     lab, Standardilluminant.D65, StandardObserver.Degree2);
 // XYZ = (21.4643, 18.4187, 40.4654)
 
-var fromRgb = ChromaticityConversion.RGB2XYZ(
+var fromRgb = ChromaticityConversion.RGBToXYZ(
     new CIERGB { redValue = 255, greenValue = 0, blueValue = 0 });
 // XYZ = (41.2391, 21.2639, 1.9331)
-var red = ChromaticityConversion.XYZ2RGB(fromRgb); // RGB = (255, 0, 0)
+var red = ChromaticityConversion.XYZToRGB(fromRgb); // RGB = (255, 0, 0)
 
 var white = ChromaticityMatch.GetStandardWhitePoint(
     Standardilluminant.D65, StandardObserver.Degree2);
@@ -127,18 +128,70 @@ var white = ChromaticityMatch.GetStandardWhitePoint(
 
 ### 白点与精度
 
-- Lab/Luv 的 XYZ 白点尺度为 Y = 100，双向转换应使用相同的照明体和观察者。它们仍使用旧版固定白点，可能与新光谱积分所得白点不同。
+- Lab/Luv 的 XYZ 白点尺度为 Y = 100，双向转换应使用相同的照明体和观察者。`Standardilluminant` 枚举入口保留旧版固定白点；光源 ID 字符串入口使用目录光谱积分白点，支持全部 50 条光源，也可直接传入 `CIEXYZ` 白点。
 - 逆转换保留中间 `double` 精度，XYZ 输出保留四位小数，中点远离零舍入。参考测试每分量误差不超过 0.00005，XYZ → Lab/Luv → XYZ 往返测试容差为 0.0003。
 - Lab/Luv 逆转换要求有限坐标和非负 L*，允许 L* 超过 100。Luv(0,0,0) 返回黑色；L* 为零但 u*/v* 非零、重建 v′ 非正或数值溢出时抛出异常。
 - sRGB 使用 D65 色度 `(0.3127, 0.3290)`，白点 XYZ 为 `(95.0456, 100, 108.9058)`，与库内 D65/2° 固定白点 `(95.047, 100, 108.883)` 略有差异；不进行色适应。
-- `XYZ2RGB` 会裁剪超出 sRGB 色域的颜色并舍入为字节，不能保证任意 XYZ 无损往返。
+- `XYZToRGB` 会裁剪超出 sRGB 色域的颜色并舍入为字节，不能保证任意 XYZ 无损往返。
 
 sRGB 转换矩阵参考 [W3C CSS Color 4](https://www.w3.org/TR/css-color-4/#color-conversion-code)，Luv 逆转换公式核对参考 [Colour 文档](https://colour.readthedocs.io/en/develop/_modules/colour/models/cie_luv.html#Luv_to_XYZ)。
+
+### 从完整光源目录计算白点
+
+`ChromaticityMatch.GetStandardWhitePoint("D50", observer)` 在光源与观察者的共同波段内，以 1 nm 网格积分 `S(λ) × x̄/ȳ/z̄(λ)`，再归一化为 Y = 100。原始 5 nm 光谱线性插值，不外推；白点保留完整 `double` 精度。也可传入自定义 `Spectrum`，或指定积分起止波长。
+
+```csharp
+var observer = StandardObserver.Degree10;
+var fullWhite = ChromaticityMatch.GetStandardWhitePoint("LED-B1", observer);
+var lab = ChromaticityConversion.XYZToLab(fullWhite, "LED-B1", observer); // (100, 0, 0)
+var xyz = ChromaticityConversion.LabToXYZ(lab, "LED-B1", observer);
+// 反射光谱的参考白点须使用相同波段。
+var rangeWhite = ChromaticityMatch.GetStandardWhitePoint("D50", observer, 380, 780);
+var reflected = ChromaticityConversion.REFToXYZ(reflectance, "D50", observer);
+var reflectedLab = ChromaticityConversion.XYZToLab(reflected, rangeWhite);
+```
+
+光源 ID 与观察者必须有效。显式波段须同时被光源与观察者覆盖；参考亮度非正或数值溢出会抛出异常。应用的 01、03、06 使用目录积分白点；01 使用输入反射光谱的波段，03/06 使用光源与观察者的完整共同波段。
+
+## 主波长与补色波长
+
+`ChromaticityConversion.xyYToWavelengths` 接受 `DataModel.CIExyY`、观察者和参考白点。
+第三个参数可为自定义 `CIExyY`、光源 ID 字符串（如 `"D50"`，使用积分白点），或 `Standardilluminant`（保留固定 XYZ 白点）。转为 xy 时不先舍入。
+
+```csharp
+var sample = new CIExyY { CIEx = 0.3, CIEy = 0.6, CIEY = 100 };
+var white = new CIExyY { CIEx = 0.3127, CIEy = 0.3290, CIEY = 100 };
+var wavelengths = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, white);
+// DominantWavelength = 549.13 nm; ComplementaryWavelength = null
+var d65Result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, Standardilluminant.D65);
+// 固定 D65 白点与手填白点略有不同，计算使用其完整精度。
+var d50Result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, "D50");
+```
+
+返回只读 `ChromaticityWavelengthResult`：`double? DominantWavelength`、`double? ComplementaryWavelength`、
+`bool IsAchromatic`。正向（白点→样品）和反向分别求光谱轨迹交点；落在紫边的方向返回 `null`，
+所以一个颜色可能同时有主波长和补色波长。紫色没有主波长；样品与白点距离 ≤ 1e-12 时两者均为 `null`，
+并标记 `IsAchromatic`。定义参考 [CIE 主波长](https://cie.co.at/eilvterm/17-23-062)和
+[补色波长](https://cie.co.at/eilvterm/17-23-063)。
+
+- 使用编译后的 1931 2° / 1964 10° 配色函数生成 360–830 nm / 1 nm 未舍入 xy 轨迹；相邻轨迹点线性插值，
+  仅最终波长按半值进一保留两位小数。两位小数为输出分辨率，不代表 0.01 nm 测量精度。
+- x、y、Y 必须有限，Y ≥ 0；Y 不影响结果。样品必须在物理色域内或边界上，参考白点必须严格在内部。
+  坐标和白点必须属于同一观察者；接口不执行色适应。
+- 物理色域取光谱坐标的凸包，避免 10° 长波红端回折及数据微小不规则导致错误拒绝。
+  光谱求交仍使用原始 1 nm 轨迹。红端不同波长可能对应相同或难以区分的 xy，重复交点取最短波长。
+- `CieSpectralData.GetSpectralLocus(observer)` 和 `GetChromaticityBoundary(observer)` 返回只读轨迹和物理色域边界，
+  供 API 与应用马蹄图共用。近白点波长对 xy 误差敏感，xy 不能恢复原始光谱。
+
+Lab 模型现名为 `DataModel.CIELAB`，仍自动派生 C*、h°；对应转换 API 为 `XYZToLab`、`LabToXYZ`。
+所有 `ChromaticityConversion` 转换 API 统一使用 `To`，包括 `SPDToXYZ`、`REFToXYZ`、`XYZToxyY`、`xyToXYZ`、`xyTouv`、`xyToCCT` 和 `xyYToWavelengths`。类型和方法更名属于源码兼容性变更，调用方需要同步更新。
+
+`CIELAB` 与 `LabToLch` 共用安全的极坐标计算：缩放求模避免平方溢出/下溢，零彩度的 h° 为 0，色相归一化为 [0,360)。模型的 C*/h° 保留四位小数，舍入到 360° 时归零；`LabToLch` 保留完整精度。a*/b* 为 NaN/Infinity 或 C* 真正溢出时拒绝构造/更新，失败的属性更新保留原坐标及派生值。
 
 ## 色差计算
 
 以下均为 `ChromaticityDeltaEFormulations` 的静态方法。`standard` 为标准色，`sample` 为样品色，
-均使用 `CIELABCH`，并应采用相同的参考白点和观察者条件。
+均使用 `CIELAB`，并应采用相同的参考白点和观察者条件。
 
 | 公式 / 函数 | 参数与计算约定 | 返回值 |
 | --- | --- | --- |
@@ -151,8 +204,8 @@ sRGB 转换矩阵参考 [W3C CSS Color 4](https://www.w3.org/TR/css-color-4/#col
 using ChromaticityDotNet.Controller;
 using static ChromaticityDotNet.Model.DataModel;
 
-var standard = new CIELABCH(50, 20, 0);
-var sample = new CIELABCH(50, 0, 20);
+var standard = new CIELAB(50, 20, 0);
+var sample = new CIELAB(50, 0, 20);
 
 double de76 = ChromaticityDeltaEFormulations.DeltaE1976(standard, sample); // 28.2843
 double de94 = ChromaticityDeltaEFormulations.DeltaE1994(standard, sample); // 21.7571
@@ -179,7 +232,7 @@ double cmc21 = ChromaticityDeltaEFormulations.DeltaEcmc(standard, sample, 2, 1);
 
 ## 颜色比较与英文评价
 
-`ChromaticityMatch.CompareColors(CIELABCH reference, CIELABCH sample, ColorComparisonOptions? options = null)`
+`ChromaticityMatch.CompareColors(CIELAB reference, CIELAB sample, ColorComparisonOptions? options = null)`
 同时计算 ΔE1976、CMC、CIEDE2000，返回数值、枚举判断、分项简短英文评价，以及只读的输入和配置快照。
 参数及结果类型位于 `ChromaticityDotNet.Model`；所有差值和方向均为 **sample 相对于 reference**。
 两种 Lab 必须使用相同的白点、观察者条件；接口不执行色适应。
@@ -189,8 +242,8 @@ using ChromaticityDotNet.Controller;
 using ChromaticityDotNet.Model;
 using static ChromaticityDotNet.Model.DataModel;
 
-var reference = new CIELABCH(50, 20, 20);
-var sample = new CIELABCH(52, 18, 24);
+var reference = new CIELAB(50, 20, 20);
+var sample = new CIELAB(52, 18, 24);
 
 // 默认 CMC 1:1、E00 1:1:1，无彩色条件为 L* < 10 或 C* < 5。
 var result = ChromaticityMatch.CompareColors(reference, sample);

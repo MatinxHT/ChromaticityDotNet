@@ -11,17 +11,21 @@ namespace ChromaticityDotNet.Controller
         /// <remarks>Linearly interpolates reflectance to 1 nm and sums over its inclusive range.
         /// The complete input range must be covered by both the observer and illuminant;
         /// no extrapolation or silent clipping is performed. Results are rounded to four decimals.</remarks>
-        public static CIEXYZ REFtoXYZ(Spectrum reflectance, Standardilluminant illuminant, StandardObserver standardObserver)
+        public static CIEXYZ REFToXYZ(Spectrum reflectance, Standardilluminant illuminant, StandardObserver standardObserver)
         {
-            return REFtoXYZ(reflectance, CieSpectralData.GetIlluminantSpectrum(illuminant), standardObserver);
+            return REFToXYZ(reflectance, CieSpectralData.GetIlluminantSpectrum(illuminant), standardObserver);
         }
+
+        /// <summary>Converts reflectance percentages using any illuminant ID in the complete CIE catalog.</summary>
+        public static CIEXYZ REFToXYZ(Spectrum reflectance, string illuminantId, StandardObserver standardObserver) =>
+            REFToXYZ(reflectance, CieSpectralData.GetIlluminantSpectrum(illuminantId), standardObserver);
 
         /// <summary>Converts wavelength-tagged reflectance percentages under a supplied relative
         /// illuminant spectrum. Both inputs are linearly interpolated onto a 1 nm grid.</summary>
         /// <remarks>Uses the reflectance's inclusive range, wholly within 360–830 nm and the
         /// illuminant's range. Values must be finite and nonnegative; reflectance above 100% is
         /// accepted. Relative illuminant scale cancels in the Y = 100 reference-white normalization.</remarks>
-        public static CIEXYZ REFtoXYZ(Spectrum reflectance, Spectrum illuminant, StandardObserver standardObserver)
+        public static CIEXYZ REFToXYZ(Spectrum reflectance, Spectrum illuminant, StandardObserver standardObserver)
         {
             ValidateSpectrum(reflectance, nameof(reflectance));
             ValidateSpectrum(illuminant, nameof(illuminant));
@@ -53,7 +57,7 @@ namespace ChromaticityDotNet.Controller
         /// normalization. Until then this preserves the legacy sample-sum convention (no delta-lambda
         /// factor, no Y = 100 normalization, no photometric factor). Results depend on sampling interval
         /// and are not absolute photometric XYZ. This method does not resample the SPD.</remarks>
-        public static CIEXYZ SPDtoXYZ(Spectrum spd, StandardObserver standardObserver)
+        public static CIEXYZ SPDToXYZ(Spectrum spd, StandardObserver standardObserver)
         {
             ValidateSpectrum(spd, nameof(spd));
             var (xx, yy, zz) = CieSpectralData.GetObserverValues(standardObserver);
@@ -67,6 +71,31 @@ namespace ChromaticityDotNet.Controller
                 z += spd.Spectrums[i] * zz[index];
             }
             return CreateRoundedXyz(x, y, z, nameof(spd));
+        }
+
+        internal static CIEXYZ CalculateWhitePoint(Spectrum illuminant, StandardObserver observer, int? start, int? end)
+        {
+            ValidateSpectrum(illuminant, nameof(illuminant));
+            var (xx, yy, zz) = CieSpectralData.GetObserverValues(observer);
+            int first = start ?? Math.Max(360, illuminant.StartingWavelength);
+            int last = end ?? Math.Min(830, illuminant.EndingWavelength);
+            if (first < 360 || first < illuminant.StartingWavelength || last > 830 ||
+                last > illuminant.EndingWavelength || first > last)
+                throw new ArgumentOutOfRangeException(nameof(start), "White-point range must be covered by both illuminant and observer.");
+            double x = 0, y = 0, z = 0;
+            for (int wavelength = first; wavelength <= last; wavelength++)
+            {
+                double power = Interpolate(illuminant, wavelength);
+                int i = wavelength - 360;
+                x += power * xx[i]; y += power * yy[i]; z += power * zz[i];
+            }
+            if (y <= 0 || double.IsInfinity(x) || double.IsInfinity(y) || double.IsInfinity(z))
+                throw new ArgumentException("Illuminant must produce finite XYZ and positive reference luminance.", nameof(illuminant));
+            double normalizedX = x / y * 100, normalizedZ = z / y * 100;
+            if (double.IsInfinity(normalizedX) || double.IsInfinity(normalizedZ))
+                throw new ArgumentException("Illuminant reference white overflows finite XYZ.", nameof(illuminant));
+            // Preserve full precision so neutral reflectors and bidirectional conversions use the same white.
+            return new CIEXYZ { CIEX = normalizedX, CIEY = 100, CIEZ = normalizedZ };
         }
 
         private static void ValidateSpectrum(Spectrum spectrum, string paramName)

@@ -33,17 +33,20 @@ public static class ToolCalculations
     public const StandardObserver DefaultObserver = StandardObserver.Degree10;
     public const int MaxTextLength = 2_000_000;
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
-    public static readonly Standardilluminant[] Illuminants = Enum.GetValues<Standardilluminant>();
+    public static readonly CieIlluminantInfo[] Illuminants = CieSpectralData.Illuminants
+        .OrderBy(item => item.Id == "D65" ? 0 : 1).ThenBy(item => item.DisplayName, StringComparer.Ordinal).ToArray();
     public static readonly int[] IlluminantIntervals = [1, 5, 10, 20];
 
-    public static IlluminantQueryResult QueryIlluminant(Standardilluminant illuminant, int interval) =>
-        QueryIlluminant(illuminant switch
+    public static string IlluminantId(Standardilluminant illuminant) => illuminant switch
         {
             Standardilluminant.D65 => "D65", Standardilluminant.A => "A",
             Standardilluminant.CWF => "FL2", Standardilluminant.F7 => "FL7",
             Standardilluminant.TL84 => "FL11", Standardilluminant.U30 => "FL12",
             _ => throw new ArgumentOutOfRangeException(nameof(illuminant))
-        }, interval);
+        };
+
+    public static IlluminantQueryResult QueryIlluminant(Standardilluminant illuminant, int interval) =>
+        QueryIlluminant(IlluminantId(illuminant), interval);
 
     public static IlluminantQueryResult QueryIlluminant(string illuminantId, int interval, int? start = null, int? end = null)
     {
@@ -124,10 +127,10 @@ public static class ToolCalculations
         return cells.Select((cell, i) => Number(cell, $"第 {row} 行第 {i + 1} 列")).ToArray();
     }
 
-    private static CIELABCH Lab(double[] v)
+    private static CIELAB Lab(double[] v)
     {
         if (v[0] < 0) throw new ArgumentException("L* 不能小于 0。");
-        return new CIELABCH(v[0], v[1], v[2]);
+        return new CIELAB(v[0], v[1], v[2]);
     }
 
     public static CalculationTable DifferenceAuto(string standards, string samples,
@@ -158,8 +161,8 @@ public static class ToolCalculations
             var standard = reference[paired ? i : 0];
             var comparison = ChromaticityMatch.CompareColors(standard, sample, options);
             var delta = comparison.Differences;
-            string Swatch(CIELABCH lab) => Hex(ChromaticityConversion.XYZ2RGB(
-                ChromaticityConversion.Labch2XYZ(lab, Standardilluminant.D65, DefaultObserver)));
+            string Swatch(CIELAB lab) => Hex(ChromaticityConversion.XYZToRGB(
+                ChromaticityConversion.LabToXYZ(lab, "D65", DefaultObserver)));
             return new string[] { (i + 1).ToString(Invariant), Swatch(standard), Swatch(sample),
                 F(standard.CIEL), F(standard.CIEA), F(standard.CIEB),
                 F(sample.CIEL), F(sample.CIEA), F(sample.CIEB),
@@ -175,10 +178,18 @@ public static class ToolCalculations
     }
 
     public static SpectrumResult Reflectance(string text, int start, int end, int step, bool fraction,
-        Standardilluminant illuminant, StandardObserver observer)
+        Standardilluminant illuminant, StandardObserver observer) =>
+        Reflectance(text, start, end, step, fraction, IlluminantId(illuminant), observer);
+
+    public static SpectrumResult Reflectance(string text, int start, int end, int step, bool fraction,
+        string illuminant, StandardObserver observer)
     {
         if (step <= 0 || start < 360 || end > 830 || end <= start || (end - start) % step != 0)
-            throw new ArgumentException("波长需在 360–830 nm 内，结束大于起始，且范围可被正整数间隔整除。荧光光源限 380–780 nm。");
+            throw new ArgumentException("波长需在 360–830 nm 内，结束大于起始，且范围可被正整数间隔整除。");
+        var light = CieSpectralData.GetIlluminantSpectrum(illuminant);
+        if (start < light.StartingWavelength || end > light.EndingWavelength)
+            throw new ArgumentException($"所选光源 {illuminant} 可用波段：{Math.Max(360, light.StartingWavelength)}–{Math.Min(830, light.EndingWavelength)} nm。请调整输入波段。");
+        var white = ChromaticityMatch.GetStandardWhitePoint(light, observer, start, end);
         var rows = ParseRows(text);
         if (rows.Length != (end - start) / step + 1) throw new ArgumentException($"当前波长设置需要 {(end - start) / step + 1} 个采样点，实际为 {rows.Length} 个。");
         var columns = rows[0].Length;
@@ -192,19 +203,25 @@ public static class ToolCalculations
             if (!double.IsFinite(value) || value < 0) throw new ArgumentException($"第 {i + 1} 行反射率必须有限且非负。");
             return value;
         }).ToArray();
-        var xyz = ChromaticityConversion.REFtoXYZ(new Spectrum { StartingWavelength = start, EndingWavelength = end,
-            WavelengthInterval = step, Spectrums = values }, illuminant, observer);
-        var conditions = $"Reflectance; {start}–{end} nm / {step} nm; {Condition(illuminant, observer)}; Lab/Luv: library fixed white";
-        var table = new CalculationTable(ColorHeaders, [ColorRow(1, xyz, illuminant, observer, conditions)], conditions);
+        var xyz = ChromaticityConversion.REFToXYZ(new Spectrum { StartingWavelength = start, EndingWavelength = end,
+            WavelengthInterval = step, Spectrums = values }, light, observer);
+        var conditions = $"Reflectance; {start}–{end} nm / {step} nm; {Condition(illuminant, observer)}; Lab/Luv: integrated spectral white {start}–{end} nm (Y=100)";
+        var table = new CalculationTable(ColorHeaders, [ColorRow(1, xyz, illuminant, observer, white, conditions)], conditions);
         return new(table, values, start, step, Preview(xyz, illuminant, observer));
     }
 
     public static CalculationTable ConvertColors(string text, InputSpace space,
-        Standardilluminant illuminant, StandardObserver observer)
+        Standardilluminant illuminant, StandardObserver observer) =>
+        ConvertColors(text, space, IlluminantId(illuminant), observer);
+
+    public static CalculationTable ConvertColors(string text, InputSpace space,
+        string illuminant, StandardObserver observer)
     {
+        var white = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
+        var info = Illuminants.First(item => string.Equals(item.Id, illuminant, StringComparison.OrdinalIgnoreCase));
         if (space is InputSpace.sRGB or InputSpace.HEX && !CanPreview(illuminant, observer))
             throw new ArgumentException("sRGB / HEX 输入使用 D65。库尚未执行色适应，请选择对应光源。");
-        var conditions = $"{space}; {Condition(illuminant, observer)}; Lab/Luv: library fixed white";
+        var conditions = $"{space}; {Condition(illuminant, observer)}; Lab/Luv: integrated spectral white {Math.Max(360, info.StartingWavelength)}–{Math.Min(830, info.EndingWavelength)} nm (Y=100)";
         if (!CanPreview(illuminant, observer)) conditions += "; sRGB: screen approximation, no chromatic adaptation";
         var rows = ParseRows(text).Select((row, i) =>
         {
@@ -214,7 +231,7 @@ public static class ToolCalculations
                 if (row.Length != 1 || row[0].Length != 7 || row[0][0] != '#' ||
                     !int.TryParse(row[0][1..], NumberStyles.HexNumber, Invariant, out var hex))
                     throw new ArgumentException($"第 {i + 1} 行需要 #RRGGBB 格式。");
-                xyz = ChromaticityConversion.RGB2XYZ(new CIERGB { redValue = (byte)(hex >> 16), greenValue = (byte)(hex >> 8), blueValue = (byte)hex });
+                xyz = ChromaticityConversion.RGBToXYZ(new CIERGB { redValue = (byte)(hex >> 16), greenValue = (byte)(hex >> 8), blueValue = (byte)hex });
             }
             else
             {
@@ -222,32 +239,38 @@ public static class ToolCalculations
                 xyz = space switch
                 {
                     InputSpace.XYZ => v.Any(n => n < 0) ? throw new ArgumentException("XYZ 输入不能为负数。") : new CIEXYZ { CIEX = v[0], CIEY = v[1], CIEZ = v[2] },
-                    InputSpace.Lab => ChromaticityConversion.Labch2XYZ(Lab(v), illuminant, observer),
-                    InputSpace.Luv => ChromaticityConversion.Luv2XYZ(new CIELuv { CIEL = v[0], CIEu = v[1], CIEv = v[2] }, illuminant, observer),
+                    InputSpace.Lab => ChromaticityConversion.LabToXYZ(Lab(v), white),
+                    InputSpace.Luv => ChromaticityConversion.LuvToXYZ(new CIELuv { CIEL = v[0], CIEu = v[1], CIEv = v[2] }, white),
                     InputSpace.xyY => v[0] < 0 || v[1] <= 0 || v[0] + v[1] > 1 || v[2] < 0
                         ? throw new ArgumentException("xyY 需要 x≥0、y>0、x+y≤1、Y≥0。")
-                        : ChromaticityConversion.xy2XYZ(new CIExyY { CIEx = v[0], CIEy = v[1], CIEY = v[2] }),
+                        : ChromaticityConversion.xyToXYZ(new CIExyY { CIEx = v[0], CIEy = v[1], CIEY = v[2] }),
                     InputSpace.sRGB => v.Any(n => n < 0 || n > 255 || n != Math.Truncate(n))
                         ? throw new ArgumentException("sRGB 每个通道必须是 0–255 的整数。")
-                        : ChromaticityConversion.RGB2XYZ(new CIERGB { redValue = (byte)v[0], greenValue = (byte)v[1], blueValue = (byte)v[2] }),
+                        : ChromaticityConversion.RGBToXYZ(new CIERGB { redValue = (byte)v[0], greenValue = (byte)v[1], blueValue = (byte)v[2] }),
                     _ => throw new ArgumentException("不支持的输入空间。")
                 };
             }
-            return ColorRow(i + 1, xyz, illuminant, observer, conditions, alwaysPreview: true);
+            return ColorRow(i + 1, xyz, illuminant, observer, white, conditions, alwaysPreview: true);
         }).ToArray();
         return new(ColorHeaders, rows, conditions);
     }
 
-    private static string Condition(Standardilluminant light, StandardObserver observer) =>
+    private static string Condition(string light, StandardObserver observer) =>
         $"{light} / {(observer == StandardObserver.Degree2 ? "2°" : "10°")}";
 
     public static bool CanPreview(Standardilluminant light, StandardObserver observer) =>
-        light == Standardilluminant.D65 && observer is StandardObserver.Degree2 or StandardObserver.Degree10;
+        CanPreview(IlluminantId(light), observer);
 
-    public static string? Preview(CIEXYZ xyz, Standardilluminant light, StandardObserver observer)
+    public static bool CanPreview(string light, StandardObserver observer) =>
+        string.Equals(light, "D65", StringComparison.OrdinalIgnoreCase) && observer is StandardObserver.Degree2 or StandardObserver.Degree10;
+
+    public static string? Preview(CIEXYZ xyz, Standardilluminant light, StandardObserver observer) =>
+        Preview(xyz, IlluminantId(light), observer);
+
+    public static string? Preview(CIEXYZ xyz, string light, StandardObserver observer)
     {
         if (!CanPreview(light, observer)) return null;
-        var rgb = ChromaticityConversion.XYZ2RGB(xyz);
+        var rgb = ChromaticityConversion.XYZToRGB(xyz);
         return Hex(rgb);
     }
 
@@ -256,15 +279,15 @@ public static class ToolCalculations
     private static readonly string[] ColorHeaders = ["行", "X", "Y", "Z", "L*", "a*", "b*", "C*", "h°", "L* (Luv)", "u*", "v*", "x", "y", "R", "G", "B", "HEX", "计算条件",
         "H (HSL) / °", "S (HSL) / %", "L (HSL) / %", "H (HSV) / °", "S (HSV) / %", "V (HSV) / %"];
 
-    private static string[] ColorRow(int index, CIEXYZ xyz, Standardilluminant light, StandardObserver observer, string conditions, bool alwaysPreview = false)
+    private static string[] ColorRow(int index, CIEXYZ xyz, string light, StandardObserver observer, CIEXYZ white, string conditions, bool alwaysPreview = false)
     {
         // Format first to reject overflow before passing results to the byte-based RGB API.
         var coordinates = new[] { F(xyz.CIEX), F(xyz.CIEY), F(xyz.CIEZ) };
-        var lab = ChromaticityConversion.XYZ2Labch(xyz, light, observer);
-        var luv = ChromaticityConversion.XYZ2Luv(xyz, light, observer);
+        var lab = ChromaticityConversion.XYZToLab(xyz, white);
+        var luv = ChromaticityConversion.XYZToLuv(xyz, white);
         var sum = xyz.CIEX + xyz.CIEY + xyz.CIEZ;
-        var xy = sum == 0 ? null : ChromaticityConversion.XYZ2xyY(xyz);
-        var rgb = alwaysPreview || CanPreview(light, observer) ? ChromaticityConversion.XYZ2RGB(xyz) : null;
+        var xy = sum == 0 ? null : ChromaticityConversion.XYZToxyY(xyz);
+        var rgb = alwaysPreview || CanPreview(light, observer) ? ChromaticityConversion.XYZToRGB(xyz) : null;
         var hsl = rgb is null ? null : ChromaticityConversion.RGBToHSL(rgb);
         var hsv = rgb is null ? null : ChromaticityConversion.RGBToHSV(rgb);
         return [index.ToString(Invariant), ..coordinates, F(lab.CIEL), F(lab.CIEA), F(lab.CIEB), F(lab.CIEC), F(lab.CIEH),

@@ -6,6 +6,7 @@
     <WasmEnableThreads>false</WasmEnableThreads>
     <WasmBuildNative>true</WasmBuildNative>
     <RunAOTCompilation>false</RunAOTCompilation>
+    <_SharedBrandingDirectory>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../assets/branding/'))</_SharedBrandingDirectory>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia.Browser" Version="$(AvaloniaVersion)" />
@@ -13,6 +14,9 @@
     <StaticWebAssetFingerprintPattern Include="JS" Pattern="*.js" Expression="#[.{fingerprint}]!" />
   </ItemGroup>
   <ItemGroup>
+    <!-- ContentRoot also lets the development server resolve these external files. -->
+    <Content Include="$(_SharedBrandingDirectory)app-icon.png;$(_SharedBrandingDirectory)favicon-16.png;$(_SharedBrandingDirectory)favicon-32.png" Link="wwwroot/assets/%(Filename)%(Extension)" ContentRoot="$(_SharedBrandingDirectory)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(_SharedBrandingDirectory)favicon.ico" Link="wwwroot/favicon.ico" ContentRoot="$(_SharedBrandingDirectory)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../Chromaticity.Tools/Assets/OFL.txt" Link="wwwroot/tools/FONT-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../CIE-DATA-NOTICE.md" Link="wwwroot/tools/CIE-DATA-NOTICE.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../LICENSE" Link="wwwroot/tools/LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />

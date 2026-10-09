@@ -3,6 +3,7 @@ name: .NET Build and Release
 on:
   push:
     branches: [ master ]
+    # Shared assets/branding changes still trigger package validation.
     paths-ignore:
       - 'apps/**'
       - '.github/workflows/pages.yml'
@@ -53,7 +54,7 @@ jobs:
       - name: Generate NuGet package
         run: dotnet pack ChromaticityDotNet.csproj --configuration Release --no-build --no-restore --output nupkg
 
-      - name: Read package metadata
+      - name: Read package metadata and verify shared icon
         id: package
         run: |
           python3 - <<'PY'
@@ -70,6 +71,11 @@ jobs:
               metadata = ET.fromstring(package.read(nuspec)).find('{*}metadata')
               package_id = metadata.findtext('{*}id')
               version = metadata.findtext('{*}version')
+              icon = metadata.findtext('{*}icon')
+              if icon != 'app-icon.png' or icon not in package.namelist():
+                  raise SystemExit('NuGet package must include its declared app-icon.png')
+              if package.read(icon) != Path('assets/branding/app-icon.png').read_bytes():
+                  raise SystemExit('NuGet icon differs from the shared branding resource')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f'id={package_id}\nversion={version}\ntag=v{version}\n')
           PY

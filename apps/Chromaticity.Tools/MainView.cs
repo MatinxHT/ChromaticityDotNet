@@ -27,9 +27,10 @@ public sealed partial class MainView : UserControl
             "conversion" => ConversionPage(),
             "illuminant" => IlluminantPage(),
             "grades" => ColorGradePage(),
+            "wavelength" => WavelengthPage(),
             _ => SpectrumPage()
         });
-        content.Children.Add(Note($"ChromaticityDotNet v{LibraryInfo.Version} · 代码 MIT · CIE 数据 CC BY-SA 4.0\n计算保留库的四位小数与既有白点约定。色块仅为屏幕近似，不能代替仪器测量。"));
+        content.Children.Add(Note($"ChromaticityDotNet v{LibraryInfo.Version} · 代码 MIT · CIE 数据 CC BY-SA 4.0\n波长保留两位小数，其他计算保留四位小数。参考白点由光源光谱与所选观察者积分得到。色块仅为屏幕近似，不能代替仪器测量。"));
         Content = new ScrollViewer { Content = content, Background = Brush.Parse("#F5F5F5"), HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
     }
 
@@ -40,12 +41,19 @@ public sealed partial class MainView : UserControl
         var input = Input("SpectrumInput", "380,18\n390,18\n…");
         var light = Light(); var observer = Observer();
         var start = SmallInput("380"); var end = SmallInput("780"); var step = SmallInput("10");
+        var coverage = Note("");
+        void UpdateCoverage()
+        {
+            var info = ToolCalculations.Illuminants[light.SelectedIndex];
+            coverage.Text = $"所选光源 {info.Id} 可用波段：{Math.Max(360, info.StartingWavelength)}–{Math.Min(830, info.EndingWavelength)} nm。";
+        }
+        light.SelectionChanged += (_, _) => UpdateCoverage(); UpdateCoverage();
         var units = Select(["百分数（18 = 18%）", "比例（0.18 = 18%）"]);
         var form = Stack(
             Text("光谱计算", 24, true),
             Note("使用库内 CIE 光谱数据。输入一列反射率，或两列“波长、反射率”；每行一个采样点。仅导入 CSV，可有表头，列名不限。模板按当前波段和单位生成。"),
             Fields(("照明体", light), ("观察者", observer), ("输入单位", units)),
-            Fields(("起始波长 / nm", start), ("结束波长 / nm", end), ("间隔 / nm", step)),
+            Fields(("起始波长 / nm", start), ("结束波长 / nm", end), ("间隔 / nm", step)), coverage,
             input,
             Actions(Button("载入 18% 灰示例", () =>
             {
@@ -62,7 +70,7 @@ public sealed partial class MainView : UserControl
                 plot.SetData(data.Values, data.Start, data.Step); plot.IsVisible = true;
                 return data.Table;
             }))),
-            Note("D65 / A：360–830 nm；CWF / F7 / TL84 / U30：380–780 nm。\nLab / Luv 使用库的固定白点，可能与所选波段的积分白点略有不同。sRGB 预览在 D65 下显示，会裁剪超色域颜色。\n曲线淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"), plot);
+            Note("参考照明体包含全部 50 条 CIE 光源，白点由光谱与所选观察者积分计算。\nLab / Luv 使用与反射光谱相同波段的积分白点。sRGB 预览在 D65 下显示，会裁剪超色域颜色。\n曲线淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"), plot);
         Watch(result, () => plot.IsVisible = false, input, start, end, step, light, observer, units);
         return Stack(Card(form), result);
     }
@@ -209,6 +217,7 @@ public sealed partial class MainView : UserControl
         var form = Stack(Text("颜色转换", 24, true),
             Note("支持单个或批量输入，每个颜色以卡片展示 XYZ、Lab、LCh、Luv、xyY、sRGB、HSL、HSV 和 HEX。HSL/HSV 的 H 为角度，S/L/V 显示为百分数。"),
             Fields(("输入空间", space), ("参考照明体", light), ("观察者", observer)), help,
+            Note("参考照明体包含全部 50 条 CIE 光源，白点由光谱与所选观察者积分计算。"),
             Note("每行一个颜色；仅导入 CSV，可有表头，列名不限。模板随输入空间切换。粘贴数值支持中英文逗号、制表符或空格分列。"), input,
             Actions(Button("载入示例", () => input.Text = (InputSpace)space.SelectedIndex switch
             {
@@ -298,9 +307,9 @@ public sealed partial class MainView : UserControl
         return button;
     }
 
-    private static Standardilluminant SelectedLight(ComboBox combo) => ToolCalculations.Illuminants[combo.SelectedIndex];
+    private static string SelectedLight(ComboBox combo) => ToolCalculations.Illuminants[combo.SelectedIndex].Id;
     private static StandardObserver SelectedObserver(ComboBox combo) => combo.SelectedIndex == 0 ? StandardObserver.Degree2 : StandardObserver.Degree10;
-    private static ComboBox Light() => Select(ToolCalculations.Illuminants.Select(x => x.ToString()).ToArray());
+    private static ComboBox Light() => Select(ToolCalculations.Illuminants.Select(x => x.DisplayName).ToArray());
     private static ComboBox Observer()
     {
         var observer = Select(["2° · CIE 1931", "10° · CIE 1964"]);
@@ -309,7 +318,7 @@ public sealed partial class MainView : UserControl
     }
     private static ComboBox Select(string[] items) => new()
     {
-        ItemsSource = items, SelectedIndex = 0, MinWidth = 155,
+        ItemsSource = items, SelectedIndex = 0, MinWidth = 155, MaxDropDownHeight = 320,
         ItemTemplate = new FuncDataTemplate<string>((item, _) => Text(item ?? ""))
     };
     private static TextBox SmallInput(string value) => new() { Text = value, Width = 155 };

@@ -9,7 +9,7 @@ public class DataModelTests
     [Fact]
     public void LabConstructorCalculatesChromaAndHueToFourPlaces()
     {
-        CIELABCH color = new(50.0, 1.0, 1.0);
+        CIELAB color = new(50.0, 1.0, 1.0);
 
         Assert.Equal(50.0, color.CIEL);
         Assert.Equal(1.4142, color.CIEC);
@@ -26,7 +26,7 @@ public class DataModelTests
     [InlineData(1.0, -1.0, 315.0)]
     public void LabHueIsNormalizedToZeroThrough360(double a, double b, double expectedHue)
     {
-        CIELABCH color = new(50.0, a, b);
+        CIELAB color = new(50.0, a, b);
 
         Assert.Equal(expectedHue, color.CIEH);
     }
@@ -34,7 +34,7 @@ public class DataModelTests
     [Fact]
     public void ChangingLabComponentsRecalculatesDerivedValues()
     {
-        CIELABCH color = new(50.0, 3.0, 4.0);
+        CIELAB color = new(50.0, 3.0, 4.0);
         Assert.Equal(5.0, color.CIEC);
 
         color.CIEA = 5.0;
@@ -42,6 +42,52 @@ public class DataModelTests
 
         Assert.Equal(13.0, color.CIEC);
         Assert.Equal(67.3801, color.CIEH);
+    }
+
+    [Theory]
+    [InlineData(0.0, -0.0)]
+    [InlineData(-0.0, -0.0)]
+    [InlineData(1.0, -1e-10)]
+    public void NeutralAndAlmostFullCircleHuesStayInTheNormalizedRange(double a, double b)
+    {
+        var color = new CIELAB(50, a, b);
+        Assert.Equal(0, color.CIEH);
+        Assert.InRange(ChromaticityDotNet.Controller.ChromaticityConversion.LabToLch(color).CIEH, 0, 359.99999999999999);
+    }
+
+    [Theory]
+    [InlineData(1e200, 1e200)]
+    [InlineData(1e-200, -1e-200)]
+    public void ChromaAvoidsIntermediateSquareOverflowAndUnderflow(double a, double b)
+    {
+        var color = new CIELAB(50, a, b);
+        var lch = ChromaticityDotNet.Controller.ChromaticityConversion.LabToLch(color);
+        Assert.Equal(Math.Sqrt(2), lch.CIEC / Math.Abs(a), 14);
+        Assert.Equal(Math.Round(lch.CIEC, 4, MidpointRounding.AwayFromZero), color.CIEC);
+        Assert.Equal(Math.Round(lch.CIEH, 4, MidpointRounding.AwayFromZero), color.CIEH);
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void InvalidComponentUpdatesLeaveTheEntireLabUnchanged(double value)
+    {
+        var color = new CIELAB(50, 3, 4);
+        Assert.Throws<ArgumentOutOfRangeException>(() => color.CIEA = value);
+        Assert.Throws<ArgumentOutOfRangeException>(() => color.CIEB = value);
+        Assert.Equal(3, color.CIEA); Assert.Equal(4, color.CIEB);
+        Assert.Equal(5, color.CIEC); Assert.Equal(53.1301, color.CIEH);
+    }
+
+    [Fact]
+    public void TrueChromaOverflowIsRejectedWithoutLeavingStaleDerivedValues()
+    {
+        var color = new CIELAB(50, double.MaxValue, 0);
+        Assert.Equal(double.MaxValue, color.CIEC);
+        Assert.Throws<ArgumentException>(() => color.CIEB = double.MaxValue);
+        Assert.Equal(0, color.CIEB); Assert.Equal(0, color.CIEH);
+        Assert.Equal(double.MaxValue, color.CIEC);
     }
 
     [Fact]

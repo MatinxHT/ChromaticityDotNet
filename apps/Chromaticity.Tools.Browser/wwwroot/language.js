@@ -4,7 +4,8 @@ const toolNames = {
     difference: ['色差计算', 'Color difference'],
     conversion: ['颜色转换', 'Color conversion'],
     illuminant: ['标准光源查询', 'Standard illuminants'],
-    grades: ['色差分级色卡', 'Color grade chart']
+    grades: ['色差分级色卡', 'Color grade chart'],
+    wavelength: ['主波长与补色波长计算', 'Dominant and complementary wavelengths']
 };
 const listeners = new Set();
 const chineseText = new WeakMap();

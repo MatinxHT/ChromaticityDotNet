@@ -1,4 +1,4 @@
-﻿using ChromaticityDotNet.Model;
+using ChromaticityDotNet.Model;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
@@ -76,7 +76,7 @@ namespace ChromaticityDotNet.Controller
         /// <param name="SPD"></param>
         /// <param name="standardObserver"></param>
         /// <returns></returns>
-        public static CIEXYZ SPDtoXYZ(double[] SPD,StandardObserver standardObserver)
+        public static CIEXYZ SPDToXYZ(double[] SPD,StandardObserver standardObserver)
         {
             double[] xx;
             double[] yy;
@@ -126,7 +126,7 @@ namespace ChromaticityDotNet.Controller
         /// <param name="illuminant"></param>
         /// <param name="standardObserver"></param>
         /// <returns></returns>
-        public static CIEXYZ REFtoXYZ(double[] REFDATA, Standardilluminant illuminant, StandardObserver standardObserver)
+        public static CIEXYZ REFToXYZ(double[] REFDATA, Standardilluminant illuminant, StandardObserver standardObserver)
         {
             IStandardilluminant StandaredIlluminant = ChromaticityMatch.GetStandardilluminantdata(illuminant);
 
@@ -214,10 +214,19 @@ namespace ChromaticityDotNet.Controller
         /// <param name="XYZ">CIEXYZ color</param>
         /// <param name="illuminant">Reference illuminant used for the XYZ values.</param>
         /// <param name="observer">Standard observer used for the XYZ values.</param>
-        /// <returns>CIE Labch color</returns>
-        public static CIELABCH XYZ2Labch(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
+        /// <returns>CIE Lab color</returns>
+        public static CIELAB XYZToLab(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
+            => XYZToLab(XYZ, GetConversionWhitePoint(illuminant, observer));
+
+        /// <summary>Converts XYZ to Lab using a white integrated from a CIE catalog illuminant.</summary>
+        public static CIELAB XYZToLab(CIEXYZ XYZ, string illuminantId, StandardObserver observer)
+            => XYZToLab(XYZ, ChromaticityMatch.GetStandardWhitePoint(illuminantId, observer));
+
+        /// <summary>Converts XYZ to Lab using an explicit reference white on the same XYZ scale.</summary>
+        public static CIELAB XYZToLab(CIEXYZ XYZ, CIEXYZ whitePoint)
         {
-            CIEXYZ WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
+            ValidateXyzInput(XYZ, nameof(XYZ));
+            CIEXYZ WhitePoint = ValidateWhitePoint(whitePoint);
 
             double temX = LabFunction(XYZ.CIEX / WhitePoint.CIEX);
             double temY = LabFunction(XYZ.CIEY / WhitePoint.CIEY);
@@ -228,7 +237,7 @@ namespace ChromaticityDotNet.Controller
 
             if (L < 0) L = 0.00;
 
-            return new CIELABCH
+            return new CIELAB
             {
                 CIEL = NumericPrecision.Round(L),
                 CIEA = NumericPrecision.Round(a),
@@ -242,7 +251,7 @@ namespace ChromaticityDotNet.Controller
         /// </summary>
         /// <param name="XYZ">CIEXYZ color</param>
         /// <returns>CIE xyY color</returns>
-        public static CIExyY XYZ2xyY(CIEXYZ XYZ)
+        public static CIExyY XYZToxyY(CIEXYZ XYZ)
         {
             double total = XYZ.CIEX + XYZ.CIEY + XYZ.CIEZ;
             return new CIExyY()
@@ -260,9 +269,18 @@ namespace ChromaticityDotNet.Controller
         /// <param name="illuminant"></param>
         /// <param name="observer"></param>
         /// <returns>CIE 1976 L*u*v* color</returns>
-        public static CIELuv XYZ2Luv(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
+        public static CIELuv XYZToLuv(CIEXYZ XYZ, Standardilluminant illuminant, StandardObserver observer)
+            => XYZToLuv(XYZ, GetConversionWhitePoint(illuminant, observer));
+
+        /// <summary>Converts XYZ to Luv using a white integrated from a CIE catalog illuminant.</summary>
+        public static CIELuv XYZToLuv(CIEXYZ XYZ, string illuminantId, StandardObserver observer)
+            => XYZToLuv(XYZ, ChromaticityMatch.GetStandardWhitePoint(illuminantId, observer));
+
+        /// <summary>Converts XYZ to Luv using an explicit reference white on the same XYZ scale.</summary>
+        public static CIELuv XYZToLuv(CIEXYZ XYZ, CIEXYZ whitePoint)
         {
-            CIEXYZ WhitePoint = ChromaticityMatch.GetStandardWhitePoint(illuminant, observer);
+            ValidateXyzInput(XYZ, nameof(XYZ));
+            CIEXYZ WhitePoint = ValidateWhitePoint(whitePoint);
 
             // Black has no chromaticity, but its L*u*v* coordinates are all zero.
             if (XYZ.CIEX == 0.0 && XYZ.CIEY == 0.0 && XYZ.CIEZ == 0.0)
@@ -300,7 +318,7 @@ namespace ChromaticityDotNet.Controller
         /// </summary>
         /// <param name="xyzColor">D65 XYZ values; no chromatic adaptation is performed.</param>
         /// <returns>Gamma-encoded sRGB channels in the range 0 to 255.</returns>
-        public static CIERGB XYZ2RGB(CIEXYZ xyzColor)
+        public static CIERGB XYZToRGB(CIEXYZ xyzColor)
         {
             double X = xyzColor.CIEX;
             double Y = xyzColor.CIEY;
@@ -312,7 +330,7 @@ namespace ChromaticityDotNet.Controller
             Z /= 100.0;
 
             // W3C CSS Color 4 matrices use the sRGB D65 white (x=0.3127, y=0.3290).
-            // This is the inverse of the matrix in RGB2XYZ.
+            // This is the inverse of the matrix in RGBToXYZ.
             double R = (12831.0 / 3959.0) * X - (329.0 / 214.0) * Y - (1974.0 / 3959.0) * Z;
             double G = -(851781.0 / 878810.0) * X + (1648619.0 / 878810.0) * Y + (36519.0 / 878810.0) * Z;
             double B = (705.0 / 12673.0) * X - (2585.0 / 12673.0) * Y + (705.0 / 667.0) * Z;
@@ -363,23 +381,14 @@ namespace ChromaticityDotNet.Controller
 
         /// <summary>Converts Lab to LCh directly from L*, a*, b*, retaining double precision.</summary>
         /// <remarks>Requires finite coordinates and nonnegative L*. L* above 100 is allowed.
-        /// Ignores the rounded C/H properties of CIELABCH. Zero chroma has no defined hue;
+        /// Ignores the rounded C/H properties of CIELAB. Zero chroma has no defined hue;
         /// its returned hue is zero as a placeholder.</remarks>
-        public static CIELCH LabToLch(CIELABCH labColor)
+        public static CIELCH LabToLch(CIELAB labColor)
         {
             if (labColor is null) throw new ArgumentNullException(nameof(labColor));
             ValidateLightness(labColor.CIEL, nameof(labColor));
-            ValidateFinite(labColor.CIEA, nameof(labColor));
-            ValidateFinite(labColor.CIEB, nameof(labColor));
-
-            double chroma = Math.Sqrt(labColor.CIEA * labColor.CIEA + labColor.CIEB * labColor.CIEB);
-            if (double.IsInfinity(chroma))
-                throw new ArgumentException("Lab coordinates overflow the finite chroma range.", nameof(labColor));
-            double hue = chroma == 0 ? 0 : Math.Atan2(labColor.CIEB, labColor.CIEA) * 180.0 / Math.PI;
-            if (hue < 0) hue += 360.0;
-            // Adding 360 to a very small negative angle can round to exactly 360.
-            if (hue >= 360.0) hue = 0;
-            return new CIELCH(labColor.CIEL, chroma, hue);
+            var polar = LabPolarCoordinates.Calculate(labColor.CIEA, labColor.CIEB, nameof(labColor));
+            return new CIELCH(labColor.CIEL, polar.Chroma, polar.Hue);
         }
 
         #endregion
@@ -397,7 +406,15 @@ namespace ChromaticityDotNet.Controller
         /// <exception cref="ArgumentOutOfRangeException">A coordinate is non-finite, L* is negative, or an enum value is undefined.</exception>
         /// <exception cref="ArgumentException">The coordinates overflow the finite XYZ range.</exception>
         /// <remarks>Intermediate values retain full precision. Extended colors are not clipped; L* above 100 is allowed.</remarks>
-        public static CIEXYZ Labch2XYZ(CIELABCH labColor, Standardilluminant illuminant, StandardObserver observer)
+        public static CIEXYZ LabToXYZ(CIELAB labColor, Standardilluminant illuminant, StandardObserver observer)
+            => LabToXYZ(labColor, GetConversionWhitePoint(illuminant, observer));
+
+        /// <summary>Converts Lab to XYZ using a white integrated from a CIE catalog illuminant.</summary>
+        public static CIEXYZ LabToXYZ(CIELAB labColor, string illuminantId, StandardObserver observer)
+            => LabToXYZ(labColor, ChromaticityMatch.GetStandardWhitePoint(illuminantId, observer));
+
+        /// <summary>Converts Lab to XYZ using an explicit positive, finite reference white.</summary>
+        public static CIEXYZ LabToXYZ(CIELAB labColor, CIEXYZ whitePoint)
         {
             if (labColor is null)
                 throw new ArgumentNullException(nameof(labColor));
@@ -405,7 +422,7 @@ namespace ChromaticityDotNet.Controller
             ValidateLightness(labColor.CIEL, nameof(labColor));
             ValidateFinite(labColor.CIEA, nameof(labColor));
             ValidateFinite(labColor.CIEB, nameof(labColor));
-            CIEXYZ whitePoint = GetConversionWhitePoint(illuminant, observer);
+            ValidateWhitePoint(whitePoint);
 
             double fy = (labColor.CIEL + 16.0) / 116.0;
             double fx = fy + labColor.CIEA / 500.0;
@@ -425,7 +442,7 @@ namespace ChromaticityDotNet.Controller
         /// <returns>XYZ with reference white Y = 100, rounded to four decimal places away from zero at midpoints.</returns>
         /// <exception cref="ArgumentNullException"><paramref name="rgbColor"/> is null.</exception>
         /// <remarks>Uses the sRGB D65 white (x=0.3127, y=0.3290). No chromatic adaptation is performed.</remarks>
-        public static CIEXYZ RGB2XYZ(CIERGB rgbColor)
+        public static CIEXYZ RGBToXYZ(CIERGB rgbColor)
         {
             if (rgbColor is null)
                 throw new ArgumentNullException(nameof(rgbColor));
@@ -461,7 +478,15 @@ namespace ChromaticityDotNet.Controller
         /// <exception cref="ArgumentOutOfRangeException">A coordinate is non-finite, L* is negative, or an enum value is undefined.</exception>
         /// <exception cref="ArgumentException">L*=0 has nonzero u*/v*, reconstructed v' is nonpositive, or XYZ overflows.</exception>
         /// <remarks>Luv(0,0,0) maps to black. L* above 100 is allowed; output XYZ is not clipped.</remarks>
-        public static CIEXYZ Luv2XYZ(CIELuv luvColor, Standardilluminant illuminant, StandardObserver observer)
+        public static CIEXYZ LuvToXYZ(CIELuv luvColor, Standardilluminant illuminant, StandardObserver observer)
+            => LuvToXYZ(luvColor, GetConversionWhitePoint(illuminant, observer));
+
+        /// <summary>Converts Luv to XYZ using a white integrated from a CIE catalog illuminant.</summary>
+        public static CIEXYZ LuvToXYZ(CIELuv luvColor, string illuminantId, StandardObserver observer)
+            => LuvToXYZ(luvColor, ChromaticityMatch.GetStandardWhitePoint(illuminantId, observer));
+
+        /// <summary>Converts Luv to XYZ using an explicit positive, finite reference white.</summary>
+        public static CIEXYZ LuvToXYZ(CIELuv luvColor, CIEXYZ whitePoint)
         {
             if (luvColor is null)
                 throw new ArgumentNullException(nameof(luvColor));
@@ -469,7 +494,7 @@ namespace ChromaticityDotNet.Controller
             ValidateLightness(luvColor.CIEL, nameof(luvColor));
             ValidateFinite(luvColor.CIEu, nameof(luvColor));
             ValidateFinite(luvColor.CIEv, nameof(luvColor));
-            CIEXYZ whitePoint = GetConversionWhitePoint(illuminant, observer);
+            ValidateWhitePoint(whitePoint);
 
             if (luvColor.CIEL == 0.0)
             {
@@ -497,12 +522,123 @@ namespace ChromaticityDotNet.Controller
         #endregion
 
         #region From xy to ..
+        /// <summary>Computes dominant and complementary wavelengths relative to a custom xy white point.</summary>
+        /// <remarks>Uses the selected observer's unrounded 360–830 nm locus and linear interpolation
+        /// between its 1 nm samples. Both inputs require finite coordinates and nonnegative Y; Y does not
+        /// affect the wavelengths. The sample must lie inside or on the convex physical gamut; the white
+        /// must lie strictly inside. Each direction that meets the purple boundary returns null.
+        /// Samples within 1e-12 in xy of the white are achromatic and return two nulls.
+        /// Results are rounded to two decimals away from zero at midpoints; this is output resolution,
+        /// not a claim of 0.01 nm measurement accuracy. All inputs must use the same observer.</remarks>
+        public static ChromaticityWavelengthResult xyYToWavelengths(CIExyY color, StandardObserver observer, CIExyY whitePoint)
+        {
+            if (color is null) throw new ArgumentNullException(nameof(color));
+            if (whitePoint is null) throw new ArgumentNullException(nameof(whitePoint));
+            var locus = CieSpectralData.GetSpectralLocus(observer);
+            var boundary = CieSpectralData.GetChromaticityBoundary(observer);
+            ValidateChromaticity(color, nameof(color));
+            ValidateChromaticity(whitePoint, nameof(whitePoint));
+            double x = color.CIEx, y = color.CIEy, wx = whitePoint.CIEx, wy = whitePoint.CIEy;
+            var whiteLocation = LocateChromaticity(wx, wy, boundary);
+            if (!whiteLocation.Inside || whiteLocation.Boundary)
+                throw new ArgumentOutOfRangeException(nameof(whitePoint), "Reference white must lie strictly inside the spectrum locus and purple boundary.");
+            var sampleLocation = LocateChromaticity(x, y, boundary);
+            if (!sampleLocation.Inside && !sampleLocation.Boundary)
+                throw new ArgumentOutOfRangeException(nameof(color), "Sample chromaticity lies outside the spectrum locus and purple boundary.");
+            double dx = x - wx, dy = y - wy;
+            double distance = Math.Sqrt(dx * dx + dy * dy);
+            if (distance <= 1e-12) return new ChromaticityWavelengthResult(null, null, true);
+            dx /= distance;
+            dy /= distance;
+            return new ChromaticityWavelengthResult(
+                FindLocusWavelength(wx, wy, dx, dy, locus),
+                FindLocusWavelength(wx, wy, -dx, -dy, locus));
+        }
+
+        /// <summary>Computes wavelengths using the library's fixed white point for a standard illuminant
+        /// and observer. Converts white XYZ to xy without intermediate rounding.</summary>
+        public static ChromaticityWavelengthResult xyYToWavelengths(CIExyY color, StandardObserver observer, Standardilluminant illuminant)
+        {
+            var white = GetConversionWhitePoint(illuminant, observer);
+            double sum = white.CIEX + white.CIEY + white.CIEZ;
+            return xyYToWavelengths(color, observer, new CIExyY
+            {
+                CIEx = white.CIEX / sum, CIEy = white.CIEY / sum, CIEY = white.CIEY
+            });
+        }
+
+        /// <summary>Computes wavelengths relative to the integrated white of any CIE catalog illuminant.</summary>
+        public static ChromaticityWavelengthResult xyYToWavelengths(CIExyY color, StandardObserver observer, string illuminantId)
+        {
+            var white = ChromaticityMatch.GetStandardWhitePoint(illuminantId, observer);
+            double sum = white.CIEX + white.CIEY + white.CIEZ;
+            return xyYToWavelengths(color, observer, new CIExyY
+            {
+                CIEx = white.CIEX / sum, CIEy = white.CIEY / sum, CIEY = white.CIEY
+            });
+        }
+
+        private static void ValidateChromaticity(CIExyY color, string parameter)
+        {
+            ValidateFinite(color.CIEx, parameter);
+            ValidateFinite(color.CIEy, parameter);
+            ValidateFinite(color.CIEY, parameter);
+            if (color.CIEx < 0 || color.CIEy < 0 || color.CIEx + color.CIEy > 1 + 1e-10 || color.CIEY < 0)
+                throw new ArgumentOutOfRangeException(parameter, "Chromaticity requires x >= 0, y >= 0, x + y <= 1 and Y >= 0.");
+        }
+
+        private static (bool Inside, bool Boundary) LocateChromaticity(double x, double y, IReadOnlyList<CieChromaticityPoint> locus)
+        {
+            bool inside = false;
+            for (int i = 0; i < locus.Count; i++)
+            {
+                var a = locus[i];
+                var b = locus[(i + 1) % locus.Count];
+                double ex = b.X - a.X, ey = b.Y - a.Y;
+                double length = Math.Sqrt(ex * ex + ey * ey);
+                if (length > 0 && Math.Abs(Cross(x - a.X, y - a.Y, ex, ey)) <= 1e-10 * length &&
+                    x >= Math.Min(a.X, b.X) - 1e-10 && x <= Math.Max(a.X, b.X) + 1e-10 &&
+                    y >= Math.Min(a.Y, b.Y) - 1e-10 && y <= Math.Max(a.Y, b.Y) + 1e-10)
+                    return (true, true);
+                if ((a.Y > y) != (b.Y > y) && x < a.X + (y - a.Y) * ex / ey)
+                    inside = !inside;
+            }
+            return (inside, false);
+        }
+
+        private static double Cross(double ax, double ay, double bx, double by) => ax * by - ay * bx;
+
+        private static double? FindLocusWavelength(double wx, double wy, double dx, double dy, IReadOnlyList<CieChromaticityPoint> locus)
+        {
+            double nearest = double.PositiveInfinity;
+            double? wavelength = null;
+            // Search spectral segments only. In the 10-degree data the red tail retraces
+            // earlier red chromaticities; closing at 830 nm would cut off valid reds.
+            for (int i = 0; i < locus.Count - 1; i++)
+            {
+                var a = locus[i];
+                var b = locus[(i + 1) % locus.Count];
+                double ex = b.X - a.X, ey = b.Y - a.Y;
+                double denominator = Cross(dx, dy, ex, ey);
+                if (Math.Abs(denominator) <= 1e-14 * Math.Sqrt(ex * ex + ey * ey)) continue;
+                double ox = a.X - wx, oy = a.Y - wy;
+                double t = Cross(ox, oy, ex, ey) / denominator;
+                double u = Cross(ox, oy, dx, dy) / denominator;
+                if (t <= 0 || u < -1e-9 || u > 1 + 1e-9 || t >= nearest - 1e-10) continue;
+                nearest = t;
+                // Repeated/indistinguishable red chromaticities keep the first (shortest)
+                // wavelength encountered. xy alone cannot resolve their spectral origin.
+                wavelength = a.Wavelength + Math.Max(0, Math.Min(1, u)) * (b.Wavelength - a.Wavelength);
+            }
+            return wavelength.HasValue ? Math.Round(wavelength.Value, 2, MidpointRounding.AwayFromZero) : (double?)null;
+        }
+
         /// <summary>
         /// computing correlated color temperature
         /// </summary>
         /// <param name="xyy"></param>
         /// <returns>correlated color temperature</returns>
-        public static double xy2CCT(CIExyY xyy)
+        public static double xyToCCT(CIExyY xyy)
         {
             double n = (xyy.CIEx - 0.3320) / (xyy.CIEy - 0.1858);
 
@@ -520,7 +656,7 @@ namespace ChromaticityDotNet.Controller
         /// </summary>
         /// <param name="xyY"></param>
         /// <returns>CIEXYZ</returns>
-        public static CIEXYZ xy2XYZ(CIExyY xyY)
+        public static CIEXYZ xyToXYZ(CIExyY xyY)
         {
             return new CIEXYZ()
             {
@@ -535,7 +671,7 @@ namespace ChromaticityDotNet.Controller
         /// </summary>
         /// <param name="xyY"></param>
         /// <returns>CIE1976 u'v' chromaticity coordinates</returns>
-        public static CIEuv xy2uv(CIExyY xyY)
+        public static CIEuv xyTouv(CIExyY xyY)
         {
             double denom = -2D * xyY.CIEx + 12D * xyY.CIEy + 3D;
             if (denom != 0.0D)
@@ -584,6 +720,20 @@ namespace ChromaticityDotNet.Controller
             ValidateFinite(lightness, paramName);
             if (lightness < 0.0)
                 throw new ArgumentOutOfRangeException(paramName, "Lightness must be greater than or equal to zero.");
+        }
+
+        private static void ValidateXyzInput(CIEXYZ xyz, string parameter)
+        {
+            if (xyz is null) throw new ArgumentNullException(parameter);
+            ValidateFinite(xyz.CIEX, parameter); ValidateFinite(xyz.CIEY, parameter); ValidateFinite(xyz.CIEZ, parameter);
+        }
+
+        private static CIEXYZ ValidateWhitePoint(CIEXYZ whitePoint)
+        {
+            ValidateXyzInput(whitePoint, nameof(whitePoint));
+            if (whitePoint.CIEX <= 0 || whitePoint.CIEY <= 0 || whitePoint.CIEZ <= 0)
+                throw new ArgumentOutOfRangeException(nameof(whitePoint), "Reference white XYZ must be positive.");
+            return whitePoint;
         }
 
         private static CIEXYZ GetConversionWhitePoint(Standardilluminant illuminant, StandardObserver observer)

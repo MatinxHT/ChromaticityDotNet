@@ -4,11 +4,12 @@
     <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.0.4.0</Version>
+    <Version>1.0.4.1</Version>
     <Authors>MartinHung</Authors>
     <PackageLicenseExpression>MIT AND CC-BY-SA-4.0</PackageLicenseExpression>
     <LangVersion>10.0</LangVersion>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>app-icon.png</PackageIcon>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <!-- Applications have their own build and publication pipeline. -->
     <DefaultItemExcludes>$(DefaultItemExcludes);apps/**</DefaultItemExcludes>
@@ -19,6 +20,7 @@
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="\" />
     <None Include="CIE-DATA-NOTICE.md" Pack="true" PackagePath="\" />
+    <None Include="assets/branding/app-icon.png" Pack="true" PackagePath="\" />
     <Compile Remove="tests\**\*.cs" />
   </ItemGroup>
 
