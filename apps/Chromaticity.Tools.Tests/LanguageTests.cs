@@ -7,6 +7,12 @@ public class LanguageTests
 {
     [Theory]
     [InlineData("色差计算", "Color difference")]
+    [InlineData("下载数据模板", "Download data template")]
+    [InlineData("导入 CSV", "Import CSV")]
+    [InlineData("导入失败：第 4 行需要恰好 3 列数据。", "Import failed: Row 4 needs exactly 3 data columns.")]
+    [InlineData("自动比较：1 行标准 → 3 行样品（一对多）。", "Automatic comparison: 1 standard → 3 samples (one-to-many).")]
+    [InlineData("自动比较：2 行标准与样品逐行配对（一对一）。", "Automatic comparison: 2 standard and sample rows are paired (one-to-one).")]
+    [InlineData("第 2 行标准 Lab的三列必须同时填写或同时留空。", "Row 2: all three Standard Lab columns must be filled or left blank together.")]
     [InlineData("每侧 4 级", "4 grades per side")]
     [InlineData("已复制 3 行，可粘贴到 Excel。", "Copied 3 rows. You can paste them into Excel.")]
     [InlineData("错误：第 2 行第 3 列 必须是有限数字（小数点使用 .）。",
@@ -63,6 +69,7 @@ public class LanguageTests
         var translated = UiLanguage.TranslateTable(original, UiLanguage.English);
         Assert.Equal("序号", original.Headers[0]);
         Assert.Equal("No.", translated.Headers[0]);
+        Assert.Equal(new[] { "Standard L*", "Standard a*", "Standard b*", "Sample L*", "Sample a*", "Sample b*" }, translated.Headers[3..9]);
         Assert.Equal(original.Rows[0], translated.Rows[0]);
         Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", translated.ToCsv());
         Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", translated.ToTsv());

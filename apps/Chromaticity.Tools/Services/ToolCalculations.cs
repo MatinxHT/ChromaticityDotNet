@@ -129,6 +129,10 @@ public static class ToolCalculations
         return new CIELABCH(v[0], v[1], v[2]);
     }
 
+    public static CalculationTable DifferenceAuto(string standards, string samples,
+        double kl, double kc, double kh, double cmcL, double cmcC) =>
+        Difference(standards, samples, ParseRows(standards).Length > 1, kl, kc, kh, cmcL, cmcC);
+
     public static CalculationTable Difference(string standards, string samples, bool paired,
         double kl, double kc, double kh, double cmcL, double cmcC)
     {
@@ -138,7 +142,7 @@ public static class ToolCalculations
         var test = ParseRows(samples).Select((r, i) => Lab(Triple(r, i + 1))).ToArray();
         if (paired ? reference.Length != test.Length : reference.Length != 1)
             throw new ArgumentException(paired ? "逐行配对时，标准和样品的行数必须相同。" : "一对多模式只允许一行标准色。");
-        var conditions = FormattableString.Invariant($"CIE94: graphic arts; CIEDE2000 kL:kC:kH={kl}:{kc}:{kh}; CMC l:c={cmcL}:{cmcC}; preview: D65 / 2°; differences: sample minus standard; hue: signed shortest Lab hue angle");
+        var conditions = FormattableString.Invariant($"CMC l:c={cmcL}:{cmcC}; CIEDE2000 kL:kC:kH={kl}:{kc}:{kh}; preview: D65 / 2°; differences: sample minus standard; hue: signed shortest Lab hue angle");
         var result = test.Select((sample, i) =>
         {
             var standard = reference[paired ? i : 0];
@@ -149,15 +153,16 @@ public static class ToolCalculations
             string Swatch(CIELABCH lab) => Hex(ChromaticityConversion.XYZ2RGB(
                 ChromaticityConversion.Labch2XYZ(lab, Standardilluminant.D65, StandardObserver.Degree2)));
             return new[] { (i + 1).ToString(Invariant), Swatch(standard), Swatch(sample),
+                F(standard.CIEL), F(standard.CIEA), F(standard.CIEB),
+                F(sample.CIEL), F(sample.CIEA), F(sample.CIEB),
                 F(de00.DL), F(de00.DA), F(de00.DB), F(de00.DC), F(hue),
                 F(ChromaticityDeltaEFormulations.DeltaE1976(standard, sample)),
-                F(ChromaticityDeltaEFormulations.DeltaE1994(standard, sample)), F(de00.DeltaE),
-                F(ChromaticityDeltaEFormulations.DeltaEcmc(standard, sample, cmcL, cmcC)) };
+                F(ChromaticityDeltaEFormulations.DeltaEcmc(standard, sample, cmcL, cmcC)), F(de00.DeltaE) };
         }).ToArray();
-        return new(["序号", "标样 sRGB", "样品 sRGB", "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE76",
-            "ΔE94\nkL:kC:kH = 1:1:1\nK1 = 0.045 · K2 = 0.015",
-            FormattableString.Invariant($"ΔE00\nkL:kC:kH = {kl}:{kc}:{kh}"),
-            FormattableString.Invariant($"CMC\nl:c = {cmcL}:{cmcC}")], result, conditions);
+        return new(["序号", "标样 sRGB", "样品 sRGB", "标样 L*", "标样 a*", "标样 b*", "样品 L*", "样品 a*", "样品 b*",
+            "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE76",
+            FormattableString.Invariant($"CMC\nl:c = {cmcL}:{cmcC}"),
+            FormattableString.Invariant($"ΔE00\nkL:kC:kH = {kl}:{kc}:{kh}")], result, conditions);
     }
 
     public static SpectrumResult Reflectance(string text, int start, int end, int step, bool fraction,

@@ -54,17 +54,21 @@ public class ToolCalculationsTests
     [Fact]
     public void BatchModesKeepPreviewsAndDifferencesAligned()
     {
-        var table = ToolCalculations.Difference("50,20,-30", "50,20,-30\n52,18,-28", false, 1, 1, 1, 2, 1);
+        var table = ToolCalculations.Difference("50,20,-30", "50,20,-30\n52,18,-28", false, 1, 1, 1, 1, 1);
         Assert.Equal(2, table.Rows.Length);
-        Assert.Equal("0.0000", table.Rows[0][10]);
+        Assert.Equal("0.0000", table.Rows[0][16]);
         Assert.Equal(table.Rows[0][1], table.Rows[0][2]);
         Assert.Equal(table.Rows[0][1], table.Rows[1][1]);
         Assert.NotEqual(table.Rows[1][1], table.Rows[1][2]);
-        Assert.Equal(new[] { "2.0000", "-2.0000", "2.0000" }, table.Rows[1][3..6]);
+        Assert.Equal(table.Rows[0][3..6], table.Rows[1][3..6]);
+        Assert.Equal(new[] { "50.0000", "20.0000", "-30.0000", "52.0000", "18.0000", "-28.0000" }, table.Rows[1][3..9]);
+        Assert.Equal(new[] { "2.0000", "-2.0000", "2.0000" }, table.Rows[1][9..12]);
+        Assert.Equal(new[] { "3.4641", "2.2654", "2.2606" }, table.Rows[1][14..]);
         Assert.Throws<ArgumentException>(() => ToolCalculations.Difference("50,0,0\n51,0,0", "50,0,0", false, 1, 1, 1, 1, 1));
         Assert.Throws<ArgumentException>(() => ToolCalculations.Difference("50,0,0", "50,0,0\n51,0,0", true, 1, 1, 1, 1, 1));
         var paired = ToolCalculations.Difference("50,0,0\n51,0,0", "50,0,0\n51,0,0", true, 1, 1, 1, 1, 1);
-        Assert.All(paired.Rows, r => { Assert.Equal("0.0000", r[10]); Assert.Equal(r[1], r[2]); });
+        Assert.All(paired.Rows, r => { Assert.Equal("0.0000", r[16]); Assert.Equal(r[1], r[2]); Assert.Equal(r[3..6], r[6..9]); });
+        Assert.Equal(new[] { "51.0000", "0.0000", "0.0000" }, paired.Rows[1][3..6]);
         Assert.NotEqual(paired.Rows[0][1], paired.Rows[1][1]);
     }
 
@@ -72,26 +76,34 @@ public class ToolCalculationsTests
     public void PublishedCiede2000ReferencePairIsPreserved()
     {
         var table = ToolCalculations.Difference("50,2.6772,-79.7751", "50,0,-82.7485", false, 1, 1, 1, 1, 1);
-        Assert.Equal("2.0425", table.Rows[0][10]);
+        Assert.Equal("2.0425", table.Rows[0][16]);
     }
 
     [Fact]
     public void DifferenceColumnsIncludeFiveSignedDeltasAndFormulaParameters()
     {
         var table = ToolCalculations.Difference("50,10,1", "50,10,-1", false, 1.5, 2, 3, 2, 1);
-        Assert.Equal(new[] { "序号", "标样 sRGB", "样品 sRGB", "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE76" }, table.Headers[..9]);
-        Assert.Equal(new[] { "0.0000", "0.0000", "-2.0000", "0.0000", "-11.4212" }, table.Rows[0][3..8]);
-        Assert.Contains("K1 = 0.045", table.Headers[9]);
-        Assert.Contains("1.5:2:3", table.Headers[10]);
-        Assert.Contains("2:1", table.Headers[11]);
-        Assert.Equal(12, table.Headers.Length);
+        Assert.Equal(new[] { "序号", "标样 sRGB", "样品 sRGB", "标样 L*", "标样 a*", "标样 b*", "样品 L*", "样品 a*", "样品 b*",
+            "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE76" }, table.Headers[..15]);
+        Assert.Equal(new[] { "50.0000", "10.0000", "1.0000", "50.0000", "10.0000", "-1.0000" }, table.Rows[0][3..9]);
+        Assert.Equal(new[] { "0.0000", "0.0000", "-2.0000", "0.0000", "-11.4212" }, table.Rows[0][9..14]);
+        Assert.Equal("CMC\nl:c = 2:1", table.Headers[15]);
+        Assert.Contains("1.5:2:3", table.Headers[16]);
+        Assert.Equal(17, table.Headers.Length);
         Assert.All(table.Rows, row => Assert.Equal(table.Headers.Length, row.Length));
+        Assert.DoesNotContain("CIE94", table.Conditions);
+        Assert.DoesNotContain("ΔE94", table.ToCsv());
         Assert.DoesNotContain("判定", table.ToCsv());
         Assert.Contains("1.5:2:3", table.ToCsv());
         Assert.Contains(table.Rows[0][1], table.ToCsv());
+        Assert.Contains("\"50.0000\",\"10.0000\",\"1.0000\",\"50.0000\",\"10.0000\",\"-1.0000\"", table.ToCsv());
         var copied = table.ToTsv().Split('\n');
         Assert.Equal(2, copied.Length);
-        Assert.All(copied, line => Assert.Equal(12, line.Split('\t').Length));
+        Assert.All(copied, line => Assert.Equal(17, line.Split('\t').Length));
+        Assert.Equal(table.Rows[0][3..9], copied[1].Split('\t')[3..9]);
+        Assert.DoesNotContain("ΔE94", copied[0]);
+        Assert.True(copied[0].IndexOf("ΔE76", StringComparison.Ordinal) < copied[0].IndexOf("CMC", StringComparison.Ordinal));
+        Assert.True(copied[0].IndexOf("CMC", StringComparison.Ordinal) < copied[0].IndexOf("ΔE00", StringComparison.Ordinal));
         Assert.Contains("1.5:2:3", copied[0]);
     }
 
