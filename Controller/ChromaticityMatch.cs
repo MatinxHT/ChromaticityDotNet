@@ -20,13 +20,18 @@ namespace ChromaticityDotNet.Controller
                 [Standardilluminant.U30]  = new U30(),
             };
 
+        /// <summary>Returns cached CIE-derived data for any catalog illuminant.
+        /// Preserves the original six concrete classes and the unknown-value D65 fallback.</summary>
         public static IStandardilluminant GetStandardilluminantdata(Standardilluminant illuminant)
         {
-            return _illuminantRegistry.TryGetValue(illuminant, out var data) ? data : _illuminantRegistry[Standardilluminant.D65];
+            if (_illuminantRegistry.TryGetValue(illuminant, out var data)) return data;
+            return Enum.IsDefined(typeof(Standardilluminant), illuminant)
+                ? CieStandardIlluminant.Get(illuminant) : _illuminantRegistry[Standardilluminant.D65];
         }
 
         /// <summary>
-        /// Finding StandardWhitePoint in choosen illuminant and observer
+        /// Returns the cached CIE reference white integrated on a 1 nm grid over the
+        /// illuminant and observer's complete common coverage, normalized to Y = 100.
         /// </summary>
         /// <param name="illuminant">Standard illuminant type</param>
         /// <param name="observer">Standard observer degree</param>
@@ -38,10 +43,10 @@ namespace ChromaticityDotNet.Controller
             switch (observer)
             {
                 case StandardObserver.Degree2:
-                    return data.WhitePoint_Degree2.WhitePointXnYnZn;
+                    return data.WhitePoint_Degree2.WhitePointXnYnZn!;
                 case StandardObserver.Degree10:
                 default:
-                    return data.WhitePoint_Degree10.WhitePointXnYnZn;
+                    return data.WhitePoint_Degree10.WhitePointXnYnZn!;
             }
         }
 
@@ -58,7 +63,7 @@ namespace ChromaticityDotNet.Controller
         /// <summary>Integrates a supplied illuminant spectrum into an unrounded Y = 100 reference white.</summary>
         public static CIEXYZ GetStandardWhitePoint(Spectrum illuminant, StandardObserver observer,
             int? startingWavelength = null, int? endingWavelength = null) =>
-            ChromaticityConversion.CalculateWhitePoint(illuminant, observer, startingWavelength, endingWavelength);
+            SpectralCalculations.CalculateWhitePoint(illuminant, observer, startingWavelength, endingWavelength);
 
         /// <summary>Compares two Lab colors using CIE76, CMC and CIEDE2000, with structured and English evaluations.</summary>
         /// <remarks>Inputs must share the same reference white and observer. All differences describe sample minus

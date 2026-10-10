@@ -52,6 +52,8 @@ public class CatalogWhitePointTests
         Assert.Equal(expected.DominantWavelength, wave.Wavelengths.DominantWavelength);
         Assert.Equal(expected.ComplementaryWavelength, wave.Wavelengths.ComplementaryWavelength);
         Assert.Equal(white.CIEX / (white.CIEX + white.CIEY + white.CIEZ), wave.White.X);
+        Assert.Equal(wave.White.X.ToString("F4", CultureInfo.InvariantCulture), wave.Table.Rows[0][4]);
+        Assert.Equal(wave.White.Y.ToString("F4", CultureInfo.InvariantCulture), wave.Table.Rows[0][5]);
         Assert.Contains($"{start}–{end} nm", wave.Table.Conditions);
         Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", UiLanguage.Translate(wave.Table.Conditions, UiLanguage.English));
     }

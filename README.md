@@ -47,7 +47,9 @@ CSV 供 Codex 和维护者核对、转入代码；运行时使用编译后的常
 | `REFToXYZ(Spectrum, Spectrum, StandardObserver)` | 使用自定义照明体光谱，前两个参数依次为反射率、照明体 |
 | `SPDToXYZ(Spectrum, StandardObserver)` | 自发光 SPD 的未归一化 XYZ 加权和，尺度约定见 [TODO](TODO.md) |
 | `CieSpectralData.Illuminants` | 50 条光源的 ID、来源、原始波段、间隔和质量标注 |
-| `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | 获取旧枚举或完整目录中光源光谱的独立副本，保留原始采样网格 |
+| `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | 枚举和光源 ID 均支持全部 50 条光源，返回原始采样网格上的独立副本 |
+| `CieSpectralData.GetIlluminantId(illuminant)` | 获取枚举对应的规范目录 ID，包含旧名称映射 |
+| `ChromaticityMatch.GetStandardilluminantdata(illuminant)` | 保留旧接口：缓存 CIE 数据生成的 31 点光谱，以及原始光谱的 1 nm 积分白点 |
 | `CieSpectralData.GetColorMatchingFunctions(observer)` | 获取配色函数光谱的独立副本 `(X, Y, Z)` |
 
 ```csharp
@@ -80,7 +82,7 @@ var fastXyz = ChromaticityConversion.REFToXYZ(
 - 波长范围包含首尾；点数必须为 `(结束波长 - 起始波长) / 间隔 + 1`。间隔为正整数 nm，样本值必须有限且非负。
 - 反射率以百分数输入，允许超过 100。按线性插值生成 1 nm 数据，在输入范围内求和；范围必须同时位于观察者和照明体覆盖区间内，不外推、不自动裁剪。
 - 新入口的 XYZ 结果保留四位小数，中点向远离零的方向舍入。照明体在计算范围内的参考亮度必须大于零；无效输入和数值溢出会抛出异常。
-- 两个裸数组 `double[]` 入口均保留旧表和旧算法，用于 **31 点、400–700 nm、10 nm 间隔的快速计算**。
+- 两个裸数组 `double[]` 入口保留旧的 31 点配色函数和求和算法，用于 **31 点、400–700 nm、10 nm 间隔的快速计算**；反射率入口的照明体光谱现由 CIE 原始数据生成。
 - `SPDToXYZ` 暂不重采样、不乘波长间隔、不做 Y 归一化；结果随采样间隔变化，不代表绝对光度 XYZ。
 
 ## 颜色空间转换
@@ -128,13 +130,26 @@ var white = ChromaticityMatch.GetStandardWhitePoint(
 
 ### 白点与精度
 
-- Lab/Luv 的 XYZ 白点尺度为 Y = 100，双向转换应使用相同的照明体和观察者。`Standardilluminant` 枚举入口保留旧版固定白点；光源 ID 字符串入口使用目录光谱积分白点，支持全部 50 条光源，也可直接传入 `CIEXYZ` 白点。
+- Lab/Luv 的 XYZ 白点尺度为 Y = 100，双向转换应使用相同的照明体和观察者。`Standardilluminant` 枚举与光源 ID 字符串入口均使用目录原始光谱的 1 nm 积分白点，支持全部 50 条光源；也可直接传入 `CIEXYZ` 白点。
 - 逆转换保留中间 `double` 精度，XYZ 输出保留四位小数，中点远离零舍入。参考测试每分量误差不超过 0.00005，XYZ → Lab/Luv → XYZ 往返测试容差为 0.0003。
 - Lab/Luv 逆转换要求有限坐标和非负 L*，允许 L* 超过 100。Luv(0,0,0) 返回黑色；L* 为零但 u*/v* 非零、重建 v′ 非正或数值溢出时抛出异常。
-- sRGB 使用 D65 色度 `(0.3127, 0.3290)`，白点 XYZ 为 `(95.0456, 100, 108.9058)`，与库内 D65/2° 固定白点 `(95.047, 100, 108.883)` 略有差异；不进行色适应。
+- sRGB 使用 D65 色度 `(0.3127, 0.3290)`，白点 XYZ 为 `(95.0456, 100, 108.9058)`，与库内 D65/2° 积分白点约 `(95.0471, 100, 108.8829)` 略有差异；不进行色适应。
 - `XYZToRGB` 会裁剪超出 sRGB 色域的颜色并舍入为字节，不能保证任意 XYZ 无损往返。
 
 sRGB 转换矩阵参考 [W3C CSS Color 4](https://www.w3.org/TR/css-color-4/#color-conversion-code)，Luv 逆转换公式核对参考 [Colour 文档](https://colour.readthedocs.io/en/develop/_modules/colour/models/cie_luv.html#Luv_to_XYZ)。
+
+`IStandardilluminant` 的属性和原有 `D65/A/CWF/F7/TL84/U30` 类均保留。`Spectrum` 固定为 400–700 nm、10 nm 间隔、31 点；`WhitePoint_Degree2/WhitePoint_Degree10` 使用同一光源的原始 CIE 光谱，在与观察者的完整共同波段内按 1 nm 网格积分，Y = 100，内部不舍入。原生 5 nm 数据先线性插值到 1 nm，不外推。每个光源首次访问时生成并缓存两种白点和 31 点光谱，属性返回独立副本。
+
+原六个枚举数值 0–5 及字符串名称保持不变；`CWF/FL2`、`F7/FL7`、`TL84/FL11`、`U30/FL12` 保留新旧名称，并按规范光源 ID 共享缓存。新增规范名称使用独立枚举数值，避免改变旧名称的 `ToString()` 和字符串序列化。`Enum.GetValues` 返回 54 个名称，对应 50 条光源；枚举唯一光源时使用 `CieSpectralData.Illuminants`，或先映射为规范 ID 再 `Distinct()`。目录 ID 使用 `GetIlluminantId` 获取，例如 `FL3_1 → "FL3.1"`、`LED_B1 → "LED-B1"`，不要依赖枚举 `ToString()`。
+
+这是数据行为变更：旧调用方式继续有效，但硬编码白点已替换为积分白点，旧光谱表中与 CIE 数据不同的点也已更新，相关 Lab/Luv、波长和快速反射率结果可能改变。31 点快速算法的完全反射体 XYZ 不保证等于完整光谱白点；需要让快速结果的灰色保持中性时，可用同一快速算法计算 100% 反射体 XYZ，再作为显式白点传给 Lab/Luv 转换。完整光谱计算则使用相同积分波段的白点。
+
+```csharp
+IStandardilluminant data = ChromaticityMatch.GetStandardilluminantdata(Standardilluminant.LED_B1);
+var spectrum31 = data.Spectrum;                         // 400–700 nm / 10 nm
+var white10 = data.WhitePoint_Degree10.WhitePointXnYnZn; // 原始光谱 / 1 nm / 完整共同波段
+var compatible = new TL84();                            // 旧类继续使用，数据对应 FL11
+```
 
 ### 从完整光源目录计算白点
 
@@ -156,7 +171,7 @@ var reflectedLab = ChromaticityConversion.XYZToLab(reflected, rangeWhite);
 ## 主波长与补色波长
 
 `ChromaticityConversion.xyYToWavelengths` 接受 `DataModel.CIExyY`、观察者和参考白点。
-第三个参数可为自定义 `CIExyY`、光源 ID 字符串（如 `"D50"`，使用积分白点），或 `Standardilluminant`（保留固定 XYZ 白点）。转为 xy 时不先舍入。
+第三个参数可为自定义 `CIExyY`、光源 ID 字符串（如 `"D50"`），或 `Standardilluminant`；字符串和枚举均使用原始光谱积分白点。转为 xy 时不先舍入。
 
 ```csharp
 var sample = new CIExyY { CIEx = 0.3, CIEy = 0.6, CIEY = 100 };
@@ -164,7 +179,7 @@ var white = new CIExyY { CIEx = 0.3127, CIEy = 0.3290, CIEY = 100 };
 var wavelengths = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, white);
 // DominantWavelength = 549.13 nm; ComplementaryWavelength = null
 var d65Result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, Standardilluminant.D65);
-// 固定 D65 白点与手填白点略有不同，计算使用其完整精度。
+// 积分 D65 白点与手填白点略有不同，计算使用其完整精度。
 var d50Result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, "D50");
 ```
 

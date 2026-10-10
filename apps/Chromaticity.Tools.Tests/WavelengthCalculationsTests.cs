@@ -43,7 +43,32 @@ public class WavelengthCalculationsTests
         Assert.Equal(expected.DominantWavelength, result.Wavelengths.DominantWavelength);
         Assert.Equal(expected.ComplementaryWavelength, result.Wavelengths.ComplementaryWavelength);
         Assert.Equal(WavelengthCalculations.StandardWhite(light, observer), result.White);
-        Assert.Contains(result.White.X.ToString("G", System.Globalization.CultureInfo.InvariantCulture), result.Table.ToCsv());
+        var whiteX = result.White.X.ToString("F4", System.Globalization.CultureInfo.InvariantCulture);
+        var whiteY = result.White.Y.ToString("F4", System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(whiteX, result.Table.Rows[0][4]);
+        Assert.Equal(whiteY, result.Table.Rows[0][5]);
+        Assert.Contains($"({whiteX}, {whiteY})", result.Table.Conditions);
+        Assert.Contains($"\"{whiteX}\",\"{whiteY}\"", result.Table.ToCsv());
+        Assert.Contains($"{whiteX}\t{whiteY}", result.Table.ToTsv());
+    }
+
+    [Fact]
+    public void CustomWhiteDisplayRoundingDoesNotMakeNearbyCoordinatesAchromatic()
+    {
+        var sample = Sample(0.31272, 0.32904);
+        var white = Sample(0.31274, 0.32901);
+        var calculated = WavelengthCalculations.Calculate(sample, StandardObserver.Degree2, Standardilluminant.D65, white);
+        Assert.Equal("0.3127", calculated.Table.Rows[0][4]);
+        Assert.Equal("0.3290", calculated.Table.Rows[0][5]);
+        Assert.Contains("白点 xy = (0.3127, 0.3290)", calculated.Table.Conditions);
+        Assert.False(calculated.Wavelengths.IsAchromatic);
+        Assert.Equal(0.31274, calculated.White.X);
+        Assert.Equal(0.32901, calculated.White.Y);
+        Assert.Equal(0.31272, calculated.Sample.X);
+        Assert.Equal(0.32904, calculated.Sample.Y);
+        var english = UiLanguage.TranslateTable(calculated.Table, UiLanguage.English);
+        Assert.Contains("White xy = (0.3127, 0.3290)", english.Conditions);
+        Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", english.Conditions);
     }
 
     [Fact]

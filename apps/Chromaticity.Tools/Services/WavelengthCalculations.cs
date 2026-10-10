@@ -62,13 +62,14 @@ public static class WavelengthCalculations
             var info = CieSpectralData.Illuminants.First(item => string.Equals(item.Id, illuminant, StringComparison.OrdinalIgnoreCase));
             whiteMethod = $" · 光谱积分白点 {Math.Max(360, info.StartingWavelength)}–{Math.Min(830, info.EndingWavelength)} nm，Y = 100";
         }
+        string whiteX = ToolCalculations.F(white.X), whiteY = ToolCalculations.F(white.Y);
         var table = new CalculationTable(
             ["样品 x", "样品 y", "样品 Y", "参考白点", "白点 x", "白点 y", "观察者", "主波长 / nm", "补色波长 / nm", "说明"],
             [[Coordinate(point.X), Coordinate(point.Y), Coordinate(point.Luminance), reference,
-                Coordinate(white.X), Coordinate(white.Y), observerName,
+                whiteX, whiteY, observerName,
                 Format(result.DominantWavelength), Format(result.ComplementaryWavelength), description]],
-            $"{reference} / {observerName} · 白点 xy = ({Coordinate(white.X)}, {Coordinate(white.Y)}){whiteMethod}\n" +
-            "波长单位为 nm，显示两位小数。Y 不影响波长；白点和图形使用未舍入坐标。");
+            $"{reference} / {observerName} · 白点 xy = ({whiteX}, {whiteY}){whiteMethod}\n" +
+            "波长单位为 nm，显示两位小数。白点坐标显示四位小数。Y 不影响波长；计算和图形使用未舍入坐标。");
         return new(table, point, white, observer, result);
     }
 

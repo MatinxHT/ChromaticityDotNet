@@ -144,14 +144,18 @@ public sealed partial class MainView : UserControl
         light.Name = "IlluminantSelect"; light.MinWidth = 240; light.MaxDropDownHeight = 320;
         var interval = Select(ToolCalculations.IlluminantIntervals.Select(value => $"{value} nm").ToArray());
         interval.Name = "IlluminantInterval"; interval.SelectedIndex = 2;
+        var observer = Observer(); observer.Name = "IlluminantObserver";
         var start = SmallInput(catalog[light.SelectedIndex].StartingWavelength.ToString(CultureInfo.InvariantCulture)); start.Name = "IlluminantStart";
         var end = SmallInput(catalog[light.SelectedIndex].EndingWavelength.ToString(CultureInfo.InvariantCulture)); end.Name = "IlluminantEnd";
         var conditions = Note("");
         var plot = new SpectrumPlot { Height = 260, AxisLabel = "相对功率", MinimumMaximum = 1 };
         var result = new ResultPanel(_downloader, title: "光谱数据");
+        var whiteResult = new ResultPanel(_downloader, title: "光谱白点", renderResult: IlluminantWhitePointResults,
+            successMessage: "已更新光谱白点。复制及导出包含光源、观察者、积分波段和白点坐标。") { Name = "IlluminantWhitePoint", IsVisible = false };
         void InvalidateRange()
         {
-            result.Invalidate(); plot.IsVisible = false; conditions.Text = "";
+            result.Invalidate(); whiteResult.Invalidate(); whiteResult.IsVisible = false;
+            plot.IsVisible = false; conditions.Text = "";
         }
         void Update()
         {
@@ -161,9 +165,10 @@ public sealed partial class MainView : UserControl
             {
                 static int Wavelength(TextBox box) => int.TryParse(box.Text, out var value) ? value : throw new ArgumentException("起始和结束波长必须是整数。");
                 var query = ToolCalculations.QueryIlluminant(catalog[light.SelectedIndex].Id,
-                    ToolCalculations.IlluminantIntervals[interval.SelectedIndex], Wavelength(start), Wavelength(end));
+                    ToolCalculations.IlluminantIntervals[interval.SelectedIndex], Wavelength(start), Wavelength(end), SelectedObserver(observer));
                 conditions.Text = query.Table.Conditions;
                 plot.SetData(query.Values, query.Start, query.Step); plot.IsVisible = true;
+                whiteResult.Run(() => query.WhitePointTable); whiteResult.IsVisible = true;
                 return query.Table;
             });
         }
@@ -182,12 +187,24 @@ public sealed partial class MainView : UserControl
             Update();
         };
         interval.SelectionChanged += (_, _) => Update();
+        observer.SelectionChanged += (_, _) => Update();
         Update();
         return Stack(Card(Stack(Text("标准光源查询", 24, true),
-            Note($"共 {catalog.Length} 条 CIE 光源光谱。选择光源后自动更新；修改波段后点击“更新波段”，数据与曲线仅显示所选范围。"),
-            Fields(("标准光源", light), ("波长间隔", interval)),
+            Note($"共 {catalog.Length} 条 CIE 光源光谱。选择光源、观察者或间隔后自动更新；修改波段后点击“更新波段”，同步更新光谱和白点。"),
+            Fields(("标准光源", light), ("观察者", observer), ("波长间隔", interval)),
             Fields(("起始波长 / nm", start), ("结束波长 / nm", end)), Actions(Primary("更新波段", Update)), conditions, plot,
-            Note("保持原始相对光谱功率尺度；必要时线性插值，不向源数据范围外推。淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"))), result);
+            Note("保持原始相对光谱功率尺度；必要时线性插值，不向源数据范围外推。淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"))), whiteResult, result);
+    }
+
+    private static Control IlluminantWhitePointResults(CalculationTable table)
+    {
+        var row = table.Rows[0];
+        var coordinates = new ResponsiveColumns();
+        coordinates.Children.Add(Stack(Text("XYZ (Y = 100)", 18, true),
+            Fields(("X", Text(row[4], 24, true)), ("Y", Text(row[5], 24, true)), ("Z", Text(row[6], 24, true)))));
+        coordinates.Children.Add(Stack(Text("xy", 18, true),
+            Fields(("x", Text(row[7], 24, true)), ("y", Text(row[8], 24, true)))));
+        return Stack(coordinates, Note(table.Conditions));
     }
 
     private Control ConversionPage()

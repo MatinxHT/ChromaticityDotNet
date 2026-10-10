@@ -124,21 +124,22 @@ public class ChromaticitySpectralConversionTests
         Assert.Throws<ArgumentException>(() => ChromaticityConversion.REFToXYZ(huge, huge, StandardObserver.Degree2));
     }
 
-    // Frozen results from the pre-migration 31-point tables and formula for a 0–100% ramp.
+    // Independently calculated in Python from CIE CSV samples at 400–700 nm / 10 nm,
+    // using the retained 31-point observer tables and a 0–100% reflectance ramp.
     [Theory]
     [InlineData(Standardilluminant.D65, StandardObserver.Degree2, 52.7555, 52.2437, 20.1821)]
     [InlineData(Standardilluminant.D65, StandardObserver.Degree10, 51.5940, 50.3591, 18.7843)]
-    [InlineData(Standardilluminant.A, StandardObserver.Degree2, 71.4030, 57.3710, 7.3447)]
-    [InlineData(Standardilluminant.A, StandardObserver.Degree10, 71.1704, 56.4776, 6.8185)]
-    [InlineData(Standardilluminant.CWF, StandardObserver.Degree2, 58.0116, 55.3997, 10.3739)]
-    [InlineData(Standardilluminant.CWF, StandardObserver.Degree10, 59.7008, 54.3464, 9.9821)]
-    [InlineData(Standardilluminant.F7, StandardObserver.Degree2, 53.1660, 52.7526, 18.2019)]
-    [InlineData(Standardilluminant.F7, StandardObserver.Degree10, 52.5713, 51.0197, 17.0058)]
-    [InlineData(Standardilluminant.TL84, StandardObserver.Degree2, 62.8265, 55.6147, 9.6576)]
-    [InlineData(Standardilluminant.TL84, StandardObserver.Degree10, 63.6618, 54.7495, 9.3176)]
-    [InlineData(Standardilluminant.U30, StandardObserver.Degree2, 70.9662, 57.5904, 5.2202)]
-    [InlineData(Standardilluminant.U30, StandardObserver.Degree10, 72.1867, 57.1176, 4.9489)]
-    public void LegacyFastPathRetainsItsNumericalResults(Standardilluminant illuminant, StandardObserver observer, double x, double y, double z)
+    [InlineData(Standardilluminant.A, StandardObserver.Degree2, 71.4035, 57.3707, 7.3497)]
+    [InlineData(Standardilluminant.A, StandardObserver.Degree10, 71.1702, 56.4769, 6.8237)]
+    [InlineData(Standardilluminant.CWF, StandardObserver.Degree2, 58.7950, 55.5573, 9.7001)]
+    [InlineData(Standardilluminant.CWF, StandardObserver.Degree10, 60.4091, 54.5294, 9.2320)]
+    [InlineData(Standardilluminant.F7, StandardObserver.Degree2, 54.0115, 52.8441, 17.7743)]
+    [InlineData(Standardilluminant.F7, StandardObserver.Degree10, 53.1942, 51.1069, 16.4649)]
+    [InlineData(Standardilluminant.TL84, StandardObserver.Degree2, 88.6702, 60.4305, 6.2166)]
+    [InlineData(Standardilluminant.TL84, StandardObserver.Degree10, 88.0447, 59.8371, 5.9291)]
+    [InlineData(Standardilluminant.U30, StandardObserver.Degree2, 96.7303, 62.2338, 2.9510)]
+    [InlineData(Standardilluminant.U30, StandardObserver.Degree10, 96.4030, 61.9696, 2.7052)]
+    public void LegacyFastPathUsesCieIlluminantSamples(Standardilluminant illuminant, StandardObserver observer, double x, double y, double z)
     {
         double[] values = Enumerable.Range(0, 31).Select(i => i * 100.0 / 30).ToArray();
         AssertXyz(ChromaticityConversion.REFToXYZ(values, illuminant, observer), x, y, z);

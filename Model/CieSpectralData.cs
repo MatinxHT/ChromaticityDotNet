@@ -3,12 +3,10 @@ using static ChromaticityDotNet.Model.StandardChromaticityModel.Standardillumina
 
 namespace ChromaticityDotNet.Model
 {
-    /// <summary>CIE reference spectra used by the wavelength-aware conversion API.
-    /// Legacy StandardChromaticityModel tables remain unchanged.</summary>
+    /// <summary>CIE reference spectra shared by the wavelength-aware API and legacy illuminant interface.</summary>
     public static class CieSpectralData
     {
-        /// <summary>All compiled CIE light spectra, in catalog order. Unlike the legacy
-        /// white-point enum, this includes the complete archived FL, HP and LED series.</summary>
+        /// <summary>All 50 compiled CIE light spectra, in catalog order, without compatibility aliases.</summary>
         public static IReadOnlyList<CieIlluminantInfo> Illuminants { get; } =
             Array.AsReadOnly(CieReferenceData.IlluminantEntries.Select(entry => entry.Info).ToArray());
 
@@ -31,22 +29,29 @@ namespace ChromaticityDotNet.Model
             };
         }
 
-        /// <summary>Returns an independent copy of the official 1 nm illuminant spectrum.
-        /// A/D65 cover 300–830 nm; fluorescent illuminants cover 380–780 nm.
-        /// Existing library aliases CWF, F7, TL84 and U30 map to FL2, FL7, FL11 and FL12.</summary>
-        public static Spectrum GetIlluminantSpectrum(Standardilluminant illuminant)
+        /// <summary>Returns the canonical catalog ID for any illuminant enum value, including
+        /// the original CWF, F7, TL84 and U30 names. Do not use enum ToString() for catalog IDs.</summary>
+        public static string GetIlluminantId(Standardilluminant illuminant)
         {
+            if (!Enum.IsDefined(typeof(Standardilluminant), illuminant))
+                throw new ArgumentOutOfRangeException(nameof(illuminant));
             switch (illuminant)
             {
-                case Standardilluminant.A: return Copy(300, CieReferenceData.A);
-                case Standardilluminant.D65: return Copy(300, CieReferenceData.D65);
-                case Standardilluminant.CWF: return Copy(380, CieReferenceData.FL2);
-                case Standardilluminant.F7: return Copy(380, CieReferenceData.FL7);
-                case Standardilluminant.TL84: return Copy(380, CieReferenceData.FL11);
-                case Standardilluminant.U30: return Copy(380, CieReferenceData.FL12);
-                default: throw new ArgumentOutOfRangeException(nameof(illuminant));
+                case Standardilluminant.CWF: return "FL2";
+                case Standardilluminant.F7: return "FL7";
+                case Standardilluminant.TL84: return "FL11";
+                case Standardilluminant.U30: return "FL12";
+                default:
+                    string name = illuminant.ToString();
+                    return name.StartsWith("FL3_", StringComparison.Ordinal)
+                        ? name.Replace('_', '.') : name.Replace('_', '-');
             }
         }
+
+        /// <summary>Returns an independent copy of the CIE spectrum on its native grid (1 or 5 nm).
+        /// All catalog entries are supported; compatibility names map to the same canonical spectrum.</summary>
+        public static Spectrum GetIlluminantSpectrum(Standardilluminant illuminant) =>
+            GetIlluminantSpectrum(GetIlluminantId(illuminant));
 
         /// <summary>Returns independent copies of x-bar, y-bar and z-bar, 360–830 nm / 1 nm.
         /// Degree2 selects CIE 1931; Degree10 selects CIE 1964. The latter's undefined

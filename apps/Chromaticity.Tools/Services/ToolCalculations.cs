@@ -23,7 +23,8 @@ public sealed record CalculationTable(string[] Headers, string[][] Rows, string 
 }
 
 public sealed record SpectrumResult(CalculationTable Table, double[] Values, int Start, int Step, string? Hex);
-public sealed record IlluminantQueryResult(CalculationTable Table, double[] Values, int Start, int Step);
+public sealed record IlluminantQueryResult(CalculationTable Table, double[] Values, int Start, int Step,
+    CalculationTable WhitePointTable);
 public enum InputSpace { XYZ, Lab, Luv, xyY, sRGB, HEX }
 
 /// <summary>Input validation and presentation only; all color calculations call the existing library.</summary>
@@ -37,20 +38,19 @@ public static class ToolCalculations
         .OrderBy(item => item.Id == "D65" ? 0 : 1).ThenBy(item => item.DisplayName, StringComparer.Ordinal).ToArray();
     public static readonly int[] IlluminantIntervals = [1, 5, 10, 20];
 
-    public static string IlluminantId(Standardilluminant illuminant) => illuminant switch
-        {
-            Standardilluminant.D65 => "D65", Standardilluminant.A => "A",
-            Standardilluminant.CWF => "FL2", Standardilluminant.F7 => "FL7",
-            Standardilluminant.TL84 => "FL11", Standardilluminant.U30 => "FL12",
-            _ => throw new ArgumentOutOfRangeException(nameof(illuminant))
-        };
+    public static string IlluminantId(Standardilluminant illuminant) =>
+        CieSpectralData.GetIlluminantId(illuminant);
 
-    public static IlluminantQueryResult QueryIlluminant(Standardilluminant illuminant, int interval) =>
-        QueryIlluminant(IlluminantId(illuminant), interval);
+    public static IlluminantQueryResult QueryIlluminant(Standardilluminant illuminant, int interval,
+        StandardObserver observer = DefaultObserver) =>
+        QueryIlluminant(IlluminantId(illuminant), interval, observer: observer);
 
-    public static IlluminantQueryResult QueryIlluminant(string illuminantId, int interval, int? start = null, int? end = null)
+    public static IlluminantQueryResult QueryIlluminant(string illuminantId, int interval, int? start = null, int? end = null,
+        StandardObserver observer = DefaultObserver)
     {
         if (!IlluminantIntervals.Contains(interval)) throw new ArgumentException("波长间隔请选择 1、5、10 或 20 nm。");
+        if (observer is not (StandardObserver.Degree2 or StandardObserver.Degree10))
+            throw new ArgumentException("请选择有效的观察者。", nameof(observer));
         var info = CieSpectralData.Illuminants.FirstOrDefault(item => string.Equals(item.Id, illuminantId, StringComparison.OrdinalIgnoreCase))
             ?? throw new ArgumentException("请选择有效的标准光源。", nameof(illuminantId));
         var spectrum = CieSpectralData.GetIlluminantSpectrum(info.Id);
@@ -81,7 +81,33 @@ public static class ToolCalculations
         {
             (rangeStart + i * interval).ToString(Invariant), value.ToString("G", Invariant)
         }).ToArray();
-        return new(new(["波长 / nm", $"{info.DisplayName} 相对光谱功率"], rows, conditions), values, rangeStart, interval);
+        var whitePoint = QueryWhitePoint(info, spectrum, observer, rangeStart, sampledEnd);
+        return new(new(["波长 / nm", $"{info.DisplayName} 相对光谱功率"], rows, conditions), values, rangeStart, interval, whitePoint);
+    }
+
+    private static CalculationTable QueryWhitePoint(CieIlluminantInfo info, Spectrum spectrum, StandardObserver observer,
+        int start, int end)
+    {
+        int first = Math.Max(360, start), last = Math.Min(830, end);
+        var observerName = observer == StandardObserver.Degree2 ? "2° · CIE 1931" : "10° · CIE 1964";
+        CIEXYZ? white = null;
+        string description = "原始光谱按 1 nm 积分；查询间隔仅用于表格和曲线采样。";
+        if (first > last)
+            description = "查询波段与观察者的 360–830 nm 范围不重叠，白点未定义。";
+        else
+        {
+            try { white = ChromaticityMatch.GetStandardWhitePoint(spectrum, observer, first, last); }
+            catch (ArgumentException ex) when (ex.ParamName == "illuminant")
+            { description = "所选波段无法形成有效白点（参考亮度须为有限正数）。"; }
+        }
+        double sum = white is null ? 0 : white.CIEX + white.CIEY + white.CIEZ;
+        var conditions = $"{info.DisplayName} / {observerName}";
+        if (first <= last) conditions += $" · 光谱积分白点 {first}–{last} nm，Y = 100";
+        conditions += "\n" + description;
+        return new(["标准光源", "观察者", "积分起始波长 / nm", "积分结束波长 / nm", "白点 X", "白点 Y", "白点 Z", "白点 x", "白点 y", "说明"],
+            [[info.DisplayName, observerName, first <= last ? first.ToString(Invariant) : "—", first <= last ? last.ToString(Invariant) : "—",
+                white is null ? "—" : F(white.CIEX), white is null ? "—" : F(white.CIEY), white is null ? "—" : F(white.CIEZ),
+                white is null ? "—" : F(white.CIEX / sum), white is null ? "—" : F(white.CIEY / sum), description]], conditions);
     }
 
     public static string F(double value) => double.IsFinite(value)

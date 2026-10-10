@@ -8,7 +8,7 @@ namespace ChromaticityDotNet.Tests;
 public class ChromaticityInverseConversionTests
 {
     // Independently calculated in Python using the CIE piecewise functions and
-    // the repository's D65/2-degree white (95.047, 100, 108.883).
+    // an explicit conventional D65/2-degree white (95.047, 100, 108.883).
     // Formula: https://www.w3.org/TR/css-color-4/#color-conversion-code
     [Theory]
     [InlineData(0, 0, 0, 0, 0, 0)]
@@ -24,7 +24,7 @@ public class ChromaticityInverseConversionTests
     public void LabToXyzMatchesReferenceValues(double l, double a, double b, double x, double y, double z)
     {
         CIEXYZ result = ChromaticityConversion.LabToXYZ(
-            new CIELAB(l, a, b), Standardilluminant.D65, StandardObserver.Degree2);
+            new CIELAB(l, a, b), ConventionalD65White);
 
         AssertReferenceXyz(result, x, y, z);
     }
@@ -45,7 +45,7 @@ public class ChromaticityInverseConversionTests
     {
         CIEXYZ result = ChromaticityConversion.LuvToXYZ(
             new CIELuv { CIEL = l, CIEu = u, CIEv = v },
-            Standardilluminant.D65, StandardObserver.Degree2);
+            ConventionalD65White);
 
         AssertReferenceXyz(result, x, y, z);
     }
@@ -132,7 +132,7 @@ public class ChromaticityInverseConversionTests
         // Y/Yn and Z/Zn are at the exact CIE threshold; a* was calculated independently in Python.
         CIELAB result = ChromaticityConversion.XYZToLab(
             new CIEXYZ { CIEX = 95.047 * relativeX, CIEY = 100 * (216.0 / 24389.0), CIEZ = 108.883 * (216.0 / 24389.0) },
-            Standardilluminant.D65, StandardObserver.Degree2);
+            ConventionalD65White);
 
         Assert.Equal(8.0, result.CIEL);
         Assert.Equal(expectedA, result.CIEA);
@@ -190,7 +190,7 @@ public class ChromaticityInverseConversionTests
         double referenceV = 900.0 / (95.047 + 1500.0 + 3.0 * 108.883);
         CIELuv color = new() { CIEL = 50, CIEv = -13.0 * 50.0 * referenceV + offset };
 
-        Assert.Throws<ArgumentException>("luvColor", () => ChromaticityConversion.LuvToXYZ(color, Standardilluminant.D65, StandardObserver.Degree2));
+        Assert.Throws<ArgumentException>("luvColor", () => ChromaticityConversion.LuvToXYZ(color, ConventionalD65White));
     }
 
     [Fact]
@@ -200,6 +200,8 @@ public class ChromaticityInverseConversionTests
         Assert.Throws<ArgumentException>("labColor", () => ChromaticityConversion.LabToXYZ(new CIELAB(50, double.MaxValue, 0), Standardilluminant.D65, StandardObserver.Degree2));
         Assert.Throws<ArgumentException>("luvColor", () => ChromaticityConversion.LuvToXYZ(new CIELuv { CIEL = double.MaxValue }, Standardilluminant.D65, StandardObserver.Degree2));
     }
+
+    private static CIEXYZ ConventionalD65White => new() { CIEX = 95.047, CIEY = 100, CIEZ = 108.883 };
 
     private static void AssertReferenceXyz(CIEXYZ result, double x, double y, double z)
     {

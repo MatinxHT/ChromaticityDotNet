@@ -10,7 +10,7 @@ public class ChromaticityConversionTests
 {
     public static IEnumerable<object[]> MeasurementConditions()
     {
-        foreach (Standardilluminant illuminant in Enum.GetValues<Standardilluminant>())
+        foreach (Standardilluminant illuminant in Enum.GetValues<Standardilluminant>().Distinct())
         {
             yield return new object[] { illuminant, StandardObserver.Degree2 };
             yield return new object[] { illuminant, StandardObserver.Degree10 };
@@ -181,7 +181,7 @@ public class ChromaticityConversionTests
     public void D65ReferenceWhiteMapsToNeutralLuv()
     {
         CIELuv result = ChromaticityConversion.XYZToLuv(
-            new CIEXYZ { CIEX = 95.047, CIEY = 100.0, CIEZ = 108.883 },
+            ChromaticityMatch.GetStandardWhitePoint(Standardilluminant.D65, StandardObserver.Degree2),
             Standardilluminant.D65,
             StandardObserver.Degree2);
 

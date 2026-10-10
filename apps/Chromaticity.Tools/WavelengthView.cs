@@ -13,8 +13,8 @@ public sealed partial class MainView
         var result = new ResultPanel(_downloader, renderResult: _ => WavelengthResults(calculated!),
             successMessage: "已完成波长计算。复制及导出包含样品、白点、观察者和波长结果。");
         result.Name = "WavelengthResult";
-        var x = SmallInput("0.3"); x.Name = "WavelengthX";
-        var y = SmallInput("0.6"); y.Name = "WavelengthY";
+        var x = SmallInput("0.5253"); x.Name = "WavelengthX";
+        var y = SmallInput("0.3485"); y.Name = "WavelengthY";
         var luminance = SmallInput("100"); luminance.Name = "WavelengthLuminance";
         var observer = Observer(); observer.Name = "WavelengthObserver";
         var light = Light(); light.Name = "WavelengthIlluminant";
@@ -61,17 +61,19 @@ public sealed partial class MainView
             });
         }
         var calculate = Primary("计算波长", Calculate); calculate.Name = "WavelengthCalculate";
-        return Stack(Card(Stack(
+        var columns = new ResponsiveColumns { Name = "WavelengthInputsAndDiagram" };
+        columns.Children.Add(Stack(
             Text("主波长与补色波长计算", 24, true),
             Note("输入样品 x、y、Y，选择观察者与参考白点。波长由白点到样品的方向确定，Y 不影响计算。"),
             Fields(("样品 x", x), ("样品 y", y), ("样品 Y", luminance)),
             Fields(("观察者", observer), ("白点来源", source)), standardFields, customFields,
             Note("标准光源可选全部 50 条 CIE 光源；白点在其与观察者的共同波段积分，Y = 100。"),
-            Actions(Button("载入绿色示例", () => { x.Text = "0.3"; y.Text = "0.6"; luminance.Text = "100"; }),
-                Button("载入紫色示例", () => { x.Text = "0.4"; y.Text = "0.2"; luminance.Text = "100"; }), calculate))),
-            result, Card(Stack(Text("CIE xy 色度图", 20, true), plot,
-                Note("W 为白点，P 为样品。实线连接两点，虚线沿同一直线延伸到色域边界。马蹄边界包含光谱轨迹与紫边，背景为裁剪到 sRGB 的屏幕近似。"),
-                Note("紫色区域没有主波长；某些颜色没有单色补色波长，显示为 —。样品与白点重合时两者均未定义。两位小数表示输出格式，不代表测量精度。"))));
+            Actions(Button("载入红色示例", () => { x.Text = "0.5253"; y.Text = "0.3485"; luminance.Text = "100"; }),
+                Button("载入紫色示例", () => { x.Text = "0.4"; y.Text = "0.2"; luminance.Text = "100"; }), calculate),
+            Note("W 为白点，P 为样品。实线连接两点，虚线沿同一直线延伸到色域边界。马蹄边界包含光谱轨迹与紫边，背景为裁剪到 sRGB 的屏幕近似。"),
+            Note("紫色区域没有主波长；某些颜色没有单色补色波长，显示为 —。样品与白点重合时两者均未定义。两位小数表示输出格式，不代表测量精度。")));
+        columns.Children.Add(Stack(Text("CIE xy 色度图", 20, true), plot));
+        return Stack(Card(columns), result);
     }
 
     private static Control WavelengthResults(WavelengthCalculation calculation)

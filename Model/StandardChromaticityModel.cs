@@ -10,11 +10,11 @@
         /// </summary>
         public class StandardilluminantClass
         {
-            #region Data Foramat
-
-            /// <summary>
-            /// class of Standard illuminant format
-            /// </summary>
+            /// <summary>Quick access to CIE-derived illuminant data.</summary>
+            /// <remarks>Spectrum is a 400–700 nm / 10 nm, 31-point copy. White points are
+            /// cached integrals of the native CIE spectrum on a 1 nm grid over its complete
+            /// overlap with the observer, normalized to Y = 100. They are not 31-point whites.
+            /// Returned spectra and white points are independent, mutable copies.</remarks>
             public interface IStandardilluminant
             {
                 Standardilluminant IlluminantName { get; }
@@ -23,434 +23,149 @@
                 DataModel.Spectrum Spectrum { get; }
             }
 
-            /// <summary>
-            /// CIE Standardilluminant Type
-            /// </summary>
+            /// <summary>All 50 catalog illuminants, including the original compatibility names.</summary>
+            /// <remarks>The original six numeric values and string names are preserved.
+            /// FL2, FL7, FL11 and FL12 identify the same spectra as CWF, F7, TL84 and U30,
+            /// but have distinct enum values to preserve legacy ToString() and serialization.
+            /// Use CieSpectralData.Illuminants for unique lights.
+            /// GetIlluminantId provides the canonical catalog ID without relying on enum ToString().</remarks>
             public enum Standardilluminant
             {
-                D65,
-                A,
-                CWF,
-                F7,
-                TL84,
-                U30
+                D65 = 0,
+                A = 1,
+                CWF = 2,
+                F7 = 3,
+                TL84 = 4,
+                U30 = 5,
+                D50 = 6,
+                D55 = 7,
+                D75 = 8,
+                C = 9,
+                ID50 = 10,
+                ID65 = 11,
+                L41 = 12,
+                FL1 = 13,
+                FL3 = 14,
+                FL4 = 15,
+                FL5 = 16,
+                FL6 = 17,
+                FL8 = 18,
+                FL9 = 19,
+                FL10 = 20,
+                FL3_1 = 21,
+                FL3_2 = 22,
+                FL3_3 = 23,
+                FL3_4 = 24,
+                FL3_5 = 25,
+                FL3_6 = 26,
+                FL3_7 = 27,
+                FL3_8 = 28,
+                FL3_9 = 29,
+                FL3_10 = 30,
+                FL3_11 = 31,
+                FL3_12 = 32,
+                FL3_13 = 33,
+                FL3_14 = 34,
+                FL3_15 = 35,
+                HP1 = 36,
+                HP2 = 37,
+                HP3 = 38,
+                HP4 = 39,
+                HP5 = 40,
+                LED_B1 = 41,
+                LED_B2 = 42,
+                LED_B3 = 43,
+                LED_B4 = 44,
+                LED_B5 = 45,
+                LED_BH1 = 46,
+                LED_RGB1 = 47,
+                LED_V1 = 48,
+                LED_V2 = 49,
+                FL2 = 50,
+                FL7 = 51,
+                FL11 = 52,
+                FL12 = 53
             }
 
-            /// <summary>
-            /// CIE StandardObserver Degree
-            /// </summary>
+            /// <summary>CIE standard observer.</summary>
             public enum StandardObserver
             {
                 Degree2,
                 Degree10
             }
 
-            /// <summary>
-            /// SpecularComponentHandling
-            /// </summary>
+            /// <summary>Specular component handling.</summary>
             public enum SpecularInclusion
             {
                 SCI,
                 SCE
             }
 
-            #endregion
-
-            #region Standard Illuminant
-
-            /// <summary>
-            /// D65 Standardilluminant
-            /// </summary>
+            /// <summary>Compatibility wrapper for the CIE D65 illuminant data.</summary>
             public class D65 : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.D65;
-                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 95.047,
-                        CIEY = 100.000,
-                        CIEZ = 108.883
-                    },
-                    Observer = StandardObserver.Degree2
-                };
-                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 94.811,
-                        CIEY = 100.000,
-                        CIEZ = 107.304
-                    },
-                    Observer = StandardObserver.Degree10
-                };
-
-                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
-                {
-                    StartingWavelength = 400,
-                    WavelengthInterval = 10,
-                    EndingWavelength = 700,
-                    Spectrums = new double[31]
-                    {
-                        82.7549, 91.486, 93.4318, 86.6823, 104.865, 117.008, 117.812, 114.861,
-                        115.923, 108.811, 109.354, 107.802, 104.79, 107.689, 104.405, 104.046,
-                        100.0, 96.3342, 95.788, 88.6856, 90.0062, 89.5991, 87.6987, 83.2886,
-                        83.6992, 80.0268, 80.2146, 82.2778, 78.2842, 69.7213, 71.6091
-                    }
-                };
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree2;
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree10;
+                public DataModel.Spectrum Spectrum => CieStandardIlluminant.Get(IlluminantName).Spectrum;
             }
-            
-            /// <summary>
-            /// A Standardilluminant
-            /// </summary>
+
+            /// <summary>Compatibility wrapper for the CIE A illuminant data.</summary>
             public class A : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.A;
-
-                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 109.85,
-                        CIEY = 100.00,
-                        CIEZ = 35.58
-                    },
-                    Observer = StandardObserver.Degree2
-                };
-
-                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 111.14,
-                        CIEY = 100.00,
-                        CIEZ = 35.20
-                    },
-                    Observer = StandardObserver.Degree10
-                };
-
-                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
-                {
-                    StartingWavelength = 400,
-                    WavelengthInterval = 10,
-                    EndingWavelength = 700,
-                    Spectrums = new double[31]
-                    {
-                        14.708,
-                        17.6753,
-                        20.995,
-                        24.2873,
-                        28.7027,
-                        33.0859,
-                        37.8121,
-                        42.8693,
-                        48.2423,
-                        53.9132,
-                        59.8511,
-                        66.0635,
-                        72.4959,
-                        79.1326,
-                        85.947,
-                        92.912,
-                        100,
-                        107.184,
-                        114.436,
-                        121.731,
-                        129.043,
-                        136.346,
-                        143.618,
-                        150.836,
-                        157.979,
-                        165.028,
-                        171.963,
-                        178.769,
-                        185.429,
-                        191.931,
-                        198.261
-                    }
-
-                };
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree2;
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree10;
+                public DataModel.Spectrum Spectrum => CieStandardIlluminant.Get(IlluminantName).Spectrum;
             }
 
-            /// <summary>
-            /// CWF/F2 Standardilluminant 
-            /// </summary>
+            /// <summary>Compatibility wrapper for the CIE CWF illuminant data.</summary>
             public class CWF : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.CWF;
-                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 99.14,
-                        CIEY = 100.00,
-                        CIEZ = 67.32
-                    },
-                    Observer = StandardObserver.Degree2
-                };
-                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 103.25,
-                        CIEY = 100.00,
-                        CIEZ = 68.99
-                    },
-                    Observer = StandardObserver.Degree10
-                };
-                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
-                {
-                    StartingWavelength = 400,
-                    WavelengthInterval = 10,
-                    EndingWavelength = 700,
-                    Spectrums = new double[31]
-                    {
-                        03.44,
-                        03.85,
-                        04.19,
-                        5.06,
-                        11.81,
-                        06.63,
-                        07.19,
-                        07.54,
-                        07.65,
-                        07.62,
-                        07.28,
-                        07.05,
-                        07.16,
-                        08.04,
-                        10.01,
-                        16.64,
-                        16.16,
-                        18.62,
-                        22.79,
-                        18.66,
-                        16.54,
-                        13.80,
-                        10.95,
-                        08.40,
-                        06.31,
-                        04.68,
-                        03.45,
-                        02.55,
-                        01.89,
-                        01.53,
-                        01.10
-                    }
-
-                };
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree2;
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree10;
+                public DataModel.Spectrum Spectrum => CieStandardIlluminant.Get(IlluminantName).Spectrum;
             }
 
-            /// <summary>
-            /// F7 Standardilluminant
-            /// </summary>
+            /// <summary>Compatibility wrapper for the CIE F7 illuminant data.</summary>
             public class F7 : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.F7;
-                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 95.02,
-                        CIEY = 100.00,
-                        CIEZ = 108.63
-                    },
-                    Observer = StandardObserver.Degree2
-                };
-                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 95.78,
-                        CIEY = 100.00,
-                        CIEZ = 107.62
-                    },
-                    Observer = StandardObserver.Degree10
-                };
-                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
-                {
-                    StartingWavelength = 400,
-                    WavelengthInterval = 10,
-                    EndingWavelength = 700,
-                    Spectrums = new double[31]
-                    {
-                        6.15,
-                        7.37,
-                        7.71,
-                        9.15,
-                        17.52,
-                        12,
-                        13.08,
-                        13.71,
-                        13.95,
-                        13.82,
-                        13.43,
-                        13.08,
-                        12.78,
-                        12.44,
-                        12.26,
-                        17.05,
-                        12.58,
-                        12.83,
-                        16.75,
-                        12.67,
-                        12.19,
-                        11.6,
-                        11.12,
-                        10.76,
-                        10.11,
-                        10.02,
-                        9.87,
-                        7.27,
-                        5.83,
-                        5.04,
-                        4.12
-                    }
-                };
-
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree2;
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree10;
+                public DataModel.Spectrum Spectrum => CieStandardIlluminant.Get(IlluminantName).Spectrum;
             }
 
-            /// <summary>
-            /// TL84/F11 Standardilluminant 
-            /// </summary>
-            public class TL84 : IStandardilluminant 
+            /// <summary>Compatibility wrapper for the CIE TL84 illuminant data.</summary>
+            public class TL84 : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.TL84;
-                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 100.90,
-                        CIEY = 100.00,
-                        CIEZ = 62.26
-                    },
-                    Observer = StandardObserver.Degree2
-                };
-                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 103.82,
-                        CIEY = 100.00,
-                        CIEZ = 65.56
-                    },
-                    Observer = StandardObserver.Degree10
-                };
-
-                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
-                {
-                    StartingWavelength = 400,
-                    WavelengthInterval = 10,
-                    EndingWavelength = 700,
-                    Spectrums = new double[31]
-                    {
-                        1.29,
-                        1.59,
-                        2.46,
-                        4.49,
-                        12.13,
-                        7.19,
-                        6.72,
-                        5.46,
-                        5.66,
-                        14.96,
-                        4.72,
-                        1.47,
-                        0.89,
-                        1.18,
-                        39.59,
-                        32.61,
-                        2.83,
-                        1.67,
-                        11.28,
-                        12.73,
-                        7.33,
-                        55.27,
-                        13.18,
-                        12.26,
-                        2.07,
-                        3.58,
-                        2.48,
-                        1.54,
-                        1.46,
-                        2,
-                        1.35
-                    }
-                };
-
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree2;
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree10;
+                public DataModel.Spectrum Spectrum => CieStandardIlluminant.Get(IlluminantName).Spectrum;
             }
 
-            /// <summary>
-            /// U30/F12 Standardilluminant
-            /// </summary>
+            /// <summary>Compatibility wrapper for the CIE U30 illuminant data.</summary>
             public class U30 : IStandardilluminant
             {
                 public Standardilluminant IlluminantName => Standardilluminant.U30;
-                public DataModel.StandardWhitePoint WhitePoint_Degree2 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 108.05,
-                        CIEY = 100.00,
-                        CIEZ = 39.23
-                    },
-                    Observer = StandardObserver.Degree2
-                };
-                public DataModel.StandardWhitePoint WhitePoint_Degree10 => new DataModel.StandardWhitePoint()
-                {
-                    WhitePointXnYnZn = new DataModel.CIEXYZ()
-                    {
-                        CIEX = 114.43,
-                        CIEY = 100.00,
-                        CIEZ = 40.35
-                    },
-                    Observer = StandardObserver.Degree10
-                };
-                public DataModel.Spectrum Spectrum => new DataModel.Spectrum()
-                {
-                    StartingWavelength = 400,
-                    WavelengthInterval = 10,
-                    EndingWavelength = 700,
-                    Spectrums = new double[31]
-                    {
-                        1.19,
-                        1.12,
-                        1.08,
-                        1.78,
-                        7.9,
-                        2.71,
-                        2.49,
-                        2.1,
-                        3.01,
-                        11.88,
-                        3.43,
-                        0.92,
-                        0.6,
-                        1.1,
-                        34.4,
-                        29.48,
-                        3.08,
-                        2.27,
-                        11.96,
-                        14.27,
-                        9.28,
-                        68.53,
-                        14.67,
-                        14.71,
-                        2.57,
-                        4.18,
-                        2.81,
-                        1.64,
-                        1.49,
-                        2.34,
-                        1.61
-                    }
-                };
-
+                public DataModel.StandardWhitePoint WhitePoint_Degree2 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree2;
+                public DataModel.StandardWhitePoint WhitePoint_Degree10 =>
+                    CieStandardIlluminant.Get(IlluminantName).WhitePoint_Degree10;
+                public DataModel.Spectrum Spectrum => CieStandardIlluminant.Get(IlluminantName).Spectrum;
             }
-
-            #endregion
-
         }
 
         public class CIEConstant

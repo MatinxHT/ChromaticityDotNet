@@ -31,8 +31,8 @@ public class ChromaticityMatchTests
     }
 
     [Theory]
-    [InlineData(StandardObserver.Degree2, 95.047, 100.0, 108.883)]
-    [InlineData(StandardObserver.Degree10, 94.811, 100.0, 107.304)]
+    [InlineData(StandardObserver.Degree2, 95.0471, 100.0, 108.8829)]
+    [InlineData(StandardObserver.Degree10, 94.8111, 100.0, 107.3047)]
     public void D65WhitePointMatchesObserver(
         StandardObserver observer,
         double expectedX,
@@ -41,8 +41,8 @@ public class ChromaticityMatchTests
     {
         var result = ChromaticityMatch.GetStandardWhitePoint(Standardilluminant.D65, observer);
 
-        Assert.Equal(expectedX, result.CIEX);
+        Assert.InRange(Math.Abs(expectedX - result.CIEX), 0, 0.00005);
         Assert.Equal(expectedY, result.CIEY);
-        Assert.Equal(expectedZ, result.CIEZ);
+        Assert.InRange(Math.Abs(expectedZ - result.CIEZ), 0, 0.00005);
     }
 }

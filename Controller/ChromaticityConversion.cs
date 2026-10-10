@@ -120,7 +120,9 @@ namespace ChromaticityDotNet.Controller
         /// Measure the color of the reflector
         /// </summary>
         /// <remarks>Legacy fast calculation: exactly 31 reflectance percentages, 400–700 nm
-        /// inclusive, at 10 nm intervals. Preserves the original tables and calculation.
+        /// inclusive, at 10 nm intervals. Uses CIE-derived illuminant samples with the
+        /// original 31-point observer tables and summation algorithm. Its perfect-reflector
+        /// XYZ can differ from the full-spectrum reference white returned by the illuminant interface.
         /// Prefer the Spectrum overload for wavelength-aware calculations with CIE reference data.</remarks>
         /// <param name="REFDATA"></param>
         /// <param name="illuminant"></param>
@@ -555,7 +557,7 @@ namespace ChromaticityDotNet.Controller
                 FindLocusWavelength(wx, wy, -dx, -dy, locus));
         }
 
-        /// <summary>Computes wavelengths using the library's fixed white point for a standard illuminant
+        /// <summary>Computes wavelengths using the library's integrated CIE white point for a standard illuminant
         /// and observer. Converts white XYZ to xy without intermediate rounding.</summary>
         public static ChromaticityWavelengthResult xyYToWavelengths(CIExyY color, StandardObserver observer, Standardilluminant illuminant)
         {

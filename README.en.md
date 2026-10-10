@@ -47,7 +47,9 @@ Conversion methods belong to `ChromaticityConversion`; `Spectrum` belongs to `Da
 | `REFToXYZ(Spectrum, Spectrum, StandardObserver)` | Use a custom illuminant spectrum; the first two arguments are reflectance and illuminant, respectively |
 | `SPDToXYZ(Spectrum, StandardObserver)` | Unnormalized XYZ weighted sums for self-luminous SPD; scale conventions remain a [TODO](TODO.md) |
 | `CieSpectralData.Illuminants` | IDs, source files, native wavelength ranges, sampling intervals, and quality metadata for 50 illuminants |
-| `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | Get an independent copy of an illuminant spectrum using the legacy enum or a catalog ID, preserving its native sampling grid |
+| `CieSpectralData.GetIlluminantSpectrum(illuminant)` / `GetIlluminantSpectrum("D50")` | Both enums and catalog IDs support all 50 illuminants, returning independent copies on their native sampling grids |
+| `CieSpectralData.GetIlluminantId(illuminant)` | Get the canonical catalog ID, including compatibility-name mappings |
+| `ChromaticityMatch.GetStandardilluminantdata(illuminant)` | Legacy interface with cached CIE-derived 31-point samples and native-spectrum whites integrated on a 1 nm grid |
 | `CieSpectralData.GetColorMatchingFunctions(observer)` | Get independent copies of the matching-function spectra `(X, Y, Z)` |
 
 ```csharp
@@ -80,7 +82,7 @@ var fastXyz = ChromaticityConversion.REFToXYZ(
 - Wavelength endpoints are inclusive; the sample count must equal `(end - start) / interval + 1`. The interval must be a positive integer in nm, and sample values must be finite and nonnegative.
 - Reflectance is supplied as percentages; values above 100 are allowed. Samples are linearly interpolated to 1 nm and summed over the input range, which must lie within both observer and illuminant coverage. No extrapolation or automatic clipping is applied.
 - The new entry points round XYZ results to four decimal places, with midpoints rounded away from zero. The illuminant's reference luminance over the calculation range must be positive; invalid inputs and numeric overflow throw exceptions.
-- Both `double[]` entry points retain the original tables and algorithms for **fast 31-point calculations over 400–700 nm at 10 nm intervals**.
+- Both `double[]` entry points retain the original 31-point matching functions and summation algorithms for **fast calculations over 400–700 nm at 10 nm intervals**. The reflection entry point now uses illuminant samples derived from the native CIE data.
 - `SPDToXYZ` currently does not resample, multiply by the wavelength interval, or normalize Y. Results depend on the sampling interval and do not represent absolute photometric XYZ.
 
 ## Color-space conversions
@@ -128,13 +130,26 @@ var white = ChromaticityMatch.GetStandardWhitePoint(
 
 ### White points and precision
 
-- Lab/Luv conversions use an XYZ reference white with Y = 100. Use the same illuminant and observer in both directions. `Standardilluminant` enum overloads retain legacy fixed whites. String illuminant IDs use spectrally integrated whites for all 50 catalog entries; explicit `CIEXYZ` white points are also supported.
+- Lab/Luv conversions use an XYZ reference white with Y = 100. Use the same illuminant and observer in both directions. Both `Standardilluminant` enums and string IDs use native-spectrum whites integrated on a 1 nm grid for all 50 catalog entries; explicit `CIEXYZ` white points are also supported.
 - Inverse conversions retain `double` precision internally and round XYZ outputs to four decimal places, with midpoints rounded away from zero. Reference tests allow an error of at most 0.00005 per component; XYZ → Lab/Luv → XYZ round-trip tests use a tolerance of 0.0003.
 - Lab/Luv inverse conversions require finite coordinates and nonnegative L*; L* above 100 is allowed. Luv(0,0,0) returns black. Zero L* with nonzero u*/v*, nonpositive reconstructed v′, or numeric overflow throws an exception.
-- sRGB uses D65 chromaticity `(0.3127, 0.3290)` and an XYZ white point of `(95.0456, 100, 108.9058)`, which differs slightly from the library's fixed D65/2° white point `(95.047, 100, 108.883)`. No chromatic adaptation is performed.
+- sRGB uses D65 chromaticity `(0.3127, 0.3290)` and an XYZ white point of `(95.0456, 100, 108.9058)`, which differs slightly from the library's integrated D65/2° white point, approximately `(95.0471, 100, 108.8829)`. No chromatic adaptation is performed.
 - `XYZToRGB` clips colors outside the sRGB gamut and rounds to bytes, so arbitrary XYZ values cannot be round-tripped losslessly.
 
 The sRGB conversion matrices follow [W3C CSS Color 4](https://www.w3.org/TR/css-color-4/#color-conversion-code); the Luv inverse formula was checked against the [Colour documentation](https://colour.readthedocs.io/en/develop/_modules/colour/models/cie_luv.html#Luv_to_XYZ).
+
+`IStandardilluminant` retains its properties and the original `D65/A/CWF/F7/TL84/U30` classes. `Spectrum` is fixed at 400–700 nm / 10 nm / 31 points. `WhitePoint_Degree2/WhitePoint_Degree10` integrate the native CIE spectrum over its complete overlap with the observer on a 1 nm grid, normalize Y to 100, and retain full precision. Native 5 nm spectra are linearly interpolated without extrapolation. Each illuminant's two whites and 31 samples are generated and cached on first access; all properties return independent copies.
+
+The original enum values 0–5 and string names remain unchanged. `CWF/FL2`, `F7/FL7`, `TL84/FL11`, and `U30/FL12` retain both names and share a cache keyed by canonical catalog ID. The new canonical names have distinct numeric values to preserve legacy `ToString()` and string serialization. `Enum.GetValues` returns 54 names for 50 illuminants; use `CieSpectralData.Illuminants`, or map to canonical IDs and apply `Distinct()`, for unique lights. Use `GetIlluminantId` for canonical IDs, including `FL3_1 → "FL3.1"` and `LED_B1 → "LED-B1"`, rather than enum `ToString()`.
+
+This changes numerical behavior: existing calls remain valid, but hardcoded whites have been replaced by integrated whites and differing legacy spectrum samples have been corrected to the CIE data. Lab/Luv, wavelength, and fast reflection results can change. A perfect reflector from the 31-point fast algorithm need not equal the full-spectrum white. To keep fast-result grays neutral, calculate a 100% reflector with that same fast algorithm and pass its XYZ as an explicit Lab/Luv white. Wavelength-aware calculations should use a white over the same integration range.
+
+```csharp
+IStandardilluminant data = ChromaticityMatch.GetStandardilluminantdata(Standardilluminant.LED_B1);
+var spectrum31 = data.Spectrum;                         // 400–700 nm / 10 nm
+var white10 = data.WhitePoint_Degree10.WhitePointXnYnZn; // Native spectrum / 1 nm / full common range
+var compatible = new TL84();                            // Original class, backed by FL11 data
+```
 
 ### Integrated catalog white points
 
@@ -158,7 +173,7 @@ Use the same integration range as the reflectance data for Lab/Luv. Explicit bou
 
 `ChromaticityConversion.xyYToWavelengths` accepts `DataModel.CIExyY`, a `StandardObserver`, and either
 an explicit `CIExyY` white, a catalog illuminant ID such as `"D50"` (integrated white), or a
-`Standardilluminant` (legacy fixed white). White XYZ is converted to xy without intermediate rounding.
+`Standardilluminant`. Both ID and enum overloads use native-spectrum integrated whites. White XYZ is converted to xy without intermediate rounding.
 
 ```csharp
 var sample = new CIExyY { CIEx = 0.3, CIEy = 0.6, CIEY = 100 };
