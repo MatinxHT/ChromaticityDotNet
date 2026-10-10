@@ -1,5 +1,4 @@
 using Avalonia.Controls;
-using Avalonia.Layout;
 using System.Globalization;
 using Chromaticity.Tools.Services;
 using static ChromaticityDotNet.Model.DataModel;
@@ -64,9 +63,8 @@ public sealed partial class MainView
             customUvFields.IsVisible = source.SelectedIndex == 1 && uv;
             standardFields.IsVisible = source.SelectedIndex == 0;
         }
-        var plot = new ChromaticityDiagram { Name = "WavelengthDiagram", HorizontalAlignment = HorizontalAlignment.Stretch };
-        var uvPlot = new ChromaticityDiagram { Name = "WavelengthUvDiagram", Space = ChromaticityDiagramSpace.UvPrime,
-            HorizontalAlignment = HorizontalAlignment.Stretch };
+        var plot = new ChromaticityDiagram { Name = "WavelengthDiagram" };
+        var uvPlot = new ChromaticityDiagram { Name = "WavelengthUvDiagram", Space = ChromaticityDiagramSpace.UvPrime };
         plot.Clear(SelectedObserver(observer));
         uvPlot.Clear(SelectedObserver(observer));
         void Invalidate()

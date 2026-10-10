@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -23,6 +24,12 @@ public sealed class ChromaticityDiagram : Control
     private WriteableBitmap? _background;
     public ChromaticityDiagramSpace Space { get; init; }
     private ChromaticityDiagramProjection Projection => new(Space);
+
+    public ChromaticityDiagram()
+    {
+        MaxWidth = 600;
+        HorizontalAlignment = HorizontalAlignment.Center;
+    }
 
     public void Clear(StandardObserver observer)
     {
@@ -49,8 +56,8 @@ public sealed class ChromaticityDiagram : Control
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        double width = double.IsFinite(availableSize.Width) ? Math.Min(availableSize.Width, 760) : 600;
-        return new Size(width, Math.Clamp((width - 72) * Projection.MaxY / Projection.MaxX + 84, 280, 600));
+        double side = double.IsFinite(availableSize.Width) ? Math.Min(availableSize.Width, 600) : 600;
+        return new Size(side, side);
     }
 
     private void EnsureBackground()

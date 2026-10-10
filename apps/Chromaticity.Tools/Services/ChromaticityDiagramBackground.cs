@@ -8,10 +8,10 @@ namespace Chromaticity.Tools.Services;
 /// <summary>Display-only sRGB approximation, masked by the same physical gamut used by the API.</summary>
 public static class ChromaticityDiagramBackground
 {
-    public const double MaxX = 0.8;
+    public const double MaxX = 0.9;
     public const double MaxY = 0.9;
     public const int Width = 400;
-    public const int Height = 450;
+    public const int Height = Width;
 
     public static byte[] Create(StandardObserver observer, ChromaticityDiagramSpace space = ChromaticityDiagramSpace.Xy)
     {
