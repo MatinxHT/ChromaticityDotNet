@@ -13,33 +13,36 @@ public static class ChromaticityDiagramBackground
     public const int Width = 400;
     public const int Height = 450;
 
-    public static byte[] Create(StandardObserver observer)
+    public static byte[] Create(StandardObserver observer, ChromaticityDiagramSpace space = ChromaticityDiagramSpace.Xy)
     {
-        var boundary = CieSpectralData.GetChromaticityBoundary(observer);
-        var pixels = new byte[Width * Height * 4];
-        for (int row = 0; row < Height; row++)
+        var projection = new ChromaticityDiagramProjection(space);
+        var boundary = CieSpectralData.GetChromaticityBoundary(observer).Select(point => projection.Project(point.X, point.Y)).ToArray();
+        int height = projection.Height;
+        var pixels = new byte[Width * height * 4];
+        for (int row = 0; row < height; row++)
         {
-            double y = MaxY * (1 - (row + 0.5) / Height);
+            double y = projection.MaxY * (1 - (row + 0.5) / height);
             var intersections = new List<double>();
-            for (int i = 0; i < boundary.Count; i++)
+            for (int i = 0; i < boundary.Length; i++)
             {
-                var a = boundary[i]; var b = boundary[(i + 1) % boundary.Count];
+                var a = boundary[i]; var b = boundary[(i + 1) % boundary.Length];
                 if ((a.Y > y) != (b.Y > y))
                     intersections.Add(a.X + (y - a.Y) * (b.X - a.X) / (b.Y - a.Y));
             }
             intersections.Sort();
             for (int pair = 0; pair + 1 < intersections.Count; pair += 2)
             {
-                int first = Math.Max(0, (int)Math.Ceiling(intersections[pair] / MaxX * Width - 0.5));
-                int last = Math.Min(Width - 1, (int)Math.Floor(intersections[pair + 1] / MaxX * Width - 0.5));
+                int first = Math.Max(0, (int)Math.Ceiling(intersections[pair] / projection.MaxX * Width - 0.5));
+                int last = Math.Min(Width - 1, (int)Math.Floor(intersections[pair + 1] / projection.MaxX * Width - 0.5));
                 for (int column = first; column <= last; column++)
                 {
-                    double x = MaxX * (column + 0.5) / Width;
+                    double x = projection.MaxX * (column + 0.5) / Width;
+                    var xy = projection.ToXy(x, y);
                     // Normalize the clipped screen RGB for visibility, as in WavelengthColors.
                     // This background is illustrative and does not feed into the wavelength API.
                     var rgb = ChromaticityConversion.XYZToRGB(new CIEXYZ
                     {
-                        CIEX = x * 100, CIEY = y * 100, CIEZ = (1 - x - y) * 100
+                        CIEX = xy.X * 100, CIEY = xy.Y * 100, CIEZ = (1 - xy.X - xy.Y) * 100
                     });
                     double maximum = Math.Max(rgb.redValue, Math.Max(rgb.greenValue, rgb.blueValue));
                     int offset = (row * Width + column) * 4;

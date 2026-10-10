@@ -11,10 +11,12 @@ public sealed partial class MainView
 {
     private Control ColorGradePage()
     {
+        const int levelsPerSide = 4;
         ColorGradeResult? generated = null;
-        var result = new ResultPanel(_downloader, title: "色差分级色卡", renderResult: _ => ColorGradeCards(generated!),
+        var result = new ResultPanel(_downloader, title: "一维色差分级色卡", renderResult: _ => ColorGradeCards(generated!),
             successMessage: "已生成色卡。各方向按所选公式和阈值逐级展开。", allowExport: false);
         result.Name = "GradeResult";
+        var composite = new ContentControl { Name = "CompositeGradeCard", Content = CompositeGradePlaceholder() };
         ColorGradeComparison? composed = null;
         ColorGradeComparison? analyzed = null;
         var composedResult = new ResultPanel(_downloader, title: "目标色与标样比较",
@@ -31,8 +33,6 @@ public sealed partial class MainView
         var cmcRatio = Select(["2:1", "1:1", "自定义"]); cmcRatio.Name = "GradeCmcRatio";
         var cmcL = SmallInput("2"); cmcL.Name = "GradeCmcL";
         var cmcC = SmallInput("1"); cmcC.Name = "GradeCmcC";
-        var levels = Select(Enumerable.Range(1, ColorGradeCalculations.MaxLevels).Select(n => $"每侧 {n} 级").ToArray());
-        levels.SelectedIndex = 3; levels.Name = "GradeLevels";
         var thresholdSelect = Select(["0.5", "1", "1.5", "2", "3", "自定义"]);
         thresholdSelect.SelectedIndex = 2; thresholdSelect.Name = "GradeThresholdSelect";
         var threshold = SmallInput("1.5"); threshold.Name = "GradeThresholdCustom";
@@ -40,7 +40,7 @@ public sealed partial class MainView
         var thresholdFields = Fields(("自定义阈值 ΔE", threshold));
         var cmcFields = Fields(("CMC l:c", cmcRatio));
         var customFields = Fields(("CMC l", cmcL), ("CMC c", cmcC));
-        var parameterFields = Fields(("色差公式", formula), ("一级阈值 ΔE", thresholdSelect), ("展开级数", levels));
+        var parameterFields = Fields(("色差公式", formula), ("一级阈值 ΔE", thresholdSelect));
         parameterFields.Children.Add(cmcFields);
         parameterFields.Children.Add(customFields);
         parameterFields.Children.Add(thresholdFields);
@@ -80,6 +80,7 @@ public sealed partial class MainView
         void Invalidate()
         {
             generated = null; generatedTools.IsVisible = false;
+            composite.Content = CompositeGradePlaceholder();
             result.Invalidate(); InvalidateComposition(); InvalidateAnalysis();
         }
         void UpdateParameters()
@@ -101,7 +102,7 @@ public sealed partial class MainView
         Observe(Invalidate, l, a, b, cmcL, cmcC, threshold, evaluationInputs.Lightness, evaluationInputs.Chroma);
         Observe(InvalidateComposition, lGrade, cGrade, hGrade);
         Observe(InvalidateAnalysis, analysisL, analysisA, analysisB, sampleL, sampleA, sampleB, rounding);
-        foreach (var combo in new[] { formula, cmcRatio, levels, thresholdSelect })
+        foreach (var combo in new[] { formula, cmcRatio, thresholdSelect })
             combo.SelectionChanged += (_, _) => { UpdateParameters(); Invalidate(); };
         UpdateParameters();
         var compose = Primary("推算目标色", () =>
@@ -166,8 +167,9 @@ public sealed partial class MainView
                 }
                 var step = ToolCalculations.Number(thresholdSelect.SelectedIndex == 5 ? threshold.Text ?? "" :
                     thresholdSelect.SelectedItem?.ToString() ?? "", "等级阈值 ΔE");
+                var comparisonOptions = evaluationInputs.Options();
                 var card = ColorGradeCalculations.Generate($"{l.Text}\t{a.Text}\t{b.Text}", currentFormula,
-                    levels.SelectedIndex + 1, weightL, weightC, step, evaluationInputs.Options());
+                    levelsPerSide, weightL, weightC, step, comparisonOptions);
                 foreach (var combo in new[] { lGrade, cGrade, hGrade })
                 {
                     combo.ItemsSource = Enumerable.Range(-card.Levels, card.Levels * 2 + 1)
@@ -177,20 +179,21 @@ public sealed partial class MainView
                 analysisL.Text = l.Text; analysisA.Text = a.Text; analysisB.Text = b.Text;
                 context.Text = $"当前分析条件：{card.Formula} · 每一级 ΔE = {step.ToString("0.####", CultureInfo.InvariantCulture)} · 顺序 L* → C* → h°。";
                 generated = card; generatedTools.IsVisible = true;
+                composite.Content = CompositeGradeCard(card, comparisonOptions);
                 return card.Table;
             });
         });
         generate.Name = "GenerateGrades";
-        return Stack(Card(Stack(Text("色差分级色卡", 24, true),
-            Note("以一个标样为中心，沿明度、彩度、色相分别向两侧展开。每向外一级，按所选公式与前一级保持所选等级阈值，默认 ΔE = 1.5。"),
+        return Stack(Card(Stack(Text("一维色差分级色卡", 24, true),
+            Note("以一个标样为中心，沿明度、彩度、色相分别向两侧各展开 4 级。每向外一级，按所选公式与前一级保持所选等级阈值，默认 ΔE = 1.5。"),
             Fields(("标样 L*（0–100）", l), ("标样 a*", a), ("标样 b*", b)),
             parameterFields,
             evaluationInputs.View,
             Actions(Button("载入示例", () =>
             {
-                l.Text = "50"; a.Text = "30"; b.Text = "20"; levels.SelectedIndex = 3;
+                l.Text = "50"; a.Text = "30"; b.Text = "20";
             }), generate),
-            Note("ΔE00 固定 kL:kC:kH = 1:1:1；CMC 可选择或自定义 l:c。阈值支持最多四位小数，最小 0.0001。\n级别是沿该方向的步数；相对标样的累计 ΔE 不一定等于级数 × 阈值。CMC 每步以前一级作标样，向外计算。\n预览使用 D65 / 10°，超出 sRGB 色域会裁剪。达到坐标边界或无法满足阈值的位置显示为不可生成。"))), result, generatedTools);
+            Note("ΔE00 固定 kL:kC:kH = 1:1:1；CMC 可选择或自定义 l:c。阈值支持最多四位小数，最小 0.0001。\n级别是沿该方向的步数；相对标样的累计 ΔE 不一定等于级数 × 阈值。CMC 每步以前一级作标样，向外计算。\n预览使用 D65 / 10°，超出 sRGB 色域会裁剪。达到坐标边界或无法满足阈值的位置显示为不可生成。"))), result, composite, generatedTools);
     }
 
     private static Control ColorGradeCards(ColorGradeResult result)

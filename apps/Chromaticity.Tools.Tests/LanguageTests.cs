@@ -7,6 +7,9 @@ public class LanguageTests
 {
     [Theory]
     [InlineData("色差计算", "Color difference")]
+    [InlineData("CIE 1976 u′v′ 色度图", "CIE 1976 u′v′ chromaticity diagram")]
+    [InlineData("D 紫边", "D Purple boundary")]
+    [InlineData("C 紫边", "C Purple boundary")]
     [InlineData("无彩色 L* 阈值", "Achromatic L* threshold")]
     [InlineData("无彩色 C* 阈值", "Achromatic C* threshold")]
     [InlineData("色相偏色", "Hue bias")]

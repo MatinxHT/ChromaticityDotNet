@@ -18,7 +18,7 @@ dotnet add package ChromaticityDotNet
 
 ## 浏览器在线评估工具
 
-[`apps/`](apps/README.md) 提供基于 Avalonia Browser 的反射光谱计算、批量色差计算、颜色空间转换、标准光源查询、色差分级色卡以及主波长与补色波长工具，复用本库已有数据与算法。网站采用独立 solution，由 Cloudflare Pages 拉取仓库构建部署，不向 NuGet 包引入 Avalonia 依赖。欢迎使用 [ChromaticityDotNet](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME)。
+[`apps/`](apps/README.md) 提供基于 Avalonia Browser 的反射光谱计算、批量色差计算、颜色空间转换、标准光源查询、一维色差分级色卡与复合色差色卡，以及主波长与补色波长工具，复用本库已有数据与算法。复合色卡以 C/h 等级展开平面，并用 L 等级切换明度层。网站采用独立 solution，由 Cloudflare Pages 拉取仓库构建部署，不向 NuGet 包引入 Avalonia 依赖。欢迎使用 [ChromaticityDotNet](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME)。
 
 ## 数据来源
 
@@ -101,6 +101,7 @@ var fastXyz = ChromaticityConversion.REFToXYZ(
 | `xyTouv(xyY)` | xyY → CIE 1976 u′v′ 色度坐标 |
 | `xyToCCT(xyY)` | 从 xy 色度近似计算相关色温 |
 | `xyYToWavelengths(color, observer, whitePoint / illuminant)` | xyY → 主波长、补色波长（nm，两位小数） |
+| `LuvToWavelengths(color, observer, whitePoint / illuminant)` | L*u*v* → 主波长、补色波长（使用同一参考白点） |
 
 HSL/HSV 基于编码后的 sRGB 通道，不先做线性化，返回值保留中间精度；界面可将 S/L/V 乘以 100 显示为百分数。黑色和灰色均返回有效结果，S = 0、H = 0（无确定色相时的占位值），白色也不会产生 NaN。HSL/HSV 不是 CIE 色彩空间，模型名称沿用本库的数据模型命名。
 
@@ -182,6 +183,20 @@ var d65Result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver
 // 积分 D65 白点与手填白点略有不同，计算使用其完整精度。
 var d50Result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, "D50");
 ```
+
+`ChromaticityConversion.LuvToWavelengths` 接受 `DataModel.CIELuv`，参数顺序同上；第三个参数为
+该 Luv 的自定义 `CIEXYZ` 参考白点、光源 ID 或 `Standardilluminant`。例如：
+
+```csharp
+var luv = new CIELuv { CIEL = 50, CIEu = 20, CIEv = 30 };
+var luvResult = ChromaticityConversion.LuvToWavelengths(luv, StandardObserver.Degree2, "D65");
+```
+
+入口直接还原未舍入的 u′v′ 和 xy，再调用同一波长算法，避免中间 XYZ/xy 四位小数舍入。
+Luv 转换白点与波长参考白点必须一致，且属于所选观察者；接口不执行色适应。
+L*、u*、v* 必须有限且 L* ≥ 0；`Luv(0,0,0)` 为黑色，无确定色度，返回两项 `null` 和
+`IsAchromatic=true`，L*=0 且 u*/v* 非零则拒绝。L*>0 的中性色同样返回未定义波长；
+有效色度的结果不随亮度改变。同一颜色在 xy 与 CIE 1976 u′v′ 图中的交点对应同一波长。
 
 返回只读 `ChromaticityWavelengthResult`：`double? DominantWavelength`、`double? ComplementaryWavelength`、
 `bool IsAchromatic`。正向（白点→样品）和反向分别求光谱轨迹交点；落在紫边的方向返回 `null`，

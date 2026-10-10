@@ -521,6 +521,59 @@ namespace ChromaticityDotNet.Controller
                 nameof(luvColor));
         }
 
+        /// <summary>Computes dominant and complementary wavelengths from L*u*v* using the
+        /// same integrated reference white for Luv and wavelength calculations.</summary>
+        public static ChromaticityWavelengthResult LuvToWavelengths(CIELuv color, StandardObserver observer, Standardilluminant illuminant)
+            => LuvToWavelengths(color, observer, GetConversionWhitePoint(illuminant, observer));
+
+        /// <summary>Computes Luv wavelengths using the integrated white of any CIE catalog illuminant.</summary>
+        public static ChromaticityWavelengthResult LuvToWavelengths(CIELuv color, StandardObserver observer, string illuminantId)
+            => LuvToWavelengths(color, observer, ChromaticityMatch.GetStandardWhitePoint(illuminantId, observer));
+
+        /// <summary>Computes Luv wavelengths relative to its explicit XYZ reference white.</summary>
+        /// <remarks>Restores u'v' and xy without intermediate XYZ or coordinate rounding, then uses
+        /// xyYToWavelengths. The white must be positive, finite and strictly inside the selected
+        /// observer's physical gamut. All inputs must share this observer and reference white;
+        /// no chromatic adaptation is performed. Coordinates must be finite and L* nonnegative.
+        /// Luv(0,0,0) is black and returns two nulls with IsAchromatic=true; L*=0 with nonzero
+        /// u*/v* is invalid. Neutral colors also return two nulls. Results use the same spectral
+        /// interpolation and two-decimal nm output as xyYToWavelengths.</remarks>
+        public static ChromaticityWavelengthResult LuvToWavelengths(CIELuv color, StandardObserver observer, CIEXYZ whitePoint)
+        {
+            if (color is null) throw new ArgumentNullException(nameof(color));
+            ValidateLightness(color.CIEL, nameof(color));
+            ValidateFinite(color.CIEu, nameof(color));
+            ValidateFinite(color.CIEv, nameof(color));
+            ValidateWhitePoint(whitePoint);
+
+            // Normalize first so large, finite white XYZ values do not overflow their sums.
+            double scale = Math.Max(whitePoint.CIEX, Math.Max(whitePoint.CIEY, whitePoint.CIEZ));
+            double wx = whitePoint.CIEX / scale, wy = whitePoint.CIEY / scale, wz = whitePoint.CIEZ / scale;
+            double sum = wx + wy + wz;
+            var white = new CIExyY { CIEx = wx / sum, CIEy = wy / sum, CIEY = 100 };
+            if (color.CIEL == 0.0)
+            {
+                if (color.CIEu != 0.0 || color.CIEv != 0.0)
+                    throw new ArgumentException("L*=0 requires u*=0 and v*=0.", nameof(color));
+                return xyYToWavelengths(white, observer, white);
+            }
+
+            double whiteDenominator = wx + 15.0 * wy + 3.0 * wz;
+            double uPrime = color.CIEu / color.CIEL / 13.0 + 4.0 * wx / whiteDenominator;
+            double vPrime = color.CIEv / color.CIEL / 13.0 + 9.0 * wy / whiteDenominator;
+            ValidateFinite(uPrime, nameof(color));
+            ValidateFinite(vPrime, nameof(color));
+            double denominator = 6.0 * uPrime - 16.0 * vPrime + 12.0;
+            if (vPrime <= 0.0 || denominator <= 0.0)
+                throw new ArgumentException("Luv must reconstruct positive v' and a finite physical xy chromaticity.", nameof(color));
+            return xyYToWavelengths(new CIExyY
+            {
+                CIEx = 9.0 * uPrime / denominator,
+                CIEy = 4.0 * vPrime / denominator,
+                CIEY = 100
+            }, observer, white);
+        }
+
         #endregion
 
         #region From xy to ..

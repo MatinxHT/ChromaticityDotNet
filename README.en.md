@@ -18,7 +18,7 @@ dotnet add package ChromaticityDotNet
 
 ## Online evaluation tools
 
-[`apps/`](apps/README.md) provides browser-based tools built with Avalonia Browser for reflectance-spectrum calculations, batch color-difference calculations, color-space conversions, standard illuminant queries, color grade charts, and dominant/complementary wavelengths. These tools reuse this library's existing data and algorithms. The website uses a separate solution and is built and deployed by Cloudflare Pages through Git integration, without adding Avalonia dependencies to the NuGet package. Try [ChromaticityDotNet online](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME).
+[`apps/`](apps/README.md) provides browser-based tools built with Avalonia Browser for reflectance-spectrum calculations, batch color-difference calculations, color-space conversions, standard illuminant queries, one-dimensional and composite color difference charts, and dominant/complementary wavelengths. The composite chart lays out C/h grades in a plane and switches lightness layers by L grade. These tools reuse this library's existing data and algorithms. The website uses a separate solution and is built and deployed by Cloudflare Pages through Git integration, without adding Avalonia dependencies to the NuGet package. Try [ChromaticityDotNet online](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME).
 
 ## Data sources
 
@@ -101,6 +101,7 @@ All methods below are static members of `ChromaticityConversion`; color models b
 | `xyTouv(xyY)` | xyY → CIE 1976 u′v′ chromaticity coordinates |
 | `xyToCCT(xyY)` | Approximate correlated color temperature from xy chromaticity |
 | `xyYToWavelengths(color, observer, whitePoint / illuminant)` | xyY → dominant/complementary wavelengths in nm, rounded to two decimals |
+| `LuvToWavelengths(color, observer, whitePoint / illuminant)` | L*u*v* → dominant/complementary wavelengths using the same reference white |
 
 HSL/HSV use gamma-encoded sRGB channels without linearization and retain intermediate precision. Multiply S/L/V by 100 for percentage display. Black and gray return valid coordinates with S = 0 and H = 0 as an undefined-hue placeholder; white also returns finite values. HSL/HSV are not CIE color spaces; their model names follow the library's naming convention.
 
@@ -182,6 +183,22 @@ var result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.De
 // DominantWavelength = 549.13 nm; ComplementaryWavelength = null
 var d65Result = ChromaticityConversion.xyYToWavelengths(sample, StandardObserver.Degree2, Standardilluminant.D65);
 ```
+
+`ChromaticityConversion.LuvToWavelengths` accepts `DataModel.CIELuv` with the same argument order.
+The third argument is the Luv color's explicit `CIEXYZ` reference white, a catalog illuminant ID,
+or a `Standardilluminant`:
+
+```csharp
+var luv = new CIELuv { CIEL = 50, CIEu = 20, CIEv = 30 };
+var luvResult = ChromaticityConversion.LuvToWavelengths(luv, StandardObserver.Degree2, "D65");
+```
+
+It restores unrounded u′v′ and xy before calling the same wavelength algorithm, avoiding intermediate
+four-decimal XYZ/xy rounding. Use the same reference white and observer as the Luv color; no chromatic
+adaptation is performed. L*, u*, v* must be finite and L* nonnegative. Black `Luv(0,0,0)` has no defined
+chromaticity and returns two nulls with `IsAchromatic=true`; L*=0 with nonzero u*/v* is rejected.
+Neutral colors at positive L* also have undefined wavelengths. Wavelengths of a fixed chromaticity
+do not depend on lightness. The same color's intersections in xy and CIE 1976 u′v′ correspond to the same wavelengths.
 
 The immutable `ChromaticityWavelengthResult` has nullable `DominantWavelength` and `ComplementaryWavelength`
 properties in nm, and `IsAchromatic`. Rays from the white toward and away from the sample intersect the

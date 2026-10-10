@@ -7,6 +7,29 @@ namespace Chromaticity.Tools.Tests;
 public class LayoutTests
 {
     [Theory]
+    [InlineData(1190, true, true)]
+    [InlineData(900, false, true)]
+    [InlineData(720, false, true)]
+    [InlineData(390, false, false)]
+    public void WavelengthDiagramsStayPairedToTheRightOrBelowTheSettings(double width, bool sidebar, bool paired)
+    {
+        var panel = new WavelengthLayout();
+        var settings = new Border { Height = 250 };
+        var diagrams = new ResponsiveColumns();
+        var xy = new Border { Height = 300 };
+        var uv = new Border { Height = 300 };
+        diagrams.Children.Add(xy); diagrams.Children.Add(uv);
+        panel.Children.Add(settings); panel.Children.Add(diagrams);
+        panel.Measure(new Size(width, double.PositiveInfinity));
+        panel.Arrange(new Rect(0, 0, width, panel.DesiredSize.Height));
+        Assert.Equal(sidebar ? 378 : 0, diagrams.Bounds.X);
+        Assert.Equal(sidebar ? 0 : 268, diagrams.Bounds.Y);
+        Assert.Equal(paired ? 0 : 318, uv.Bounds.Y);
+        Assert.Equal(paired ? xy.Bounds.Right + 18 : 0, uv.Bounds.X);
+        Assert.Equal(diagrams.Bounds.Width, uv.Bounds.Right);
+    }
+
+    [Theory]
     [InlineData(1100, 3)]
     [InlineData(900, 2)]
     [InlineData(390, 1)]
