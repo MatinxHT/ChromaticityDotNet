@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/ChromaticityDotNet/ChromaticityDotNet.csproj" />
+    <ProjectReference Include="../../src/ChromaticityDotNet.OxyplotDiagram/ChromaticityDotNet.OxyplotDiagram.csproj" />
     <None Include="Fixtures\light-quality.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\reference\**\*.csv" Link="reference\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\reference\**\*.json" Link="reference\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

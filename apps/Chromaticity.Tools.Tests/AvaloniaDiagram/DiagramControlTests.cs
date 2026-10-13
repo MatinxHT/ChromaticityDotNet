@@ -17,7 +17,7 @@ using Xunit;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
-namespace ChromaticityDotNet.AvaloniaDiagram.Tests;
+namespace Chromaticity.Tools.Tests.AvaloniaDiagram;
 
 public class DiagramControlTests
 {

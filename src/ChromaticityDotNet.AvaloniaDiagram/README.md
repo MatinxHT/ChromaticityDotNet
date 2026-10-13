@@ -62,4 +62,7 @@ Call `SpectrumNavigator.RefreshLabels()` when the host language changes; it
 uses its plot's translation and label font.
 
 Targets: `net8.0`, `net10.0`; Avalonia 12.1.2 or compatible newer version.
+Avalonia 12 requires .NET 8 or later and does not provide .NET Standard runtime
+assemblies. The framework-independent geometry and data remain in the main
+`ChromaticityDotNet` package, which supports `netstandard2.0`.
 Code: MIT; CIE data: CC BY-SA 4.0.

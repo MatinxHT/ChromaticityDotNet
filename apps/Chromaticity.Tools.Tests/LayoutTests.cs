@@ -1,12 +1,13 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless.XUnit;
 using Xunit;
 
 namespace Chromaticity.Tools.Tests;
 
 public class LayoutTests
 {
-    [Theory]
+    [AvaloniaTheory]
     [InlineData(1190, true, true)]
     [InlineData(900, false, true)]
     [InlineData(720, false, true)]
@@ -29,7 +30,7 @@ public class LayoutTests
         Assert.Equal(diagrams.Bounds.Width, uv.Bounds.Right);
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData(1100, 3)]
     [InlineData(900, 2)]
     [InlineData(390, 1)]
@@ -48,7 +49,7 @@ public class LayoutTests
         }
     }
 
-    [Theory]
+    [AvaloniaTheory]
     [InlineData(1100, true)]
     [InlineData(720, true)]
     [InlineData(719, false)]

@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- Avalonia 12 requires .NET 8 or later; shared geometry targets netstandard2.0 in the main library. -->
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <LangVersion>12.0</LangVersion>
     <PackageId>ChromaticityDotNet.AvaloniaDiagram</PackageId>

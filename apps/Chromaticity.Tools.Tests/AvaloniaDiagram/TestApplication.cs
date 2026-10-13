@@ -2,9 +2,9 @@ using global::Avalonia;
 using global::Avalonia.Headless;
 using global::Avalonia.Themes.Fluent;
 
-[assembly: AvaloniaTestApplication(typeof(ChromaticityDotNet.AvaloniaDiagram.Tests.TestApplication))]
+[assembly: AvaloniaTestApplication(typeof(Chromaticity.Tools.Tests.AvaloniaDiagram.TestApplication))]
 
-namespace ChromaticityDotNet.AvaloniaDiagram.Tests;
+namespace Chromaticity.Tools.Tests.AvaloniaDiagram;
 
 public sealed class TestApplication : Application
 {

@@ -8,7 +8,7 @@ using Xunit;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
-namespace ChromaticityDotNet.OxyplotDiagram.Tests;
+namespace ChromaticityDotNet.Tests.OxyplotDiagram;
 
 public class ChromaticityPlotTests
 {

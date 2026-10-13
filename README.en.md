@@ -39,13 +39,18 @@ the host. The main package has no UI dependencies. `.github/workflows/dotnet.yml
 publishes all three packages using NuGet Trusted Publishing and attaches them to
 the same GitHub Release.
 
-Tests remain under `tests/`, browser tools under `apps/`, archived CIE data under
-`reference/`, and data/build utilities under `tools/`.
+The main and OxyPlot packages target `netstandard2.0` and `net10.0`. The Avalonia
+package targets `net8.0` and `net10.0` because Avalonia 12.1.2 requires .NET 8 or
+later. Framework-independent diagram data and geometry stay in the main package.
+
+Tests are consolidated into two projects: `tests/ChromaticityDotNet.Tests` covers
+the main library and OxyPlot; `apps/Chromaticity.Tools.Tests` covers the application
+and Avalonia controls. The root solution runs both. Browser tools remain under
+`apps/`, archived CIE data under `reference/`, and data/build utilities under `tools/`.
 
 ```sh
 dotnet build ChromaticityDotNet.sln -c Release -p:GeneratePackageOnBuild=false
 dotnet test ChromaticityDotNet.sln -c Release --no-build --logger "console;verbosity=minimal"
-dotnet test apps/Chromaticity.Tools.Tests/Chromaticity.Tools.Tests.csproj -c Release
 ```
 
 ## Data sources

@@ -35,13 +35,16 @@ dotnet add package ChromaticityDotNet
 主库不依赖 Avalonia 或 OxyPlot；两套适配通过引用主库复用这些数据。
 三个库共用 `src/Directory.Build.props` 中的版本、作者和打包元数据，由 `.github/workflows/dotnet.yml` 通过 NuGet Trusted Publishing 同步发布，并附加到同一个 GitHub Release。
 
-`tests/` 保存计算库、OxyPlot 和 Avalonia 控件测试；`apps/` 保存浏览器工具及应用测试；
-`reference/` 和 `tools/` 分别保存 CIE 数据与数据/构建工具。
+主包与 OxyPlot 包支持 `netstandard2.0` 和 `net10.0`；Avalonia 包支持 `net8.0` 和 `net10.0`。
+Avalonia 12.1.2 本身要求 .NET 8 或更高版本，无法用于 `netstandard2.0` 项目；与 UI 无关的绘图数据和几何仍在主包中。
+
+测试合并为两个项目：`tests/ChromaticityDotNet.Tests` 包含计算库与 OxyPlot 测试；
+`apps/Chromaticity.Tools.Tests` 包含应用与 Avalonia 控件测试。根 solution 统一运行两者。
+`apps/` 保存浏览器工具，`reference/` 和 `tools/` 分别保存 CIE 数据与数据/构建工具。
 
 ```sh
 dotnet build ChromaticityDotNet.sln -c Release -p:GeneratePackageOnBuild=false
 dotnet test ChromaticityDotNet.sln -c Release --no-build --logger "console;verbosity=minimal"
-dotnet test apps/Chromaticity.Tools.Tests/Chromaticity.Tools.Tests.csproj -c Release
 ```
 
 ## 数据来源
