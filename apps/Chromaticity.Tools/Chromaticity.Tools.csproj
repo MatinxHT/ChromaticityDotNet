@@ -5,6 +5,7 @@
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="$(AvaloniaVersion)" />
     <AvaloniaResource Include="Assets/**" />
     <EmbeddedResource Include="TranslationCatalog.json" />
-    <ProjectReference Include="../../ChromaticityDotNet.csproj" />
+    <ProjectReference Include="../../src/ChromaticityDotNet/ChromaticityDotNet.csproj" />
+    <ProjectReference Include="../../src/ChromaticityDotNet.AvaloniaDiagram/ChromaticityDotNet.AvaloniaDiagram.csproj" />
   </ItemGroup>
 </Project>

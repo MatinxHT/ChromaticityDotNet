@@ -1,6 +1,7 @@
 using System.Globalization;
 using Chromaticity.Tools.Services;
 using ChromaticityDotNet.Controller;
+using ChromaticityDotNet.Diagrams;
 using Xunit;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
@@ -83,8 +84,8 @@ public class PlanckianDiagramTests
     [InlineData("T 轨迹端点")]
     [InlineData("S 为所选光源的积分白点，实线为普朗克轨迹，标记温度单位为 K。")]
     [InlineData("当前波段的光源色度未定义，仅显示普朗克轨迹。")]
-    [InlineData(PlanckianDiagramData.Explanation)]
-    [InlineData(PlanckianDiagramData.UnavailableExplanation)]
+    [InlineData(PlanckianDiagramNotes.Explanation)]
+    [InlineData(PlanckianDiagramNotes.UnavailableExplanation)]
     public void DiagramLegendsTranslateCompletely(string note) =>
         Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", UiLanguage.Translate(note, UiLanguage.English));
 }

@@ -2,7 +2,7 @@
 
 The library's authored software is licensed under MIT (see LICENSE).
 The CIE reference datasets under `reference/` and the numerical tables transferred
-into `Model/CieReferenceData.g.cs` are attributed to the International Commission
+into `src/ChromaticityDotNet/Model/CieReferenceData.g.cs` are attributed to the International Commission
 on Illumination (CIE), Vienna, AT, and licensed under
 [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/).
 The package license expression lists both licenses because it includes these data.

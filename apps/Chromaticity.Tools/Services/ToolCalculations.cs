@@ -1,5 +1,6 @@
 using System.Globalization;
 using ChromaticityDotNet.Controller;
+using ChromaticityDotNet.Diagrams;
 using ChromaticityDotNet.Model;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;

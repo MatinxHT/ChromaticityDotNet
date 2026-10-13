@@ -1,8 +1,8 @@
 # 浏览器色彩工具
 
-六个 Avalonia Browser 工具复用仓库根目录的 `ChromaticityDotNet` 项目，颜色、波长、CCT 和 CRI 均调用计算库。所有用户输入都在浏览器本地计算。05「色差评级色卡」包含一维色差分级色卡与复合色差色卡，逐级求解和坐标组合都在 .NET WASM 中完成。
+六个 Avalonia Browser 工具复用 `src/ChromaticityDotNet` 计算库及 `src/ChromaticityDotNet.AvaloniaDiagram` 绘图控件，颜色、波长、CCT 和 CRI 均调用计算库。所有用户输入都在浏览器本地计算。05「色差评级色卡」包含一维色差分级色卡与复合色差色卡，逐级求解和坐标组合都在 .NET WASM 中完成。
 
-界面采用黑白灰主题，首页仅保留六张工具入口卡片与必要的项目/许可链接；卡片整块可点击，宽屏双列、窄屏单列。工具页直接显示表单与结果，sRGB 色块保留实际颜色，曲线、控件状态及错误提示使用灰阶。光谱图在 380–780 nm 区域使用淡色可见光背景；背景仅为波长的屏幕近似，不影响计算。
+界面采用黑白灰主题，首页仅保留六张工具入口卡片与必要的项目/许可链接；卡片整块可点击，宽屏双列、窄屏单列。工具页直接显示表单与结果，sRGB 色块保留实际颜色，曲线、控件状态及错误提示使用灰阶。光谱图在 380–780 nm 区域使用淡色可见光背景；背景仅为波长的屏幕近似，不影响计算。01/04 使用 `ChromaticityDotNet.AvaloniaDiagram` 的 `SpectrumPlot` 和 `SpectrumNavigator`，数据载入后默认选中第一个有效波长。图下方的 ◀ / ▶ 按钮按实际采样点逐点移动、首尾循环，并显示波长和原始单位数值；也支持点击、触摸或拖动选点，选中图表后可用方向键或 Home/End 查看。修改输入或波段会清除旧图与选择；切换光源、观察者或查询间隔会更新数据并选中新数据的第一点。
 
 04「标准光源查询」提供 xy 与 CIE 1976 u′v′ 色度图，显示所选观察者的 1000–25000 K 普朗克轨迹、温度标记、光源积分白点 S、最近轨迹点 T 和点线连线。光源位置使用未舍入的当前积分波段白点，随光源、观察者和波段更新；色度未定义时只显示轨迹。06 的两张色度图在原有 W/P/D/C 和波长射线之外显示同一观察者的普朗克轨迹、样品 P 到 T 的连线及 Duv。轨迹和最近点均来自计算库；最近点按 CIE 1960 uv 求解后投影到 xy / u′v′，图上连线长度不代表 Duv。CCT 不适用时标明状态，超出温度范围时连线指向搜索端点；10° 轨迹与 CCT 为观察者相关估算。
 
@@ -12,15 +12,17 @@
 
 ## 工程与发布边界
 
+本次绘图库提取通过 1203 项核心库测试、624 项应用测试、9 项 OxyPlot 测试和 8 项 Avalonia 界面测试；39 份 CIE 数据、生成代码及 5 项 Python 测试也通过检查。界面测试还覆盖 01/04 的左右波长按钮、首尾循环与实际采样值，以及 04/06 的 xy 和 u′v′ 控件来源、共用数据和观察者切换。三个本地 NuGet 包已校验程序集、依赖、README 与共享图标，并用无 ProjectReference 的独立项目验证引用。Release WASM 已构建；浏览器验证反射率及标准光源的实际波长读数、中英文显示和窄屏标签。绘图及浏览器截图位于 `artifacts/diagrams-review/`，本地包位于 `artifacts/diagrams-packages/`。
+
 - `Chromaticity.Tools`：Avalonia 界面、输入校验、结果展示及 CSV 导出。
 - `Chromaticity.Tools.Browser`：.NET 10 WebAssembly 启动与静态资源。
 - `Chromaticity.Tools.Tests`：输入解析、参考计算、条件约束、批量模式和导出测试。
-- `Chromaticity.Tools.sln`：独立应用 solution；原来的根 solution 仍只构建库和原测试。
+- `Chromaticity.Tools.sln`：独立应用 solution；根 solution 构建三个库与绘图/计算测试，包含界面库但不要求 WASM 工作负载。
 - `Chromaticity.Tools.Browser/wwwroot`：首页与六个独立 HTML 工具入口。
 - [`../assets/branding`](../assets/branding/README.md)：应用与 NuGet 共用的图标资源；Browser 工程映射到原有网页地址。
 - `site`：Pages 响应头；`prepare_site.py` 将其与 Browser 发布文件组成站点。
 
-根项目通过 `DefaultItemExcludes` 排除整个 `apps/**`，应用项目均为 `IsPackable=false`，Avalonia 依赖不会进入 NuGet 库。
+计算库与两个适配项目分别位于 `src/`，应用项目均为 `IsPackable=false`。共用代码是主库的 `ChromaticityDotNet.Diagrams` 命名空间；Avalonia 依赖只进入 Avalonia 适配包，不进入主 NuGet 包。应用使用适配控件，字体与 `UiLanguage` 事件通过应用中的 `DiagramControls` 配置。
 
 `.github/workflows/dotnet.yml` 保留库构建、数据检查、测试、NuGet 和 GitHub Release 步骤，并校验包内图标与共享源文件一致。仅改 `apps/**` 时不触发它；共享图标位于根目录 `assets/branding`，修改时会触发库 workflow。网站由 Cloudflare Pages 拉取 GitHub 仓库后构建和发布，不使用 NuGet 发布密钥，也不创建 Release。
 

@@ -1,5 +1,6 @@
 using Chromaticity.Tools.Services;
 using ChromaticityDotNet.Controller;
+using ChromaticityDotNet.Diagrams;
 using Xunit;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;

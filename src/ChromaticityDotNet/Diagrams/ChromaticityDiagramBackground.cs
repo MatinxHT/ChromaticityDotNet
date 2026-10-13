@@ -3,7 +3,7 @@ using ChromaticityDotNet.Model;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
-namespace Chromaticity.Tools.Services;
+namespace ChromaticityDotNet.Diagrams;
 
 /// <summary>Display-only sRGB approximation, masked by the same physical gamut used by the API.</summary>
 public static class ChromaticityDiagramBackground
@@ -13,12 +13,16 @@ public static class ChromaticityDiagramBackground
     public const int Width = 400;
     public const int Height = Width;
 
-    public static byte[] Create(StandardObserver observer, ChromaticityDiagramSpace space = ChromaticityDiagramSpace.Xy)
+    /// <summary>Top-to-bottom RGBA8888 pixels with transparent pixels outside the physical gamut.</summary>
+    public static byte[] Create(StandardObserver observer, ChromaticityDiagramSpace space = ChromaticityDiagramSpace.Xy,
+        int width = Width)
     {
+        DiagramValidation.Observer(observer);
+        if (width <= 0 || width > 4096) throw new ArgumentOutOfRangeException(nameof(width));
         var projection = new ChromaticityDiagramProjection(space);
         var boundary = CieSpectralData.GetChromaticityBoundary(observer).Select(point => projection.Project(point.X, point.Y)).ToArray();
-        int height = projection.Height;
-        var pixels = new byte[Width * height * 4];
+        int height = width;
+        var pixels = new byte[width * height * 4];
         for (int row = 0; row < height; row++)
         {
             double y = projection.MaxY * (1 - (row + 0.5) / height);
@@ -32,11 +36,11 @@ public static class ChromaticityDiagramBackground
             intersections.Sort();
             for (int pair = 0; pair + 1 < intersections.Count; pair += 2)
             {
-                int first = Math.Max(0, (int)Math.Ceiling(intersections[pair] / projection.MaxX * Width - 0.5));
-                int last = Math.Min(Width - 1, (int)Math.Floor(intersections[pair + 1] / projection.MaxX * Width - 0.5));
+                int first = Math.Max(0, (int)Math.Ceiling(intersections[pair] / projection.MaxX * width - 0.5));
+                int last = Math.Min(width - 1, (int)Math.Floor(intersections[pair + 1] / projection.MaxX * width - 0.5));
                 for (int column = first; column <= last; column++)
                 {
-                    double x = projection.MaxX * (column + 0.5) / Width;
+                    double x = projection.MaxX * (column + 0.5) / width;
                     var xy = projection.ToXy(x, y);
                     // Normalize the clipped screen RGB for visibility, as in WavelengthColors.
                     // This background is illustrative and does not feed into the wavelength API.
@@ -45,7 +49,8 @@ public static class ChromaticityDiagramBackground
                         CIEX = xy.X * 100, CIEY = xy.Y * 100, CIEZ = (1 - xy.X - xy.Y) * 100
                     });
                     double maximum = Math.Max(rgb.redValue, Math.Max(rgb.greenValue, rgb.blueValue));
-                    int offset = (row * Width + column) * 4;
+                    if (maximum == 0) continue;
+                    int offset = (row * width + column) * 4;
                     pixels[offset] = (byte)Math.Round(rgb.redValue * 255.0 / maximum);
                     pixels[offset + 1] = (byte)Math.Round(rgb.greenValue * 255.0 / maximum);
                     pixels[offset + 2] = (byte)Math.Round(rgb.blueValue * 255.0 / maximum);

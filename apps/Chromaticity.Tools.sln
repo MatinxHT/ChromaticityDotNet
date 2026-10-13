@@ -5,11 +5,19 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chromaticity.Tools", "Chromaticity.Tools\Chromaticity.Tools.csproj", "{3B00F657-DBD6-4F68-8094-E1D24BFFEC29}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChromaticityDotNet", "..\ChromaticityDotNet.csproj", "{B52C9ACB-DC47-439A-B027-399782705252}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChromaticityDotNet", "..\src\ChromaticityDotNet\ChromaticityDotNet.csproj", "{B52C9ACB-DC47-439A-B027-399782705252}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chromaticity.Tools.Browser", "Chromaticity.Tools.Browser\Chromaticity.Tools.Browser.csproj", "{258CAC74-EA82-4FCF-A022-3F31338BD191}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chromaticity.Tools.Tests", "Chromaticity.Tools.Tests\Chromaticity.Tools.Tests.csproj", "{A09398A1-BBC4-41B4-9544-4C46D9E57C01}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChromaticityDotNet.AvaloniaDiagram", "..\src\ChromaticityDotNet.AvaloniaDiagram\ChromaticityDotNet.AvaloniaDiagram.csproj", "{9405EE42-9BB8-447D-83F0-017D86D9A104}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChromaticityDotNet.AvaloniaDiagram.Tests", "..\tests\ChromaticityDotNet.AvaloniaDiagram.Tests\ChromaticityDotNet.AvaloniaDiagram.Tests.csproj", "{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -69,8 +77,36 @@ Global
 		{A09398A1-BBC4-41B4-9544-4C46D9E57C01}.Release|x64.Build.0 = Release|Any CPU
 		{A09398A1-BBC4-41B4-9544-4C46D9E57C01}.Release|x86.ActiveCfg = Release|Any CPU
 		{A09398A1-BBC4-41B4-9544-4C46D9E57C01}.Release|x86.Build.0 = Release|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Debug|x64.Build.0 = Debug|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Debug|x86.Build.0 = Debug|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Release|x64.ActiveCfg = Release|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Release|x64.Build.0 = Release|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Release|x86.ActiveCfg = Release|Any CPU
+		{9405EE42-9BB8-447D-83F0-017D86D9A104}.Release|x86.Build.0 = Release|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Debug|x64.Build.0 = Debug|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Debug|x86.Build.0 = Debug|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Release|x64.ActiveCfg = Release|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Release|x64.Build.0 = Release|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Release|x86.ActiveCfg = Release|Any CPU
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9405EE42-9BB8-447D-83F0-017D86D9A104} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{CFBF6064-38E5-495B-AE4C-DB3DCEED27EB} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

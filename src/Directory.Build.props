@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <Version>1.0.4.6</Version>
+    <Authors>MartinHung</Authors>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>10.0</LangVersion>
+    <RepositoryUrl>https://github.com/MatinxHT/ChromaticityDotNet</RepositoryUrl>
+    <PackageLicenseExpression>MIT AND CC-BY-SA-4.0</PackageLicenseExpression>
+    <PackageIcon>app-icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)../assets/branding/app-icon.png" Pack="true" PackagePath="/" />
+    <None Include="$(MSBuildThisFileDirectory)../CIE-DATA-NOTICE.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

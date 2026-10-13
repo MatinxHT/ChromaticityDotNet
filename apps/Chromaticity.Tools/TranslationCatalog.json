@@ -378,5 +378,10 @@
   "光源与参考光源的 1960 uv 距离超过 0.0054，CRI 不适用。": "The 1960 uv separation between test and reference sources exceeds 0.0054; CRI is not applicable.",
   "所选光谱无法形成有效光源，CRI 无法计算。": "The selected spectrum cannot form a valid light source; CRI cannot be calculated.",
   "Ra 为 R1–R8 平均值。": "Ra is the mean of R1–R8.",
+  "上一个波长": "Previous wavelength",
+  "下一个波长": "Next wavelength",
+  "未选择波长": "No wavelength selected",
+  "使用左右按钮逐点查看波长与数据，首尾循环；也可点击或拖动光谱图选点，选中图表后可用方向键查看。": "Use the left/right buttons to inspect sampled wavelengths and values, wrapping at either end; you can also click or drag the plot to select a point, or use the arrow keys while the plot is focused.",
+  "点击或拖动光谱图选择最近的采样波长，查看实际数据；选中图表后可用方向键逐点查看。": "Click or drag the spectrum plot to select the nearest sampled wavelength and inspect its data; use the arrow keys to step through samples while the plot is focused.",
   "样品 CRI 需要光源光谱，不能由 xy 或 u′v′ 坐标推算；可在标准光源查询中查看光源的显色指数。": "Sample CRI requires a light-source spectrum and cannot be inferred from xy or u′v′; view source rendering indices in the standard illuminant query."
 }

@@ -11,8 +11,9 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
-# Do not interrupt a run between publishing the package and its release.
+# Do not interrupt a run between publishing the packages and their release.
 concurrency:
   group: nuget-release
   cancel-in-progress: false
@@ -21,6 +22,13 @@ jobs:
   build:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    environment: release
+
+    env:
+      PACKAGE_IDS: >-
+        ChromaticityDotNet
+        ChromaticityDotNet.OxyplotDiagram
+        ChromaticityDotNet.AvaloniaDiagram
 
     defaults:
       run:
@@ -49,12 +57,16 @@ jobs:
         run: dotnet build ChromaticityDotNet.sln --configuration Release --no-restore
 
       - name: Run unit tests
-        run: dotnet test tests/ChromaticityDotNet.Tests/ChromaticityDotNet.Tests.csproj --configuration Release --no-build --no-restore
+        run: dotnet test ChromaticityDotNet.sln --configuration Release --no-build --no-restore --logger 'console;verbosity=minimal'
 
-      - name: Generate NuGet package
-        run: dotnet pack ChromaticityDotNet.csproj --configuration Release --no-build --no-restore --output nupkg
+      - name: Generate NuGet packages
+        run: |
+          for package_id in $PACKAGE_IDS; do
+            dotnet pack "src/$package_id/$package_id.csproj" \
+              --configuration Release --no-build --no-restore --output nupkg
+          done
 
-      - name: Read package metadata and verify shared icon
+      - name: Read package metadata and verify all three packages
         id: package
         run: |
           python3 - <<'PY'
@@ -63,21 +75,43 @@ jobs:
           import xml.etree.ElementTree as ET
           from zipfile import ZipFile
 
-          packages = list(Path('nupkg').glob('*.nupkg'))
-          if len(packages) != 1:
-              raise SystemExit('Expected exactly one NuGet package')
-          with ZipFile(packages[0]) as package:
-              nuspec, = [name for name in package.namelist() if name.endswith('.nuspec')]
-              metadata = ET.fromstring(package.read(nuspec)).find('{*}metadata')
-              package_id = metadata.findtext('{*}id')
-              version = metadata.findtext('{*}version')
-              icon = metadata.findtext('{*}icon')
-              if icon != 'app-icon.png' or icon not in package.namelist():
-                  raise SystemExit('NuGet package must include its declared app-icon.png')
-              if package.read(icon) != Path('assets/branding/app-icon.png').read_bytes():
-                  raise SystemExit('NuGet icon differs from the shared branding resource')
+          expected_ids = os.environ['PACKAGE_IDS'].split()
+          paths = list(Path('nupkg').glob('*.nupkg'))
+          if len(paths) != len(expected_ids):
+              raise SystemExit('Expected exactly three NuGet packages')
+          shared_icon = Path('assets/branding/app-icon.png').read_bytes()
+          packages = {}
+          for path in paths:
+              with ZipFile(path) as package:
+                  nuspec, = [name for name in package.namelist() if name.endswith('.nuspec')]
+                  metadata = ET.fromstring(package.read(nuspec)).find('{*}metadata')
+                  package_id = metadata.findtext('{*}id')
+                  version = metadata.findtext('{*}version')
+                  if package_id not in expected_ids or package_id in packages or not version:
+                      raise SystemExit(f'Unexpected package ID or version: {path}')
+                  if path.name != f'{package_id}.{version}.nupkg':
+                      raise SystemExit(f'Package filename does not match its metadata: {path}')
+                  icon = metadata.findtext('{*}icon')
+                  if icon != 'app-icon.png' or icon not in package.namelist():
+                      raise SystemExit(f'{package_id} must include its declared app-icon.png')
+                  if package.read(icon) != shared_icon:
+                      raise SystemExit(f'{package_id} icon differs from the shared branding resource')
+                  packages[package_id] = metadata
+          versions = {metadata.findtext('{*}version') for metadata in packages.values()}
+          if len(versions) != 1:
+              raise SystemExit('All three NuGet packages must have the same version')
+          version, = versions
+          for package_id in expected_ids[1:]:
+              groups = packages[package_id].findall('{*}dependencies/{*}group')
+              if not groups:
+                  raise SystemExit(f'{package_id} must depend on the main package')
+              for group in groups:
+                  dependencies = [dependency for dependency in group.findall('{*}dependency')
+                                  if dependency.get('id') == expected_ids[0]]
+                  if len(dependencies) != 1 or dependencies[0].get('version') != version:
+                      raise SystemExit(f'{package_id} must depend on {expected_ids[0]} {version}')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write(f'id={package_id}\nversion={version}\ntag=v{version}\n')
+              output.write(f'version={version}\ntag=v{version}\n')
           PY
 
       - name: Check GitHub Release
@@ -116,7 +150,6 @@ jobs:
       - name: Generate release notes
         if: steps.release.outputs.exists != 'true'
         env:
-          PACKAGE_ID: ${{ steps.package.outputs.id }}
           PACKAGE_VERSION: ${{ steps.package.outputs.version }}
           RELEASE_TAG: ${{ steps.package.outputs.tag }}
         run: |
@@ -129,8 +162,14 @@ jobs:
 
           {
             printf '## Installation\n\n```sh\n'
-            printf 'dotnet add package %s --version %s\n' "$PACKAGE_ID" "$PACKAGE_VERSION"
-            printf '```\n\n[NuGet package](https://www.nuget.org/packages/%s/%s)\n' "$PACKAGE_ID" "$PACKAGE_VERSION"
+            for package_id in $PACKAGE_IDS; do
+              printf 'dotnet add package %s --version %s\n' "$package_id" "$PACKAGE_VERSION"
+            done
+            printf '```\n\n'
+            for package_id in $PACKAGE_IDS; do
+              printf -- '- [%s](https://www.nuget.org/packages/%s/%s)\n' \
+                "$package_id" "$package_id" "$PACKAGE_VERSION"
+            done
             printf '\n## Changes\n\n'
             git log --no-merges --format='- %s (%h)' "$revision_range"
             if [[ -n "$previous_tag" ]]; then
@@ -139,11 +178,23 @@ jobs:
             fi
           } > "$RUNNER_TEMP/release-notes.md"
 
-      - name: Push NuGet package
+      - name: NuGet login with Trusted Publishing
+        if: steps.release.outputs.exists != 'true'
+        uses: NuGet/login@v1
+        id: nuget_login
+        with:
+          user: Matinx
+
+      - name: Push NuGet packages
         if: steps.release.outputs.exists != 'true'
         env:
-          NUGET_API_KEY: ${{ secrets.CHROMATICITYDOTNETAPI }}
-        run: dotnet nuget push 'nupkg/*.nupkg' --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+          NUGET_API_KEY: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          for package_id in $PACKAGE_IDS; do
+            dotnet nuget push "nupkg/$package_id.$PACKAGE_VERSION.nupkg" \
+              --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+          done
 
       - name: Publish GitHub Release
         if: steps.release.outputs.exists != 'true'

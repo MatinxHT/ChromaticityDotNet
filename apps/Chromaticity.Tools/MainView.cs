@@ -8,6 +8,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Chromaticity.Tools.Services;
+using ChromaticityDotNet.AvaloniaDiagram.Controls;
+using ChromaticityDotNet.Diagrams;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
 namespace Chromaticity.Tools;
@@ -37,7 +39,8 @@ public sealed partial class MainView : UserControl
     private Control SpectrumPage()
     {
         var result = new ResultPanel(_downloader, sampleCards: true);
-        var plot = new SpectrumPlot { Height = 200, IsVisible = false };
+        var plot = DiagramControls.Localize(new SpectrumPlot { Name = "ReflectanceSpectrumPlot", Height = 200, IsVisible = false });
+        var navigation = DiagramControls.Localize(new SpectrumNavigator { Name = "ReflectanceSpectrumNavigator", Plot = plot, IsVisible = false });
         var input = Input("SpectrumInput", "380,18\n390,18\n…");
         var light = Light(); var observer = Observer();
         var start = SmallInput("380"); var end = SmallInput("780"); var step = SmallInput("10");
@@ -67,11 +70,12 @@ public sealed partial class MainView : UserControl
                 static int Integer(TextBox box) => int.TryParse(box.Text, out var n) ? n : throw new ArgumentException("波长和间隔必须是整数。");
                 var data = ToolCalculations.Reflectance(input.Text ?? "", Integer(start), Integer(end), Integer(step), units.SelectedIndex == 1,
                     SelectedLight(light), SelectedObserver(observer));
-                plot.SetData(data.Values, data.Start, data.Step); plot.IsVisible = true;
+                plot.SetData(data.Values, data.Start, data.Step); plot.IsVisible = true; navigation.IsVisible = true;
                 return data.Table;
             }))),
-            Note("参考照明体包含全部 50 条 CIE 光源，白点由光谱与所选观察者积分计算。\nLab / Luv 使用与反射光谱相同波段的积分白点。sRGB 预览在 D65 下显示，会裁剪超色域颜色。\n曲线淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"), plot);
-        Watch(result, () => plot.IsVisible = false, input, start, end, step, light, observer, units);
+            Note("参考照明体包含全部 50 条 CIE 光源，白点由光谱与所选观察者积分计算。\nLab / Luv 使用与反射光谱相同波段的积分白点。sRGB 预览在 D65 下显示，会裁剪超色域颜色。\n曲线淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"), plot, navigation);
+        form.Children.Add(Note("使用左右按钮逐点查看波长与数据，首尾循环；也可点击或拖动光谱图选点，选中图表后可用方向键查看。"));
+        Watch(result, () => { plot.Clear(); plot.IsVisible = false; navigation.IsVisible = false; }, input, start, end, step, light, observer, units);
         return Stack(Card(form), result);
     }
 
@@ -148,15 +152,16 @@ public sealed partial class MainView : UserControl
         var start = SmallInput(catalog[light.SelectedIndex].StartingWavelength.ToString(CultureInfo.InvariantCulture)); start.Name = "IlluminantStart";
         var end = SmallInput(catalog[light.SelectedIndex].EndingWavelength.ToString(CultureInfo.InvariantCulture)); end.Name = "IlluminantEnd";
         var conditions = Note("");
-        var plot = new SpectrumPlot { Height = 260, AxisLabel = "相对功率", MinimumMaximum = 1 };
-        var xyPlot = new ChromaticityDiagram { Name = "IlluminantXyDiagram", ShowTemperatureLabels = true };
-        var uvPlot = new ChromaticityDiagram { Name = "IlluminantUvDiagram", Space = ChromaticityDiagramSpace.UvPrime, ShowTemperatureLabels = true };
+        var plot = DiagramControls.Localize(new SpectrumPlot { Name = "IlluminantSpectrumPlot", Height = 260, AxisLabel = "相对功率", MinimumMaximum = 1 });
+        var navigation = DiagramControls.Localize(new SpectrumNavigator { Name = "IlluminantSpectrumNavigator", Plot = plot });
+        var xyPlot = DiagramControls.Localize(new ChromaticityDiagram { Name = "IlluminantXyDiagram", ShowTemperatureLabels = true });
+        var uvPlot = DiagramControls.Localize(new ChromaticityDiagram { Name = "IlluminantUvDiagram", Space = ChromaticityDiagramSpace.UvPrime, ShowTemperatureLabels = true });
         var diagrams = new ResponsiveColumns { Name = "IlluminantDiagrams" };
         diagrams.Children.Add(Stack(Text("CIE 1931 xy 色度图", 20, true), xyPlot));
         diagrams.Children.Add(Stack(Text("CIE 1976 u′v′ 色度图", 20, true), uvPlot));
         var diagramNote = Note("");
         var diagramCard = Card(Stack(diagrams, Note("S 为所选光源的积分白点，实线为普朗克轨迹，标记温度单位为 K。"),
-            Note(PlanckianDiagramData.Explanation), Note(PlanckianDiagramData.UnavailableExplanation), diagramNote));
+            Note(PlanckianDiagramNotes.Explanation), Note(PlanckianDiagramNotes.UnavailableExplanation), diagramNote));
         diagramCard.Name = "IlluminantChromaticity"; diagramCard.IsVisible = false;
         var result = new ResultPanel(_downloader, title: "光谱数据");
         var whiteResult = new ResultPanel(_downloader, title: "光谱白点", renderResult: IlluminantWhitePointResults,
@@ -164,7 +169,7 @@ public sealed partial class MainView : UserControl
         void InvalidateRange()
         {
             result.Invalidate(); whiteResult.Invalidate(); whiteResult.IsVisible = false;
-            plot.IsVisible = false; conditions.Text = "";
+            plot.Clear(); plot.IsVisible = false; navigation.IsVisible = false; conditions.Text = "";
             xyPlot.Clear(SelectedObserver(observer)); uvPlot.Clear(SelectedObserver(observer));
             diagramCard.IsVisible = false;
         }
@@ -178,7 +183,7 @@ public sealed partial class MainView : UserControl
                 var query = ToolCalculations.QueryIlluminant(catalog[light.SelectedIndex].Id,
                     ToolCalculations.IlluminantIntervals[interval.SelectedIndex], Wavelength(start), Wavelength(end), SelectedObserver(observer));
                 conditions.Text = query.Table.Conditions;
-                plot.SetData(query.Values, query.Start, query.Step); plot.IsVisible = true;
+                plot.SetData(query.Values, query.Start, query.Step); plot.IsVisible = true; navigation.IsVisible = true;
                 if (query.Diagram is { } diagram)
                 {
                     xyPlot.SetLightData(diagram, catalog[light.SelectedIndex].Id);
@@ -211,7 +216,8 @@ public sealed partial class MainView : UserControl
         return Stack(Card(Stack(Text("标准光源查询", 24, true),
             Note($"共 {catalog.Length} 条 CIE 光源光谱。选择光源、观察者或间隔后自动更新；修改波段后点击“更新波段”，同步更新光谱和白点。"),
             Fields(("标准光源", light), ("观察者", observer), ("波长间隔", interval)),
-            Fields(("起始波长 / nm", start), ("结束波长 / nm", end)), Actions(Primary("更新波段", Update)), conditions, plot,
+            Fields(("起始波长 / nm", start), ("结束波长 / nm", end)), Actions(Primary("更新波段", Update)), conditions, plot, navigation,
+            Note("使用左右按钮逐点查看波长与数据，首尾循环；也可点击或拖动光谱图选点，选中图表后可用方向键查看。"),
             Note("保持原始相对光谱功率尺度；必要时线性插值，不向源数据范围外推。淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"))), diagramCard, whiteResult, result);
     }
 
@@ -276,7 +282,11 @@ public sealed partial class MainView : UserControl
         void Invalidate() { result.Invalidate(); extra?.Invoke(); }
         foreach (var control in controls)
         {
-            if (control is TextBox text) text.TextChanged += (_, _) => Invalidate();
+            // TextChanged is queued; clear old results and spectrum selection as soon as the input changes.
+            if (control is TextBox text) text.PropertyChanged += (_, change) =>
+            {
+                if (change.Property == TextBox.TextProperty) Invalidate();
+            };
             if (control is ComboBox combo) combo.SelectionChanged += (_, _) => Invalidate();
         }
     }
@@ -634,65 +644,5 @@ public sealed partial class MainView : UserControl
             catch (Exception ex) when (ex is ArgumentException or ArithmeticException or InvalidOperationException)
             { ShowError(ex.Message); }
         }
-    }
-}
-
-public sealed class SpectrumPlot : Control
-{
-    protected override void OnAttachedToLogicalTree(Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToLogicalTree(e);
-        UiLanguage.Changed += InvalidateVisual;
-    }
-    protected override void OnDetachedFromLogicalTree(Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e)
-    {
-        UiLanguage.Changed -= InvalidateVisual;
-        base.OnDetachedFromLogicalTree(e);
-    }
-    private static readonly IBrush[] VisibleBackground = Enumerable.Range(WavelengthColors.Start, WavelengthColors.End - WavelengthColors.Start + 1)
-        .Select(wavelength =>
-        {
-            var color = WavelengthColors.At(wavelength);
-            return (IBrush)new SolidColorBrush(Color.FromArgb(32, color.R, color.G, color.B));
-        }).ToArray();
-    public string AxisLabel { get; init; } = "%";
-    public double MinimumMaximum { get; init; } = 100;
-    private double[] _values = [];
-    private int _start, _step;
-    public void SetData(double[] values, int start, int step) { _values = values; _start = start; _step = step; InvalidateVisual(); }
-
-    public override void Render(DrawingContext context)
-    {
-        base.Render(context);
-        if (_values.Length < 2 || Bounds.Width < 100) return;
-        var left = 55.0; var top = 30.0; var width = Bounds.Width - 75; var height = Bounds.Height - 65;
-        var end = _start + (_values.Length - 1) * _step;
-        var span = end - _start;
-        double X(double wavelength) => left + (wavelength - _start) * width / span;
-        for (var wavelength = Math.Max(_start, WavelengthColors.Start); wavelength < Math.Min(end, WavelengthColors.End); wavelength++)
-        {
-            var x = X(wavelength);
-            context.DrawRectangle(VisibleBackground[wavelength - WavelengthColors.Start], null,
-                new Rect(x, top, X(wavelength + 1) - x, height));
-        }
-        var max = Math.Max(MinimumMaximum, _values.Max());
-        var font = new Typeface("avares://Chromaticity.Tools/Assets#Chromaticity UI");
-        void Label(string text, double x, double y) => context.DrawText(new FormattedText(text, CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight, font, 12, Brush.Parse("#666666")), new Point(x, y));
-        for (var i = 0; i <= 4; i++)
-        {
-            var y = top + height * i / 4;
-            context.DrawLine(new Pen(Brush.Parse("#E5E5E5")), new Point(left, y), new Point(left + width, y));
-            Label((max * (4 - i) / 4).ToString("0.#", CultureInfo.InvariantCulture), 0, y - 7);
-        }
-        var pen = new Pen(Brush.Parse("#333333"), 2.5);
-        Point At(int i) => new(left + i * width / (_values.Length - 1), top + height * (1 - _values[i] / max));
-        for (var i = 1; i < _values.Length; i++) context.DrawLine(pen, At(i - 1), At(i));
-        Label(UiLanguage.Translate(AxisLabel), 0, 0); Label($"{_start} nm", left, top + height + 12);
-        Label($"{end} nm", left + width - 55, top + height + 12);
-        var tickStep = span <= 200 ? 50 : 100;
-        for (var wavelength = (_start / tickStep + 1) * tickStep; wavelength < end; wavelength += tickStep)
-            if (X(wavelength) - left >= 65 && left + width - X(wavelength) >= 65)
-                Label(wavelength.ToString(CultureInfo.InvariantCulture), X(wavelength) - 12, top + height + 12);
     }
 }

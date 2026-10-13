@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <PackageId>ChromaticityDotNet.OxyplotDiagram</PackageId>
+    <Description>CIE xy and u'v' chromaticity plot models using OxyPlot.Core, without a UI framework dependency.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../ChromaticityDotNet/ChromaticityDotNet.csproj" />
+    <PackageReference Include="OxyPlot.Core" Version="2.2.0" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+</Project>

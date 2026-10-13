@@ -18,7 +18,35 @@ dotnet add package ChromaticityDotNet
 
 ## Online evaluation tools
 
-[`apps/`](apps/README.md) provides browser-based tools built with Avalonia Browser for reflectance-spectrum calculations, batch color-difference calculations, color-space conversions, standard illuminant queries, one-dimensional and composite color difference charts, and dominant/complementary wavelengths. The composite chart lays out C/h grades in a plane and switches lightness layers by L grade. These tools reuse this library's existing data and algorithms. The website uses a separate solution and is built and deployed by Cloudflare Pages through Git integration, without adding Avalonia dependencies to the NuGet package. Try [ChromaticityDotNet online](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME).
+[`apps/`](apps/README.md) provides browser-based tools built with Avalonia Browser for reflectance-spectrum calculations, batch color-difference calculations, color-space conversions, standard illuminant queries, one-dimensional and composite color difference charts, and dominant/complementary wavelengths. The composite chart lays out C/h grades in a plane and switches lightness layers by L grade. These tools reuse this library's existing data and algorithms. The website uses a separate solution and is built and deployed by Cloudflare Pages through Git integration, without adding Avalonia dependencies to the main NuGet package. Try [ChromaticityDotNet online](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME).
+
+## Source layout and diagram adapters
+
+The three libraries are under `src/`: `ChromaticityDotNet`,
+[`ChromaticityDotNet.OxyplotDiagram`](src/ChromaticityDotNet.OxyplotDiagram/README.md), and
+[`ChromaticityDotNet.AvaloniaDiagram`](src/ChromaticityDotNet.AvaloniaDiagram/README.md).
+Version and package metadata are shared through `src/Directory.Build.props`.
+
+**`ChromaticityDotNet.Diagrams` is a namespace in the main package**, not a separate
+project or package. It contains full-precision projections, backgrounds,
+wavelength/CCT diagram data, LCh geometry and immutable spectral samples.
+The OxyPlot adapter provides `Cie1931Plot` / `Cie1976Plot` using only OxyPlot.Core;
+the host supplies the platform-specific PlotView. The Avalonia adapter provides
+bindable `ChromaticityDiagram`, `LchPlot` and interactive `SpectrumPlot` controls.
+Spectral selection uses actual samples on uniform or irregular wavelength grids,
+without interpolating selected values. Fonts and label translations come from
+the host. The main package has no UI dependencies. `.github/workflows/dotnet.yml`
+publishes all three packages using NuGet Trusted Publishing and attaches them to
+the same GitHub Release.
+
+Tests remain under `tests/`, browser tools under `apps/`, archived CIE data under
+`reference/`, and data/build utilities under `tools/`.
+
+```sh
+dotnet build ChromaticityDotNet.sln -c Release -p:GeneratePackageOnBuild=false
+dotnet test ChromaticityDotNet.sln -c Release --no-build --logger "console;verbosity=minimal"
+dotnet test apps/Chromaticity.Tools.Tests/Chromaticity.Tools.Tests.csproj -c Release
+```
 
 ## Data sources
 

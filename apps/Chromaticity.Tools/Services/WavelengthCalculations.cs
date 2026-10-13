@@ -1,18 +1,17 @@
 using System.Globalization;
 using ChromaticityDotNet.Controller;
 using ChromaticityDotNet.Model;
+using ChromaticityDotNet.Diagrams;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
 namespace Chromaticity.Tools.Services;
 
-public sealed record ChromaticityCoordinates(double X, double Y, double Luminance)
-{
-    public CIExyY ToXyY() => new() { CIEx = X, CIEy = Y, CIEY = Luminance };
-}
-
 public sealed record WavelengthCalculation(CalculationTable Table, ChromaticityCoordinates Sample,
-    ChromaticityCoordinates White, StandardObserver Observer, ChromaticityWavelengthResult Wavelengths, PlanckianDiagramData Planckian);
+    ChromaticityCoordinates White, StandardObserver Observer, ChromaticityWavelengthResult Wavelengths, PlanckianDiagramData Planckian)
+{
+    public WavelengthDiagramData Diagram => new(Sample, White, Observer, Wavelengths, Planckian);
+}
 
 /// <summary>Input snapshots and result presentation for tool 06. Wavelengths are computed by the library.</summary>
 public static class WavelengthCalculations
@@ -83,13 +82,13 @@ public static class WavelengthCalculations
         string illuminant, CIExyY? customWhite = null)
     {
         ArgumentNullException.ThrowIfNull(sample);
-        var point = new ChromaticityCoordinates(sample.CIEx, sample.CIEy, sample.CIEY);
-        var white = customWhite is null ? StandardWhite(illuminant, observer)
-            : new ChromaticityCoordinates(customWhite.CIEx, customWhite.CIEy, customWhite.CIEY);
+        var rawSample = new CIExyY { CIEx = sample.CIEx, CIEy = sample.CIEy, CIEY = sample.CIEY };
+        var rawWhite = customWhite is null ? StandardWhite(illuminant, observer).ToXyY()
+            : new CIExyY { CIEx = customWhite.CIEx, CIEy = customWhite.CIEy, CIEY = customWhite.CIEY };
         ChromaticityWavelengthResult result;
         try
         {
-            result = ChromaticityConversion.xyYToWavelengths(point.ToXyY(), observer, white.ToXyY());
+            result = ChromaticityConversion.xyYToWavelengths(rawSample, observer, rawWhite);
         }
         catch (ArgumentOutOfRangeException ex) when (ex.ParamName is "color" or "whitePoint")
         {
@@ -97,6 +96,8 @@ public static class WavelengthCalculations
                 ? "样品 xy 必须位于所选观察者的马蹄色域内或边界上，x、y、Y 必须有限且 Y ≥ 0。"
                 : "参考白点 xy 必须严格位于所选观察者的马蹄色域内部。", ex);
         }
+        var point = ChromaticityCoordinates.FromXyY(rawSample);
+        var white = ChromaticityCoordinates.FromXyY(rawWhite);
         string description = result.IsAchromatic ? "样品与白点重合，波长未定义。"
             : result.DominantWavelength is null ? "紫色区域：主波长未定义，使用补色波长。"
             : result.ComplementaryWavelength is null ? "反向落在紫边：补色波长未定义。"

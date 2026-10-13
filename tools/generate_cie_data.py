@@ -117,7 +117,7 @@ if __name__ == "__main__":
     parser.add_argument("--check", action="store_true", help="Fail if generated code differs; write nothing")
     args = parser.parse_args()
     content = generate()
-    destination = ROOT / "Model" / "CieReferenceData.g.cs"
+    destination = ROOT / "src" / "ChromaticityDotNet" / "Model" / "CieReferenceData.g.cs"
     if args.check:
         if not destination.exists() or destination.read_text(encoding="utf-8") != content:
             raise SystemExit("CieReferenceData.g.cs needs regeneration.")

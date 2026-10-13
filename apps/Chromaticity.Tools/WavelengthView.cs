@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using System.Globalization;
 using Chromaticity.Tools.Services;
+using ChromaticityDotNet.AvaloniaDiagram.Controls;
+using ChromaticityDotNet.Diagrams;
 using static ChromaticityDotNet.Model.DataModel;
 
 namespace Chromaticity.Tools;
@@ -63,8 +65,8 @@ public sealed partial class MainView
             customUvFields.IsVisible = source.SelectedIndex == 1 && uv;
             standardFields.IsVisible = source.SelectedIndex == 0;
         }
-        var plot = new ChromaticityDiagram { Name = "WavelengthDiagram" };
-        var uvPlot = new ChromaticityDiagram { Name = "WavelengthUvDiagram", Space = ChromaticityDiagramSpace.UvPrime };
+        var plot = DiagramControls.Localize(new ChromaticityDiagram { Name = "WavelengthDiagram" });
+        var uvPlot = DiagramControls.Localize(new ChromaticityDiagram { Name = "WavelengthUvDiagram", Space = ChromaticityDiagramSpace.UvPrime });
         plot.Clear(SelectedObserver(observer));
         uvPlot.Clear(SelectedObserver(observer));
         void Invalidate()
@@ -124,8 +126,9 @@ public sealed partial class MainView
                     } : null;
                     calculated = WavelengthCalculations.Calculate(sample, SelectedObserver(observer), SelectedLight(light), white);
                 }
-                plot.SetData(calculated);
-                uvPlot.SetData(calculated);
+                var diagram = calculated.Diagram;
+                plot.SetData(diagram);
+                uvPlot.SetData(diagram);
                 return calculated.Table;
             });
         }
@@ -152,7 +155,7 @@ public sealed partial class MainView
         diagrams.Children.Add(xyFigure);
         diagrams.Children.Add(uvFigure);
         columns.Children.Add(diagrams);
-        return Stack(Card(Stack(columns, Note(PlanckianDiagramData.Explanation), Note(PlanckianDiagramData.UnavailableExplanation))), result);
+        return Stack(Card(Stack(columns, Note(PlanckianDiagramNotes.Explanation), Note(PlanckianDiagramNotes.UnavailableExplanation))), result);
     }
 
     private static Control WavelengthResults(WavelengthCalculation calculation)

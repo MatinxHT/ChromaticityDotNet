@@ -1,5 +1,6 @@
 using Chromaticity.Tools.Services;
 using ChromaticityDotNet.Model;
+using ChromaticityDotNet.Diagrams;
 using Xunit;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
@@ -32,8 +33,8 @@ public class ChromaticityDiagramProjectionTests
         var result = WavelengthCalculations.Calculate(Xy(x, y), observer, "D65");
         var xyProjection = new ChromaticityDiagramProjection(ChromaticityDiagramSpace.Xy);
         var uvProjection = new ChromaticityDiagramProjection(ChromaticityDiagramSpace.UvPrime);
-        var xyHits = xyProjection.Intersections(result)!.Value;
-        var uvHits = uvProjection.Intersections(result)!.Value;
+        var xyHits = xyProjection.Intersections(result.Diagram)!.Value;
+        var uvHits = uvProjection.Intersections(result.Diagram)!.Value;
         Assert.Equal(uvProjection.Project(xyHits.Forward.X, xyHits.Forward.Y), uvHits.Forward);
         Assert.Equal(uvProjection.Project(xyHits.Reverse.X, xyHits.Reverse.Y), uvHits.Reverse);
         var white = uvProjection.Project(result.White.X, result.White.Y);
@@ -51,7 +52,7 @@ public class ChromaticityDiagramProjectionTests
     public void NeutralColorsHaveNoIntersectionMarkers()
     {
         var result = WavelengthCalculations.Calculate(Xy(0.3127, 0.329), StandardObserver.Degree2, "D65", Xy(0.3127, 0.329));
-        Assert.Null(new ChromaticityDiagramProjection(ChromaticityDiagramSpace.UvPrime).Intersections(result));
+        Assert.Null(new ChromaticityDiagramProjection(ChromaticityDiagramSpace.UvPrime).Intersections(result.Diagram));
     }
 
     [Theory]

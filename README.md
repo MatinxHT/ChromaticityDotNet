@@ -18,7 +18,31 @@ dotnet add package ChromaticityDotNet
 
 ## 浏览器在线评估工具
 
-[`apps/`](apps/README.md) 提供基于 Avalonia Browser 的反射光谱计算、批量色差计算、颜色空间转换、标准光源查询、一维色差分级色卡与复合色差色卡，以及主波长与补色波长工具，复用本库已有数据与算法。复合色卡以 C/h 等级展开平面，并用 L 等级切换明度层。网站采用独立 solution，由 Cloudflare Pages 拉取仓库构建部署，不向 NuGet 包引入 Avalonia 依赖。欢迎使用 [ChromaticityDotNet](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME)。
+[`apps/`](apps/README.md) 提供基于 Avalonia Browser 的反射光谱计算、批量色差计算、颜色空间转换、标准光源查询、一维色差分级色卡与复合色差色卡，以及主波长与补色波长工具，复用本库已有数据与算法。复合色卡以 C/h 等级展开平面，并用 L 等级切换明度层。网站采用独立 solution，由 Cloudflare Pages 拉取仓库构建部署，不向主 NuGet 包引入 Avalonia 依赖。欢迎使用 [ChromaticityDotNet](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME)。
+
+## 项目目录与绘图适配
+
+三个库项目统一放在 `src/`：
+
+| 项目 | 职责 |
+| --- | --- |
+| `src/ChromaticityDotNet` | 原计算库及 `ChromaticityDotNet.Diagrams` 命名空间 |
+| [`src/ChromaticityDotNet.OxyplotDiagram`](src/ChromaticityDotNet.OxyplotDiagram/README.md) | QuantumSpect 的 xy / u′v′ 图表模型，仅依赖主库与 `OxyPlot.Core` |
+| [`src/ChromaticityDotNet.AvaloniaDiagram`](src/ChromaticityDotNet.AvaloniaDiagram/README.md) | Avalonia 的 xy / u′v′、LCh 和可选择波长的光谱控件 |
+
+`ChromaticityDotNet.Diagrams` 是主包内的命名空间，没有单独的项目或包。
+它管理未舍入的坐标投影、色度背景、波长/CCT 图形数据、LCh 几何与背景，以及光谱采样快照。
+主库不依赖 Avalonia 或 OxyPlot；两套适配通过引用主库复用这些数据。
+三个库共用 `src/Directory.Build.props` 中的版本、作者和打包元数据，由 `.github/workflows/dotnet.yml` 通过 NuGet Trusted Publishing 同步发布，并附加到同一个 GitHub Release。
+
+`tests/` 保存计算库、OxyPlot 和 Avalonia 控件测试；`apps/` 保存浏览器工具及应用测试；
+`reference/` 和 `tools/` 分别保存 CIE 数据与数据/构建工具。
+
+```sh
+dotnet build ChromaticityDotNet.sln -c Release -p:GeneratePackageOnBuild=false
+dotnet test ChromaticityDotNet.sln -c Release --no-build --logger "console;verbosity=minimal"
+dotnet test apps/Chromaticity.Tools.Tests/Chromaticity.Tools.Tests.csproj -c Release
+```
 
 ## 数据来源
 

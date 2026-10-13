@@ -6,28 +6,49 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
-using Chromaticity.Tools.Services;
+using ChromaticityDotNet.Diagrams;
 using ChromaticityDotNet.Controller;
 using ChromaticityDotNet.Model;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
-namespace Chromaticity.Tools;
+namespace ChromaticityDotNet.AvaloniaDiagram.Controls;
 
 /// <summary>Observer-specific xy or u'v' diagram, with a Planckian locus, UCS nearest point and optional wavelength rays.</summary>
-public sealed class ChromaticityDiagram : Control
+public sealed class ChromaticityDiagram : DiagramControl
 {
+    public static readonly StyledProperty<ChromaticityDiagramSpace> SpaceProperty =
+        AvaloniaProperty.Register<ChromaticityDiagram, ChromaticityDiagramSpace>(nameof(Space), validate: value =>
+            value is ChromaticityDiagramSpace.Xy or ChromaticityDiagramSpace.UvPrime);
+    public static readonly StyledProperty<StandardObserver> ObserverProperty =
+        AvaloniaProperty.Register<ChromaticityDiagram, StandardObserver>(nameof(Observer), StandardObserver.Degree2,
+            validate: value => value is StandardObserver.Degree2 or StandardObserver.Degree10);
+    public static readonly StyledProperty<bool> ShowTemperatureLabelsProperty =
+        AvaloniaProperty.Register<ChromaticityDiagram, bool>(nameof(ShowTemperatureLabels));
+    public static readonly StyledProperty<WavelengthDiagramData?> WavelengthDataProperty =
+        AvaloniaProperty.Register<ChromaticityDiagram, WavelengthDiagramData?>(nameof(WavelengthData));
+    public static readonly StyledProperty<PlanckianDiagramData?> LightDataProperty =
+        AvaloniaProperty.Register<ChromaticityDiagram, PlanckianDiagramData?>(nameof(LightData));
+    public static readonly StyledProperty<string?> LightNameProperty =
+        AvaloniaProperty.Register<ChromaticityDiagram, string?>(nameof(LightName));
+
     private static readonly Lazy<byte[]> Background2 = new(() => ChromaticityDiagramBackground.Create(StandardObserver.Degree2));
     private static readonly Lazy<byte[]> Background10 = new(() => ChromaticityDiagramBackground.Create(StandardObserver.Degree10));
     private static readonly Lazy<byte[]> UvBackground2 = new(() => ChromaticityDiagramBackground.Create(StandardObserver.Degree2, ChromaticityDiagramSpace.UvPrime));
     private static readonly Lazy<byte[]> UvBackground10 = new(() => ChromaticityDiagramBackground.Create(StandardObserver.Degree10, ChromaticityDiagramSpace.UvPrime));
-    private StandardObserver _observer = StandardObserver.Degree2;
-    private WavelengthCalculation? _calculation;
-    private PlanckianDiagramData? _planckian;
-    private string? _lightName;
     private WriteableBitmap? _background;
-    public ChromaticityDiagramSpace Space { get; init; }
-    public bool ShowTemperatureLabels { get; init; }
+    private StandardObserver _backgroundObserver;
+    private ChromaticityDiagramSpace _backgroundSpace;
+    public ChromaticityDiagramSpace Space { get => GetValue(SpaceProperty); set => SetValue(SpaceProperty, value); }
+    public StandardObserver Observer { get => GetValue(ObserverProperty); set => SetValue(ObserverProperty, value); }
+    public bool ShowTemperatureLabels { get => GetValue(ShowTemperatureLabelsProperty); set => SetValue(ShowTemperatureLabelsProperty, value); }
+    public WavelengthDiagramData? WavelengthData { get => GetValue(WavelengthDataProperty); set => SetValue(WavelengthDataProperty, value); }
+    public PlanckianDiagramData? LightData { get => GetValue(LightDataProperty); set => SetValue(LightDataProperty, value); }
+    public string? LightName { get => GetValue(LightNameProperty); set => SetValue(LightNameProperty, value); }
+    private StandardObserver EffectiveObserver => WavelengthData?.Observer ?? LightData?.Observer ?? Observer;
     private ChromaticityDiagramProjection Projection => new(Space);
+
+    static ChromaticityDiagram() => AffectsRender<ChromaticityDiagram>(SpaceProperty, ObserverProperty,
+        ShowTemperatureLabelsProperty, WavelengthDataProperty, LightDataProperty, LightNameProperty);
 
     public ChromaticityDiagram()
     {
@@ -37,30 +58,28 @@ public sealed class ChromaticityDiagram : Control
 
     public void Clear(StandardObserver observer)
     {
-        if (_observer != observer) { _background?.Dispose(); _background = null; }
-        _observer = observer; _calculation = null; _planckian = null; _lightName = null; InvalidateVisual();
+        SetCurrentValue(ObserverProperty, observer);
+        SetCurrentValue(WavelengthDataProperty, null);
+        SetCurrentValue(LightDataProperty, null);
+        SetCurrentValue(LightNameProperty, null);
     }
 
-    public void SetData(WavelengthCalculation calculation)
+    public void SetData(WavelengthDiagramData data)
     {
-        Clear(calculation.Observer); _calculation = calculation; _planckian = calculation.Planckian; InvalidateVisual();
+        ArgumentNullException.ThrowIfNull(data);
+        Clear(data.Observer); SetCurrentValue(WavelengthDataProperty, data);
     }
 
     public void SetLightData(PlanckianDiagramData data, string lightName)
     {
-        Clear(data.Observer); _planckian = data; _lightName = lightName; InvalidateVisual();
+        ArgumentNullException.ThrowIfNull(data);
+        Clear(data.Observer); SetCurrentValue(LightDataProperty, data); SetCurrentValue(LightNameProperty, lightName);
     }
 
-    protected override void OnAttachedToLogicalTree(Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e)
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        base.OnAttachedToLogicalTree(e); UiLanguage.Changed += InvalidateVisual;
-    }
-
-    protected override void OnDetachedFromLogicalTree(Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e)
-    {
-        UiLanguage.Changed -= InvalidateVisual;
         _background?.Dispose(); _background = null;
-        base.OnDetachedFromLogicalTree(e);
+        base.OnDetachedFromVisualTree(e);
     }
 
     protected override Size MeasureOverride(Size availableSize)
@@ -71,16 +90,19 @@ public sealed class ChromaticityDiagram : Control
 
     private void EnsureBackground()
     {
-        if (_background is not null) return;
+        var observer = EffectiveObserver;
+        if (_background is not null && _backgroundObserver == observer && _backgroundSpace == Space) return;
+        _background?.Dispose();
         _background = new WriteableBitmap(new PixelSize(ChromaticityDiagramBackground.Width, Projection.Height),
             new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Unpremul);
         var bytes = Space == ChromaticityDiagramSpace.Xy
-            ? (_observer == StandardObserver.Degree2 ? Background2.Value : Background10.Value)
-            : (_observer == StandardObserver.Degree2 ? UvBackground2.Value : UvBackground10.Value);
+            ? (observer == StandardObserver.Degree2 ? Background2.Value : Background10.Value)
+            : (observer == StandardObserver.Degree2 ? UvBackground2.Value : UvBackground10.Value);
         using var frame = _background.Lock();
         int rowBytes = ChromaticityDiagramBackground.Width * 4;
         for (int row = 0; row < Projection.Height; row++)
             Marshal.Copy(bytes, row * rowBytes, IntPtr.Add(frame.Address, row * frame.RowBytes), rowBytes);
+        _backgroundObserver = observer; _backgroundSpace = Space;
     }
 
     public override void Render(DrawingContext context)
@@ -88,6 +110,9 @@ public sealed class ChromaticityDiagram : Control
         base.Render(context);
         if (Bounds.Width < 120 || Bounds.Height < 120) return;
         EnsureBackground();
+        var calculation = WavelengthData;
+        var planckian = calculation?.Planckian ?? LightData;
+        var observer = EffectiveObserver;
         var projection = Projection;
         double maxX = projection.MaxX, maxY = projection.MaxY;
         double scale = Math.Min((Bounds.Width - 72) / maxX, (Bounds.Height - 84) / maxY);
@@ -99,12 +124,11 @@ public sealed class ChromaticityDiagram : Control
             var point = projection.Project(x, y);
             return At(point.X, point.Y);
         }
-        var font = new Typeface("avares://Chromaticity.Tools/Assets#Chromaticity UI");
-        FormattedText Caption(string text, IBrush? brush = null) => new(UiLanguage.Translate(text), CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight, font, 11, brush ?? Brush.Parse("#555555"));
+        FormattedText Caption(string text, IBrush? brush = null) => new(LabelText(text), CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight, LabelTypeface, 11, brush ?? Brush.Parse("#555555"));
         void Label(string text, double x, double y) => context.DrawText(Caption(text), new Point(x, y));
         var annotations = new List<Rect>();
-        if (_planckian is { } markerData)
+        if (planckian is { } markerData)
         {
             foreach (var point in new[] { FromXy(markerData.Sample.X, markerData.Sample.Y), FromXy(markerData.Cct.NearestPoint.X, markerData.Cct.NearestPoint.Y) })
                 annotations.Add(new Rect(point.X - 8, point.Y - 8, 16, 16));
@@ -152,8 +176,8 @@ public sealed class ChromaticityDiagram : Control
         context.DrawRectangle(null, new Pen(Brush.Parse("#999999")), plot);
         Label(Space == ChromaticityDiagramSpace.Xy ? "x" : "u′", plot.Right - 12, plot.Bottom + 28);
         Label(Space == ChromaticityDiagramSpace.Xy ? "y" : "v′", plot.Left - 28, top - 19);
-        Label(_observer == StandardObserver.Degree2 ? "2° · CIE 1931" : "10° · CIE 1964", plot.Left + 4, 4);
-        var boundary = CieSpectralData.GetChromaticityBoundary(_observer);
+        Label(observer == StandardObserver.Degree2 ? "2° · CIE 1931" : "10° · CIE 1964", plot.Left + 4, 4);
+        var boundary = CieSpectralData.GetChromaticityBoundary(observer);
         var geometry = new StreamGeometry();
         using (var path = geometry.Open())
         {
@@ -162,7 +186,7 @@ public sealed class ChromaticityDiagram : Control
             path.EndFigure(true);
         }
         context.DrawGeometry(null, new Pen(Brush.Parse("#333333"), 1.7), geometry);
-        var planckLocus = ChromaticityConversion.GetPlanckianLocus(_observer);
+        var planckLocus = ChromaticityConversion.GetPlanckianLocus(observer);
         var planckGeometry = new StreamGeometry();
         using (var path = planckGeometry.Open())
         {
@@ -178,7 +202,7 @@ public sealed class ChromaticityDiagram : Control
             int[] temperatures = Bounds.Width < 400 ? [2000, 4000, 6500, 25000] : [2000, 3000, 4000, 6500, 10000, 25000];
             foreach (int temperature in temperatures)
             {
-                var point = ChromaticityConversion.GetPlanckianChromaticity(temperature, _observer);
+                var point = ChromaticityConversion.GetPlanckianChromaticity(temperature, observer);
                 var position = FromXy(point.X, point.Y);
                 context.DrawEllipse(Brushes.White, new Pen(Brushes.Black), position, 2.5, 2.5);
                 Tag($"{temperature} K", new Point(position.X - 12, position.Y + (temperature >= 6500 ? 20 : -28)), position);
@@ -186,7 +210,7 @@ public sealed class ChromaticityDiagram : Control
         }
         void PlanckianConnection()
         {
-            if (_planckian is not { } data) return;
+            if (planckian is not { } data) return;
             var sample = FromXy(data.Sample.X, data.Sample.Y);
             var nearest = FromXy(data.Cct.NearestPoint.X, data.Cct.NearestPoint.Y);
             using (context.PushGeometryClip(geometry))
@@ -202,13 +226,13 @@ public sealed class ChromaticityDiagram : Control
             var middle = new Point((sample.X + nearest.X) / 2, (sample.Y + nearest.Y) / 2);
             Tag($"Duv {data.Cct.Duv.ToString("+0.000000;-0.000000;0.000000", CultureInfo.InvariantCulture)}",
                 new Point(middle.X + 12, middle.Y + 34), middle);
-            if (_lightName is not null)
+            if (LightName is not null)
             {
                 context.DrawEllipse(Brushes.Black, new Pen(Brushes.White, 2), sample, 5, 5);
-                Tag($"S {_lightName}", new Point(sample.X + 10, sample.Y - 24), sample);
+                Tag($"S {LightName}", new Point(sample.X + 10, sample.Y - 24), sample);
             }
         }
-        var locus = CieSpectralData.GetSpectralLocus(_observer);
+        var locus = CieSpectralData.GetSpectralLocus(observer);
         foreach (int wavelength in new[] { 400, 450, 500, 550, 600, 650 })
         {
             var point = locus[wavelength - 360];
@@ -224,15 +248,15 @@ public sealed class ChromaticityDiagram : Control
             };
             Tag($"{wavelength} nm", label, position);
         }
-        if (_calculation is null)
+        if (calculation is null)
         {
             PlanckianConnection(); TemperatureLabels(); return;
         }
-        var w = FromXy(_calculation.White.X, _calculation.White.Y);
-        var p = FromXy(_calculation.Sample.X, _calculation.Sample.Y);
+        var w = FromXy(calculation.White.X, calculation.White.Y);
+        var p = FromXy(calculation.Sample.X, calculation.Sample.Y);
         annotations.Add(new Rect(w.X - 8, w.Y - 8, 16, 16));
         annotations.Add(new Rect(p.X - 7, p.Y - 7, 14, 14));
-        if (projection.Intersections(_calculation) is { } intersections)
+        if (projection.Intersections(calculation) is { } intersections)
         {
             var forward = At(intersections.Forward.X, intersections.Forward.Y);
             var reverse = At(intersections.Reverse.X, intersections.Reverse.Y);
@@ -247,11 +271,11 @@ public sealed class ChromaticityDiagram : Control
             void Intersection(string name, Point at, double? wavelength, double offsetY)
             {
                 context.DrawEllipse(Brushes.White, new Pen(Brushes.Black, 1.5), at, 4, 4);
-                Tag(wavelength.HasValue ? $"{name} {WavelengthCalculations.Format(wavelength)} nm" : $"{name} 紫边",
+                Tag(wavelength.HasValue ? $"{name} {wavelength.Value.ToString("F2", CultureInfo.InvariantCulture)} nm" : $"{name} 紫边",
                     new Point(at.X + 8, at.Y + offsetY), at);
             }
-            Intersection("D", forward, _calculation.Wavelengths.DominantWavelength, -25);
-            Intersection("C", reverse, _calculation.Wavelengths.ComplementaryWavelength, 8);
+            Intersection("D", forward, calculation.Wavelengths.DominantWavelength, -25);
+            Intersection("C", reverse, calculation.Wavelengths.ComplementaryWavelength, 8);
         }
         PlanckianConnection();
         context.DrawEllipse(Brushes.White, new Pen(Brushes.Black, 2), w, 6, 6);

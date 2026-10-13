@@ -1,5 +1,6 @@
 using System.Globalization;
 using Chromaticity.Tools.Services;
+using ChromaticityDotNet.Diagrams;
 using Xunit;
 using static ChromaticityDotNet.Model.DataModel;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
@@ -34,8 +35,8 @@ public class WavelengthUvInputTests
         foreach (var space in new[] { ChromaticityDiagramSpace.Xy, ChromaticityDiagramSpace.UvPrime })
         {
             var projection = new ChromaticityDiagramProjection(space);
-            var expected = projection.Intersections(xy)!.Value;
-            var actual = projection.Intersections(uv)!.Value;
+            var expected = projection.Intersections(xy.Diagram)!.Value;
+            var actual = projection.Intersections(uv.Diagram)!.Value;
             Assert.Equal(expected.Forward.X, actual.Forward.X, 10);
             Assert.Equal(expected.Forward.Y, actual.Forward.Y, 10);
             Assert.Equal(expected.Reverse.X, actual.Reverse.X, 10);
