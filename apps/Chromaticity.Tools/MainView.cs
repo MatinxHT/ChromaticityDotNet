@@ -30,7 +30,7 @@ public sealed partial class MainView : UserControl
             "wavelength" => WavelengthPage(),
             _ => SpectrumPage()
         });
-        content.Children.Add(Note($"ChromaticityDotNet v{LibraryInfo.Version} · 代码 MIT · CIE 数据 CC BY-SA 4.0\n波长保留两位小数，其他计算保留四位小数。参考白点由光源光谱与所选观察者积分得到。色块仅为屏幕近似，不能代替仪器测量。"));
+        content.Children.Add(Note($"ChromaticityDotNet v{LibraryInfo.Version} · 代码 MIT · CIE 数据 CC BY-SA 4.0\n波长保留两位小数，Duv 保留六位小数，其他计算保留四位小数。参考白点由光源光谱与所选观察者积分得到。色块仅为屏幕近似，不能代替仪器测量。"));
         Content = new ScrollViewer { Content = content, Background = Brush.Parse("#F5F5F5"), HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
     }
 
@@ -204,7 +204,7 @@ public sealed partial class MainView : UserControl
             Fields(("X", Text(row[4], 24, true)), ("Y", Text(row[5], 24, true)), ("Z", Text(row[6], 24, true)))));
         coordinates.Children.Add(Stack(Text("xy", 18, true),
             Fields(("x", Text(row[7], 24, true)), ("y", Text(row[8], 24, true)))));
-        return Stack(coordinates, Note(table.Conditions));
+        return Stack(coordinates, LightQualityResults(table, includeCri: true), Note(table.Conditions));
     }
 
     private Control ConversionPage()
@@ -427,10 +427,32 @@ public sealed partial class MainView : UserControl
         values.Children.Add(Values("xyY", "x", "y", "Y"));
         values.Children.Add(Values("HSL", "H (HSL) / °", "S (HSL) / %", "L (HSL) / %"));
         values.Children.Add(Values("HSV", "H (HSV) / °", "S (HSV) / %", "V (HSV) / %"));
+        values.Children.Add(Values("CCT · McCamy", "CCT (McCamy) / K"));
+        values.Children.Add(Values("CCT · CIE 1960 UCS", "CCT (CIE 1960 UCS) / K", "Duv (1960)"));
         return Card(Stack(Text($"颜色 {Value("行")}", 20, true), Text("sRGB 屏幕预览", 16, true), preview,
             Note(hex == "—" ? "当前条件不提供 sRGB 预览（仅支持 D65）。"
                 : $"{hex}    R {Value("R")} · G {Value("G")} · B {Value("B")}"),
-            values, Note(Value("计算条件"))));
+            values, Note(Value("CCT 说明")), Note(Value("计算条件"))));
+    }
+
+    private static Control LightQualityResults(CalculationTable table, bool includeCri)
+    {
+        var row = table.Rows[0];
+        string Value(string header) => row[Array.IndexOf(table.Headers, header)];
+        var metrics = new ResponsiveColumns();
+        foreach (var header in LightQualityPresentation.CctHeaders.Take(2))
+            metrics.Children.Add(Stack(Text(header, 16, true), Text(Value(header), 26, true)));
+        var content = Stack(metrics, Note($"Duv (1960): {Value("Duv (1960)")}"), Note(Value("CCT 说明")));
+        if (includeCri)
+        {
+            content.Children.Add(Text("显色指数 · CIE 13.3-1995 / 1931 2°", 18, true));
+            var indices = new ResponsiveColumns { MaximumColumns = 3 };
+            foreach (var header in LightQualityPresentation.CriHeaders.Take(15))
+                indices.Children.Add(Stack(Text(header, 15, true), Text(Value(header), header == "CRI Ra" ? 26 : 20, true)));
+            content.Children.Add(indices);
+            content.Children.Add(Note(Value("CRI 说明")));
+        }
+        return content;
     }
 
     private sealed class ResultPanel : Border

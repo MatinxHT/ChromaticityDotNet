@@ -689,7 +689,8 @@ namespace ChromaticityDotNet.Controller
         }
 
         /// <summary>
-        /// computing correlated color temperature
+        /// Approximates correlated color temperature with the McCamy xy polynomial.
+        /// Preserved for compatibility; use xyToLuv1960/luv1960ToCCT for a 1960 UCS search.
         /// </summary>
         /// <param name="xyy"></param>
         /// <returns>correlated color temperature</returns>

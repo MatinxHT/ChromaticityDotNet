@@ -43,10 +43,10 @@ public static class WavelengthCalculations
         var row = calculation.Table.Rows[0];
         var table = new CalculationTable(
             ["样品 u′", "样品 v′", "样品 Y", "参考白点", "白点 u′", "白点 v′", "观察者",
-                "主波长 / nm", "补色波长 / nm", "样品 x", "样品 y", "白点 x", "白点 y", "说明"],
+                "主波长 / nm", "补色波长 / nm", "样品 x", "样品 y", "白点 x", "白点 y", ..LightQualityPresentation.CctHeaders, "说明"],
             [[Coordinate(sample.CIEu), Coordinate(sample.CIEv), "100", row[3],
                 Coordinate(whiteUv.X), Coordinate(whiteUv.Y), row[6], row[7], row[8],
-                row[0], row[1], row[4], row[5], row[^1]]],
+                row[0], row[1], row[4], row[5], ..row.Skip(9).Take(LightQualityPresentation.CctHeaders.Length), row[^1]]],
             "输入坐标：CIE 1976 u′v′；转换为 xy 后计算，原始 u′v′ 坐标保留在导出中。\n" + calculation.Table.Conditions);
         return calculation with { Table = table };
     }
@@ -112,10 +112,10 @@ public static class WavelengthCalculations
         }
         string whiteX = ToolCalculations.F(white.X), whiteY = ToolCalculations.F(white.Y);
         var table = new CalculationTable(
-            ["样品 x", "样品 y", "样品 Y", "参考白点", "白点 x", "白点 y", "观察者", "主波长 / nm", "补色波长 / nm", "说明"],
+            ["样品 x", "样品 y", "样品 Y", "参考白点", "白点 x", "白点 y", "观察者", "主波长 / nm", "补色波长 / nm", ..LightQualityPresentation.CctHeaders, "说明"],
             [[Coordinate(point.X), Coordinate(point.Y), Coordinate(point.Luminance), reference,
                 whiteX, whiteY, observerName,
-                Format(result.DominantWavelength), Format(result.ComplementaryWavelength), description]],
+                Format(result.DominantWavelength), Format(result.ComplementaryWavelength), ..LightQualityPresentation.Cct(point.ToXyY(), observer), description]],
             $"{reference} / {observerName} · 白点 xy = ({whiteX}, {whiteY}){whiteMethod}\n" +
             "波长单位为 nm，显示两位小数。白点坐标显示四位小数。Y 不影响波长；计算和图形使用未舍入坐标。");
         return new(table, point, white, observer, result);

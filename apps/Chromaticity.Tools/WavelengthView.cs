@@ -11,11 +11,11 @@ public sealed partial class MainView
     {
         WavelengthCalculation? calculated = null;
         var result = new ResultPanel(_downloader, renderResult: _ => WavelengthResults(calculated!),
-            successMessage: "已完成波长计算。复制及导出包含样品、白点、观察者和波长结果。");
+            successMessage: "已完成波长与 CCT 计算。复制及导出包含两种 CCT、1960 uv 和波长结果。");
         result.Name = "WavelengthResult";
         var x = SmallInput("0.5253"); x.Name = "WavelengthX";
         var y = SmallInput("0.3485"); y.Name = "WavelengthY";
-        var inputSpace = Select(["CIE xy", "CIE 1976 u′v′"]); inputSpace.Name = "WavelengthInputSpace";
+        var inputSpace = Select(["CIE 1931 xy", "CIE 1976 u′v′"]); inputSpace.Name = "WavelengthInputSpace";
         var u = SmallInput(""); u.Name = "WavelengthU";
         var v = SmallInput(""); v.Name = "WavelengthV";
         var xyFields = Fields(("样品 x", x), ("样品 y", y));
@@ -138,18 +138,19 @@ public sealed partial class MainView
         var columns = new WavelengthLayout { Name = "WavelengthInputsAndDiagram" };
         columns.Children.Add(Stack(
             Text("主波长与补色波长计算", 24, true),
-            Note("选择 xy 或 u′v′ 输入样品和自定义白点。样品 Y 固定为 100；Y 不影响波长。"),
             Fields(("输入坐标", inputSpace)), xyFields, uvFields,
             Fields(("观察者", observer), ("白点来源", source)), standardFields, customFields, customUvFields,
-            Note("标准光源可选全部 50 条 CIE 光源；白点在其与观察者的共同波段积分，Y = 100。"),
             Actions(Button("载入红色示例", () => LoadExample("0.5253", "0.3485")),
-                Button("载入紫色示例", () => LoadExample("0.4", "0.2")), calculate),
-            Note("W 为白点，P 为样品。实线连接两点，虚线延伸至边界；D 为正向交点，C 为反向交点。两张图显示同一颜色的主波长与补色波长。"),
-            Note("u′v′ 为 CIELuv 对应的色度图。边界包含光谱轨迹与紫边，背景为裁剪到 sRGB 的屏幕近似。"),
-            Note("紫色区域没有主波长；某些颜色没有单色补色波长，显示为 —。样品与白点重合时两者均未定义。两位小数表示输出格式，不代表测量精度。")));
+                Button("载入紫色示例", () => LoadExample("0.4", "0.2")), calculate)));
         var diagrams = new ResponsiveColumns { Name = "WavelengthDiagrams" };
-        diagrams.Children.Add(Stack(Text("CIE xy 色度图", 20, true), plot));
-        diagrams.Children.Add(Stack(Text("CIE 1976 u′v′ 色度图", 20, true), uvPlot));
+        var xyFigure = Stack(Text("CIE 1931 xy 色度图", 20, true), plot,
+            Note("W 为白点，P 为样品。实线连接两点，虚线延伸至边界；D 为正向交点，C 为反向交点。两张图显示同一颜色的主波长与补色波长。"));
+        xyFigure.Name = "WavelengthXyFigure";
+        var uvFigure = Stack(Text("CIE 1976 u′v′ 色度图", 20, true), uvPlot,
+            Note("紫色区域没有主波长；某些颜色没有单色补色波长，显示为 —。样品与白点重合时两者均未定义。两位小数表示输出格式，不代表测量精度。"));
+        uvFigure.Name = "WavelengthUvFigure";
+        diagrams.Children.Add(xyFigure);
+        diagrams.Children.Add(uvFigure);
         columns.Children.Add(diagrams);
         return Stack(Card(columns), result);
     }
@@ -161,6 +162,8 @@ public sealed partial class MainView
             Text(value.HasValue ? $"{WavelengthCalculations.Format(value)} nm" : "—", 28, true));
         values.Children.Add(Metric("主波长", calculation.Wavelengths.DominantWavelength));
         values.Children.Add(Metric("补色波长", calculation.Wavelengths.ComplementaryWavelength));
-        return Stack(values, Note(calculation.Table.Rows[0][^1]), Note(calculation.Table.Conditions));
+        var cct = LightQualityResults(calculation.Table, includeCri: false);
+        return Stack(values, cct, Note(calculation.Table.Rows[0][^1]), Note(calculation.Table.Conditions),
+            Note("样品 CRI 需要光源光谱，不能由 xy 或 u′v′ 坐标推算；可在标准光源查询中查看光源的显色指数。"));
     }
 }

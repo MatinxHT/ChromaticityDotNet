@@ -99,11 +99,21 @@ All methods below are static members of `ChromaticityConversion`; color models b
 | `RGBToHex(rgb)` | sRGB → uppercase `#RRGGBB` string |
 | `XYZToxyY(xyz)` / `xyToXYZ(xyY)` | XYZ ↔ xyY |
 | `xyTouv(xyY)` | xyY → CIE 1976 u′v′ chromaticity coordinates |
-| `xyToCCT(xyY)` | Approximate correlated color temperature from xy chromaticity |
+| `xyToCCT(xyY)` | Preserved McCamy xy polynomial approximation of CCT |
+| `xyToLuv1960(xyY)` | xy → unrounded CIE 1960 UCS u,v in `CIEuv1960` |
+| `luv1960ToCCT(uv, observer = Degree2)` | Nearest Planckian temperature in K; NaN when undefined |
+| `luv1960ToCCTResult(uv, observer = Degree2)` | Nullable CCT, signed Duv and search-range validity |
+| `SPDToCRI(spectrum / illuminantId / illuminant)` | CIE 13.3-1995 Ra, R1–R14 and reference-source information |
 | `xyYToWavelengths(color, observer, whitePoint / illuminant)` | xyY → dominant/complementary wavelengths in nm, rounded to two decimals |
 | `LuvToWavelengths(color, observer, whitePoint / illuminant)` | L*u*v* → dominant/complementary wavelengths using the same reference white |
 
 HSL/HSV use gamma-encoded sRGB channels without linearization and retain intermediate precision. Multiply S/L/V by 100 for percentage display. Black and gray return valid coordinates with S = 0 and H = 0 as an undefined-hue placeholder; white also returns finite values. HSL/HSV are not CIE color spaces; their model names follow the library's naming convention.
+
+`xyToLuv1960` follows the requested method name but returns **1960 uv chromaticity**, without L*. It is distinct from 1976 L*u*v*: u = 4x / (−2x + 12y + 3), v = 6y / (−2x + 12y + 3), so u = u′ and v = 2v′/3. No intermediate rounding is applied. Existing `xyTouv` and McCamy `xyToCCT` behaviour is preserved.
+
+CCT uses a numerical minimum-distance search as permitted by the [CIE definition](https://cie.co.at/eilv/258), with Planck spectra integrated over 360–830 nm / 1 nm, c₂ = 0.014388 m K and a 1000–25000 K range. |Duv| > 0.05 or an out-of-range nearest temperature makes CCT unavailable. The standard result uses the 1931 2° observer. Explicit Degree10 selects an observer-specific extension using a 10° Planckian locus; it is an estimate, not standard 2° CCT.
+
+CRI implements [CIE 13.3-1995](https://cie.co.at/publications/method-measuring-and-specifying-colour-rendering-properties-light-sources) with the fixed 1931 2° observer, 1960 uv adaptation and 1964 UVW differences. A relative light-source SPD must cover 380–780 nm. SPD, the 14 official TCS and daylight basis functions are linearly resampled to 1 nm; integration uses that fixed range and independently normalized Y=100 whites. The reference is Planckian below 5000 K, otherwise CIE daylight at the computed CCT, with M1/M2 rounded to three decimals. Ra averages R1–R8; negative Ri are preserved. Undefined CCT or test/reference uv separation > 0.0054 produces null Ra and an empty Ri list. Chromaticity or reflectance alone cannot determine CRI. This relative-SPD calculation does not change legacy `SPDToXYZ` scaling.
 
 ```csharp
 var rgb = new CIERGB { redValue = 32, greenValue = 160, blueValue = 144 };

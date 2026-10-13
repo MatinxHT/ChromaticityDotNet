@@ -63,6 +63,10 @@ def generate():
         "namespace ChromaticityDotNet.Model", "{", "    internal static class CieReferenceData", "    {",
     ]
     tables = [(name, columns, False) for name, columns in OBSERVER_TABLES]
+    tables += [
+        ("test-samples/CIE_srf_cri", [(f"TCS{i:02d}", i) for i in range(1, 15)], False),
+        ("daylight/CIE_illum_Dxx_comp", [(f"DaylightS{i}", i + 1) for i in range(3)], False),
+    ]
     for name, single_id in ILLUMINANT_TABLES:
         manifest, _, _ = read_table(name)
         headers = manifest["officialMetadata"]["datatableInfo"]["columnHeaders"]
@@ -72,8 +76,12 @@ def generate():
     fields = set()
     for name, columns, is_illuminant in tables:
         manifest, rows, (start, end, step) = read_table(name)
-        if not is_illuminant and (start, end, step) != (360, 830, 1):
+        if name.startswith("observers/") and (start, end, step) != (360, 830, 1):
             raise ValueError("Observer grid changed: " + name)
+        if name == "test-samples/CIE_srf_cri" and (start, end, step) != (360, 830, 5):
+            raise ValueError("CRI sample grid changed: " + name)
+        if name == "daylight/CIE_illum_Dxx_comp" and (start, end, step) != (300, 830, 5):
+            raise ValueError("Daylight basis grid changed: " + name)
         output.append("        // " + manifest["sourcePage"])
         output.append("        // CSV SHA-256: " + manifest["csvSha256"])
         for light_id, column in columns:
@@ -87,7 +95,7 @@ def generate():
                 value = float(raw)
                 if field == "Z10" and int(row[0]) >= 560 and math.isnan(value):
                     raw = "0"  # CIE 1964 z-bar undefined tail, zero for computation only.
-                elif not math.isfinite(value) or value < 0:
+                elif not math.isfinite(value) or (value < 0 and not field.startswith("DaylightS")):
                     raise ValueError(f"Unexpected sample {name}: {row}")
                 values.append(raw + "d")
             output.extend(["        internal static readonly double[] " + field + " =", "        {"])

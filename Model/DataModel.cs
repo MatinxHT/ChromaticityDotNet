@@ -129,6 +129,14 @@ namespace ChromaticityDotNet.Model
             public double CIEv { get; set; }
         }
 
+        /// <summary>CIE 1960 UCS u,v chromaticity coordinates. u = u', v = 2v'/3.
+        /// This is not the CIE 1976 L*u*v* space and has no lightness component.</summary>
+        public class CIEuv1960
+        {
+            public double CIEu { get; set; }
+            public double CIEv { get; set; }
+        }
+
         /// <summary>
         /// RGB data format as byte(0~255),in 'system.windows.media' u can use 'Color newColor = Color.FromRgb(redValue, greenValue, blueValue);'to bursh it
         /// </summary>

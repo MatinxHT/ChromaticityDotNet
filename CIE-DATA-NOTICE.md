@@ -39,6 +39,10 @@ Sources of the numerical data currently compiled into the library:
   [DOI: 10.25039/CIE.DS.f6rvvnev](https://doi.org/10.25039/CIE.DS.f6rvvnev).
 - CIE 2018, *Relative spectral power distributions of illuminants representing typical LED lamps, 1nm spacing*,
   [DOI: 10.25039/CIE.DS.dhcw57sd](https://doi.org/10.25039/CIE.DS.dhcw57sd).
+- CIE 1995, *Spectral radiance factors of 14 test samples for the CIE colour rendering index calculation*,
+  [DOI: 10.25039/CIE.DS.wuiuu9cz](https://doi.org/10.25039/CIE.DS.wuiuu9cz).
+- CIE 2018, *Components of the relative spectral distribution of daylight*,
+  [DOI: 10.25039/CIE.DS.w7zunnny](https://doi.org/10.25039/CIE.DS.w7zunnny).
 
 Modifications in the generated numerical tables: the selected CSV columns are
 represented as C# double literals, including every FL/HP/LED light column and

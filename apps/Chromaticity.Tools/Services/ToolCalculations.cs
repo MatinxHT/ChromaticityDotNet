@@ -104,10 +104,15 @@ public static class ToolCalculations
         var conditions = $"{info.DisplayName} / {observerName}";
         if (first <= last) conditions += $" · 光谱积分白点 {first}–{last} nm，Y = 100";
         conditions += "\n" + description;
-        return new(["标准光源", "观察者", "积分起始波长 / nm", "积分结束波长 / nm", "白点 X", "白点 Y", "白点 Z", "白点 x", "白点 y", "说明"],
+        var xy = white is null ? null : new CIExyY { CIEx = white.CIEX / sum, CIEy = white.CIEY / sum, CIEY = 100 };
+        string[] cri;
+        try { cri = LightQualityPresentation.Cri(spectrum, start <= 380 && end >= 780); }
+        catch (ArgumentException) { cri = LightQualityPresentation.UnavailableCri("所选光谱无法形成有效光源，CRI 无法计算。"); }
+        return new(["标准光源", "观察者", "积分起始波长 / nm", "积分结束波长 / nm", "白点 X", "白点 Y", "白点 Z", "白点 x", "白点 y", "说明", ..LightQualityPresentation.CctHeaders, ..LightQualityPresentation.CriHeaders],
             [[info.DisplayName, observerName, first <= last ? first.ToString(Invariant) : "—", first <= last ? last.ToString(Invariant) : "—",
                 white is null ? "—" : F(white.CIEX), white is null ? "—" : F(white.CIEY), white is null ? "—" : F(white.CIEZ),
-                white is null ? "—" : F(white.CIEX / sum), white is null ? "—" : F(white.CIEY / sum), description]], conditions);
+                white is null ? "—" : F(white.CIEX / sum), white is null ? "—" : F(white.CIEY / sum), description,
+                ..LightQualityPresentation.Cct(xy, observer), ..cri]], conditions);
     }
 
     public static string F(double value) => double.IsFinite(value)
@@ -276,7 +281,8 @@ public static class ToolCalculations
                     _ => throw new ArgumentException("不支持的输入空间。")
                 };
             }
-            return ColorRow(i + 1, xyz, illuminant, observer, white, conditions, alwaysPreview: true);
+            return ColorRow(i + 1, xyz, illuminant, observer, white, conditions, alwaysPreview: true,
+                cctObserver: space is InputSpace.sRGB or InputSpace.HEX ? StandardObserver.Degree2 : observer);
         }).ToArray();
         return new(ColorHeaders, rows, conditions);
     }
@@ -303,9 +309,10 @@ public static class ToolCalculations
     private static string Hex(CIERGB rgb) => ChromaticityConversion.RGBToHex(rgb);
 
     private static readonly string[] ColorHeaders = ["行", "X", "Y", "Z", "L*", "a*", "b*", "C*", "h°", "L* (Luv)", "u*", "v*", "x", "y", "R", "G", "B", "HEX", "计算条件",
-        "H (HSL) / °", "S (HSL) / %", "L (HSL) / %", "H (HSV) / °", "S (HSV) / %", "V (HSV) / %"];
+        "H (HSL) / °", "S (HSL) / %", "L (HSL) / %", "H (HSV) / °", "S (HSV) / %", "V (HSV) / %", ..LightQualityPresentation.CctHeaders];
 
-    private static string[] ColorRow(int index, CIEXYZ xyz, string light, StandardObserver observer, CIEXYZ white, string conditions, bool alwaysPreview = false)
+    private static string[] ColorRow(int index, CIEXYZ xyz, string light, StandardObserver observer, CIEXYZ white, string conditions,
+        bool alwaysPreview = false, StandardObserver? cctObserver = null)
     {
         // Format first to reject overflow before passing results to the byte-based RGB API.
         var coordinates = new[] { F(xyz.CIEX), F(xyz.CIEY), F(xyz.CIEZ) };
@@ -321,6 +328,7 @@ public static class ToolCalculations
             rgb?.redValue.ToString(Invariant) ?? "—", rgb?.greenValue.ToString(Invariant) ?? "—", rgb?.blueValue.ToString(Invariant) ?? "—",
             rgb is null ? "—" : Hex(rgb), conditions,
             hsl is null ? "—" : F(hsl.H), hsl is null ? "—" : F(hsl.S * 100), hsl is null ? "—" : F(hsl.L * 100),
-            hsv is null ? "—" : F(hsv.H), hsv is null ? "—" : F(hsv.S * 100), hsv is null ? "—" : F(hsv.V * 100)];
+            hsv is null ? "—" : F(hsv.H), hsv is null ? "—" : F(hsv.S * 100), hsv is null ? "—" : F(hsv.V * 100),
+            ..LightQualityPresentation.Cct(sum == 0 ? null : new CIExyY { CIEx = xyz.CIEX / sum, CIEy = xyz.CIEY / sum, CIEY = xyz.CIEY }, cctObserver ?? observer)];
     }
 }
