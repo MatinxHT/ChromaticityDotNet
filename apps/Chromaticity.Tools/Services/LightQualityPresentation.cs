@@ -11,12 +11,12 @@ public static class LightQualityPresentation
     public static readonly string[] CctHeaders = ["CCT (McCamy) / K", "CCT (CIE 1960 UCS) / K", "Duv (1960)", "u (1960)", "v (1960)", "CCT 说明"];
     public static readonly string[] CriHeaders = ["CRI Ra", ..Enumerable.Range(1, 14).Select(i => $"CRI R{i}"), "CRI 说明"];
 
-    public static string[] Cct(CIExyY? xy, StandardObserver observer)
+    public static string[] Cct(CIExyY? xy, StandardObserver observer, Cct1960Result? result = null)
     {
         if (xy is null || xy.CIEy <= 0)
             return ["—", "—", "—", "—", "—", "色度未定义，无法计算 CCT。"];
         var uv = ChromaticityConversion.xyToLuv1960(xy);
-        var result = ChromaticityConversion.luv1960ToCCTResult(uv, observer);
+        result ??= ChromaticityConversion.luv1960ToCCTResult(uv, observer);
         double approximation = ChromaticityConversion.xyToCCT(xy);
         string description = "McCamy 为 xy 多项式近似；1960 UCS 为到普朗克轨迹的最短距离求解。";
         if (!result.IsInTemperatureRange) description += "1960 UCS 求解超出 1000–25000 K 范围。";

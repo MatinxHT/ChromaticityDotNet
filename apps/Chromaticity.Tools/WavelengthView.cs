@@ -152,7 +152,7 @@ public sealed partial class MainView
         diagrams.Children.Add(xyFigure);
         diagrams.Children.Add(uvFigure);
         columns.Children.Add(diagrams);
-        return Stack(Card(columns), result);
+        return Stack(Card(Stack(columns, Note(PlanckianDiagramData.Explanation), Note(PlanckianDiagramData.UnavailableExplanation))), result);
     }
 
     private static Control WavelengthResults(WavelengthCalculation calculation)

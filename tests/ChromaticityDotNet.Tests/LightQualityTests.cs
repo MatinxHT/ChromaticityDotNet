@@ -32,6 +32,89 @@ public class LightQualityTests
         item.GetProperty("indices").EnumerateArray().Select(value => value.GetDouble()).ToArray()
     });
 
+    public static IEnumerable<object[]> PlanckFixtures => Fixtures.GetProperty("cct").EnumerateArray()
+        .Where(item => item.TryGetProperty("duv", out var duv) && duv.GetDouble() == 0).Select(item => new object[]
+        {
+            item.GetProperty("observer").GetInt32() == 2 ? StandardObserver.Degree2 : StandardObserver.Degree10,
+            item.GetProperty("cct").GetDouble(), item.GetProperty("x").GetDouble(), item.GetProperty("y").GetDouble()
+        });
+
+    [Theory]
+    [MemberData(nameof(PlanckFixtures))]
+    public void DiagramPlanckPointsMatchIndependentSpectralFixtures(StandardObserver observer, double temperature, double x, double y)
+    {
+        var point = ChromaticityConversion.GetPlanckianChromaticity(temperature, observer);
+        Assert.Equal(temperature, point.Temperature);
+        Assert.InRange(Math.Abs(point.X - x), 0, 1e-11);
+        Assert.InRange(Math.Abs(point.Y - y), 0, 1e-11);
+        var uv = ChromaticityConversion.xyToLuv1960(new CIExyY { CIEx = point.X, CIEy = point.Y });
+        Assert.InRange(Math.Abs(point.U - uv.CIEu), 0, 1e-14);
+        Assert.InRange(Math.Abs(point.V - uv.CIEv), 0, 1e-14);
+    }
+
+    [Theory]
+    [InlineData(StandardObserver.Degree2)]
+    [InlineData(StandardObserver.Degree10)]
+    public void DiagramLocusIsImmutableAndCoversTheCctSearchRange(StandardObserver observer)
+    {
+        var locus = ChromaticityConversion.GetPlanckianLocus(observer);
+        Assert.Equal(961, locus.Count);
+        Assert.Equal(25000, locus[0].Temperature);
+        Assert.Equal(1000, locus[^1].Temperature);
+        Assert.All(locus, point => Assert.True(double.IsFinite(point.X) && double.IsFinite(point.Y)));
+        var first = ChromaticityConversion.GetPlanckianChromaticity(25000, observer);
+        Assert.Equal(first.U, locus[0].U);
+        Assert.Equal(first.V, locus[0].V);
+        Assert.Throws<NotSupportedException>(() => ((IList<PlanckianChromaticityPoint>)locus)[0] = first);
+        Assert.NotEqual(ChromaticityConversion.GetPlanckianLocus(StandardObserver.Degree2)[0].X,
+            ChromaticityConversion.GetPlanckianLocus(StandardObserver.Degree10)[0].X);
+    }
+
+    [Theory]
+    [InlineData(StandardObserver.Degree2, 0.3127, 0.329)]
+    [InlineData(StandardObserver.Degree10, 0.3127, 0.329)]
+    [InlineData(StandardObserver.Degree2, 0.3, 0.6)]
+    [InlineData(StandardObserver.Degree10, 0.4, 0.2)]
+    public void NearestPointReconstructsDuvEvenForInapplicableCct(StandardObserver observer, double x, double y)
+    {
+        var uv = ChromaticityConversion.xyToLuv1960(new CIExyY { CIEx = x, CIEy = y });
+        var result = ChromaticityConversion.luv1960ToCCTResult(uv, observer);
+        var nearest = result.NearestPoint;
+        var expected = ChromaticityConversion.GetPlanckianChromaticity(nearest.Temperature, observer);
+        Assert.Equal(expected.U, nearest.U);
+        Assert.Equal(expected.V, nearest.V);
+        double distance = Math.Sqrt(Math.Pow(uv.CIEu - nearest.U, 2) + Math.Pow(uv.CIEv - nearest.V, 2));
+        Assert.Equal(Math.Abs(result.Duv), distance, 14);
+        if (result.Temperature.HasValue) Assert.InRange(Math.Abs(result.Temperature.Value - nearest.Temperature), 0, 0.00005);
+        else Assert.True(distance > 0.05 || !result.IsInTemperatureRange);
+    }
+
+    [Fact]
+    public void OutOfRangeTemperatureUsesAConstrainedEndpointWithoutReportingValidCct()
+    {
+        var xyz = ChromaticityMatch.GetStandardWhitePoint(BlackBody(30000), StandardObserver.Degree2);
+        var result = ChromaticityConversion.luv1960ToCCTResult(
+            ChromaticityConversion.xyToLuv1960(ChromaticityConversion.XYZToxyY(xyz)));
+        Assert.False(result.IsInTemperatureRange);
+        Assert.Null(result.Temperature);
+        Assert.InRange(result.NearestPoint.Temperature, 24999.99, 25000);
+    }
+
+    [Theory]
+    [InlineData(999)]
+    [InlineData(25001)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void InvalidPlanckTemperaturesAreRejected(double temperature) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityConversion.GetPlanckianChromaticity(temperature));
+
+    [Fact]
+    public void PlanckDiagramApisRejectInvalidObservers()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityConversion.GetPlanckianLocus((StandardObserver)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ChromaticityConversion.GetPlanckianChromaticity(6500, (StandardObserver)99));
+    }
+
     [Fact]
     public void Uv1960UsesSixYAndPreservesCoordinatePrecision()
     {

@@ -4,6 +4,8 @@
 
 界面采用黑白灰主题，首页仅保留六张工具入口卡片与必要的项目/许可链接；卡片整块可点击，宽屏双列、窄屏单列。工具页直接显示表单与结果，sRGB 色块保留实际颜色，曲线、控件状态及错误提示使用灰阶。光谱图在 380–780 nm 区域使用淡色可见光背景；背景仅为波长的屏幕近似，不影响计算。
 
+04「标准光源查询」提供 xy 与 CIE 1976 u′v′ 色度图，显示所选观察者的 1000–25000 K 普朗克轨迹、温度标记、光源积分白点 S、最近轨迹点 T 和点线连线。光源位置使用未舍入的当前积分波段白点，随光源、观察者和波段更新；色度未定义时只显示轨迹。06 的两张色度图在原有 W/P/D/C 和波长射线之外显示同一观察者的普朗克轨迹、样品 P 到 T 的连线及 Duv。轨迹和最近点均来自计算库；最近点按 CIE 1960 uv 求解后投影到 xy / u′v′，图上连线长度不代表 Duv。CCT 不适用时标明状态，超出温度范围时连线指向搜索端点；10° 轨迹与 CCT 为观察者相关估算。
+
 首页与全部工具页在顶栏 GitHub 左侧提供“系统语言Language”下拉框，可选择简体中文或 English，默认简体中文。选择保存在浏览器本地并同步到同站点的其他标签页；切换直接更新页面、表单、结果与提示文字，保留当前输入和计算结果。复制和 CSV 使用当前界面语言的表头与说明；计算算法、内部字段及数字格式不变。翻译资源位于 `Chromaticity.Tools/TranslationCatalog.json`，新增界面文字时同步补充译文。
 
 工具启动时显示资源加载百分比、已加载/总资源数、耗时和当前阶段（读取配置、加载资源、初始化 WebAssembly、启动界面）。百分比按资源数量计算，包含缓存读取，不代表下载字节比例；达到 100% 后仍需初始化。15 秒未收到新资源或阶段未推进时显示等待提示，断网和启动失败分别提示连接状态或错误原因，并提供重新加载按钮。启动提示跟随界面语言切换。
@@ -90,6 +92,8 @@ python3 -m http.server 8080 --directory artifacts/site
 参考：[Avalonia WASM 部署](https://docs.avaloniaui.net/docs/deployment/webassembly)、[Pages Git integration](https://developers.cloudflare.com/pages/get-started/git-integration/)、[Pages .NET 构建示例](https://developers.cloudflare.com/pages/framework-guides/deploy-a-blazor-site/)。
 
 ## 验证记录
+
+04/06 普朗克轨迹与 Duv 连线通过 1192 项核心库测试、624 项应用测试、netstandard2.0 构建及 Release WASM 发布。新增测试覆盖独立光谱参考坐标、只读轨迹、未舍入最近点、两种观察者、1960/1976 投影关系、CCT 不适用及受约束端点、当前光源积分波段和翻译。浏览器验证 04 的 2°/10° 轨迹、温度与 Duv 标记、紫外波段清除旧光源点、英文图例，以及 06 的红色/紫色样品与原有波长射线叠加；两页均检查 390 px 窄屏。截图位于 `artifacts/planckian-review/`，最终本地站点包位于 `artifacts/site-planckian-final/`。未部署到线上。
 
 两种 CCT 与显色指数通过 1168 项核心库测试、610 项应用测试、5 项 Python 数据测试及生成数据一致性检查，库 net10.0 / netstandard2.0 和 Release WASM 发布构建成功。新增用独立 SciPy 最小距离求解、Colour 0.4.7 显色算法及归档 CIE CSV 生成的参考夹具，覆盖两种观察者下的普朗克色温、D65、A、FL2/FL7/FL11、LED-B1、HP1 的全部 14 个显色指数、5000 K 参考切换、SPD 尺度不变性、负 Ri 与不适用状态。浏览器验证 06 两种 CCT、图下注释、390 px 排列、修改样品后清除结果和导出状态，以及 04 的 Ra/2° 标注和中英文切换。截图位于 `artifacts/light-quality-review/`，本地站点包位于 `artifacts/site-light-quality-final/`。未部署到线上；仍有既有 nullable 和 DataGrid 裁剪警告。
 

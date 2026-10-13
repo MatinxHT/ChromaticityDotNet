@@ -149,6 +149,15 @@ public sealed partial class MainView : UserControl
         var end = SmallInput(catalog[light.SelectedIndex].EndingWavelength.ToString(CultureInfo.InvariantCulture)); end.Name = "IlluminantEnd";
         var conditions = Note("");
         var plot = new SpectrumPlot { Height = 260, AxisLabel = "相对功率", MinimumMaximum = 1 };
+        var xyPlot = new ChromaticityDiagram { Name = "IlluminantXyDiagram", ShowTemperatureLabels = true };
+        var uvPlot = new ChromaticityDiagram { Name = "IlluminantUvDiagram", Space = ChromaticityDiagramSpace.UvPrime, ShowTemperatureLabels = true };
+        var diagrams = new ResponsiveColumns { Name = "IlluminantDiagrams" };
+        diagrams.Children.Add(Stack(Text("CIE 1931 xy 色度图", 20, true), xyPlot));
+        diagrams.Children.Add(Stack(Text("CIE 1976 u′v′ 色度图", 20, true), uvPlot));
+        var diagramNote = Note("");
+        var diagramCard = Card(Stack(diagrams, Note("S 为所选光源的积分白点，实线为普朗克轨迹，标记温度单位为 K。"),
+            Note(PlanckianDiagramData.Explanation), Note(PlanckianDiagramData.UnavailableExplanation), diagramNote));
+        diagramCard.Name = "IlluminantChromaticity"; diagramCard.IsVisible = false;
         var result = new ResultPanel(_downloader, title: "光谱数据");
         var whiteResult = new ResultPanel(_downloader, title: "光谱白点", renderResult: IlluminantWhitePointResults,
             successMessage: "已更新光谱白点。复制及导出包含光源、观察者、积分波段和白点坐标。") { Name = "IlluminantWhitePoint", IsVisible = false };
@@ -156,6 +165,8 @@ public sealed partial class MainView : UserControl
         {
             result.Invalidate(); whiteResult.Invalidate(); whiteResult.IsVisible = false;
             plot.IsVisible = false; conditions.Text = "";
+            xyPlot.Clear(SelectedObserver(observer)); uvPlot.Clear(SelectedObserver(observer));
+            diagramCard.IsVisible = false;
         }
         void Update()
         {
@@ -168,6 +179,14 @@ public sealed partial class MainView : UserControl
                     ToolCalculations.IlluminantIntervals[interval.SelectedIndex], Wavelength(start), Wavelength(end), SelectedObserver(observer));
                 conditions.Text = query.Table.Conditions;
                 plot.SetData(query.Values, query.Start, query.Step); plot.IsVisible = true;
+                if (query.Diagram is { } diagram)
+                {
+                    xyPlot.SetLightData(diagram, catalog[light.SelectedIndex].Id);
+                    uvPlot.SetLightData(diagram, catalog[light.SelectedIndex].Id);
+                    diagramNote.Text = query.WhitePointTable.Conditions;
+                }
+                else diagramNote.Text = "当前波段的光源色度未定义，仅显示普朗克轨迹。";
+                diagramCard.IsVisible = true;
                 whiteResult.Run(() => query.WhitePointTable); whiteResult.IsVisible = true;
                 return query.Table;
             });
@@ -193,7 +212,7 @@ public sealed partial class MainView : UserControl
             Note($"共 {catalog.Length} 条 CIE 光源光谱。选择光源、观察者或间隔后自动更新；修改波段后点击“更新波段”，同步更新光谱和白点。"),
             Fields(("标准光源", light), ("观察者", observer), ("波长间隔", interval)),
             Fields(("起始波长 / nm", start), ("结束波长 / nm", end)), Actions(Primary("更新波段", Update)), conditions, plot,
-            Note("保持原始相对光谱功率尺度；必要时线性插值，不向源数据范围外推。淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"))), whiteResult, result);
+            Note("保持原始相对光谱功率尺度；必要时线性插值，不向源数据范围外推。淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"))), diagramCard, whiteResult, result);
     }
 
     private static Control IlluminantWhitePointResults(CalculationTable table)

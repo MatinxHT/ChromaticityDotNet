@@ -24,7 +24,7 @@ public sealed record CalculationTable(string[] Headers, string[][] Rows, string 
 
 public sealed record SpectrumResult(CalculationTable Table, double[] Values, int Start, int Step, string? Hex);
 public sealed record IlluminantQueryResult(CalculationTable Table, double[] Values, int Start, int Step,
-    CalculationTable WhitePointTable);
+    CalculationTable WhitePointTable, PlanckianDiagramData? Diagram);
 public enum InputSpace { XYZ, Lab, Luv, xyY, sRGB, HEX }
 
 /// <summary>Input validation and presentation only; all color calculations call the existing library.</summary>
@@ -82,10 +82,10 @@ public static class ToolCalculations
             (rangeStart + i * interval).ToString(Invariant), value.ToString("G", Invariant)
         }).ToArray();
         var whitePoint = QueryWhitePoint(info, spectrum, observer, rangeStart, sampledEnd);
-        return new(new(["波长 / nm", $"{info.DisplayName} 相对光谱功率"], rows, conditions), values, rangeStart, interval, whitePoint);
+        return new(new(["波长 / nm", $"{info.DisplayName} 相对光谱功率"], rows, conditions), values, rangeStart, interval, whitePoint.Table, whitePoint.Diagram);
     }
 
-    private static CalculationTable QueryWhitePoint(CieIlluminantInfo info, Spectrum spectrum, StandardObserver observer,
+    private static (CalculationTable Table, PlanckianDiagramData? Diagram) QueryWhitePoint(CieIlluminantInfo info, Spectrum spectrum, StandardObserver observer,
         int start, int end)
     {
         int first = Math.Max(360, start), last = Math.Min(830, end);
@@ -105,14 +105,17 @@ public static class ToolCalculations
         if (first <= last) conditions += $" · 光谱积分白点 {first}–{last} nm，Y = 100";
         conditions += "\n" + description;
         var xy = white is null ? null : new CIExyY { CIEx = white.CIEX / sum, CIEy = white.CIEY / sum, CIEY = 100 };
+        var diagram = xy is null || xy.CIEy <= 0 ? null
+            : PlanckianDiagramData.Create(new(xy.CIEx, xy.CIEy, xy.CIEY), observer);
         string[] cri;
         try { cri = LightQualityPresentation.Cri(spectrum, start <= 380 && end >= 780); }
         catch (ArgumentException) { cri = LightQualityPresentation.UnavailableCri("所选光谱无法形成有效光源，CRI 无法计算。"); }
-        return new(["标准光源", "观察者", "积分起始波长 / nm", "积分结束波长 / nm", "白点 X", "白点 Y", "白点 Z", "白点 x", "白点 y", "说明", ..LightQualityPresentation.CctHeaders, ..LightQualityPresentation.CriHeaders],
+        var table = new CalculationTable(["标准光源", "观察者", "积分起始波长 / nm", "积分结束波长 / nm", "白点 X", "白点 Y", "白点 Z", "白点 x", "白点 y", "说明", ..LightQualityPresentation.CctHeaders, ..LightQualityPresentation.CriHeaders],
             [[info.DisplayName, observerName, first <= last ? first.ToString(Invariant) : "—", first <= last ? last.ToString(Invariant) : "—",
                 white is null ? "—" : F(white.CIEX), white is null ? "—" : F(white.CIEY), white is null ? "—" : F(white.CIEZ),
                 white is null ? "—" : F(white.CIEX / sum), white is null ? "—" : F(white.CIEY / sum), description,
-                ..LightQualityPresentation.Cct(xy, observer), ..cri]], conditions);
+                ..LightQualityPresentation.Cct(xy, observer, diagram?.Cct), ..cri]], conditions);
+        return (table, diagram);
     }
 
     public static string F(double value) => double.IsFinite(value)

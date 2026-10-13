@@ -12,7 +12,7 @@ public sealed record ChromaticityCoordinates(double X, double Y, double Luminanc
 }
 
 public sealed record WavelengthCalculation(CalculationTable Table, ChromaticityCoordinates Sample,
-    ChromaticityCoordinates White, StandardObserver Observer, ChromaticityWavelengthResult Wavelengths);
+    ChromaticityCoordinates White, StandardObserver Observer, ChromaticityWavelengthResult Wavelengths, PlanckianDiagramData Planckian);
 
 /// <summary>Input snapshots and result presentation for tool 06. Wavelengths are computed by the library.</summary>
 public static class WavelengthCalculations
@@ -111,14 +111,15 @@ public static class WavelengthCalculations
             whiteMethod = $" · 光谱积分白点 {Math.Max(360, info.StartingWavelength)}–{Math.Min(830, info.EndingWavelength)} nm，Y = 100";
         }
         string whiteX = ToolCalculations.F(white.X), whiteY = ToolCalculations.F(white.Y);
+        var planckian = PlanckianDiagramData.Create(point, observer);
         var table = new CalculationTable(
             ["样品 x", "样品 y", "样品 Y", "参考白点", "白点 x", "白点 y", "观察者", "主波长 / nm", "补色波长 / nm", ..LightQualityPresentation.CctHeaders, "说明"],
             [[Coordinate(point.X), Coordinate(point.Y), Coordinate(point.Luminance), reference,
                 whiteX, whiteY, observerName,
-                Format(result.DominantWavelength), Format(result.ComplementaryWavelength), ..LightQualityPresentation.Cct(point.ToXyY(), observer), description]],
+                Format(result.DominantWavelength), Format(result.ComplementaryWavelength), ..LightQualityPresentation.Cct(point.ToXyY(), observer, planckian.Cct), description]],
             $"{reference} / {observerName} · 白点 xy = ({whiteX}, {whiteY}){whiteMethod}\n" +
             "波长单位为 nm，显示两位小数。白点坐标显示四位小数。Y 不影响波长；计算和图形使用未舍入坐标。");
-        return new(table, point, white, observer, result);
+        return new(table, point, white, observer, result, planckian);
     }
 
     public static string Format(double? wavelength) => wavelength?.ToString("F2", CultureInfo.InvariantCulture) ?? "—";

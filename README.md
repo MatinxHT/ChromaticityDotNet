@@ -103,6 +103,8 @@ var fastXyz = ChromaticityConversion.REFToXYZ(
 | `xyToLuv1960(xyY)` | xy → `CIEuv1960`，未舍入的 CIE 1960 UCS u、v |
 | `luv1960ToCCT(uv, observer = Degree2)` | 1960 uv → 最近普朗克轨迹温度 / K；不适用时返回 NaN |
 | `luv1960ToCCTResult(uv, observer = Degree2)` | CCT、带符号 Duv 与求解范围状态；不适用时 Temperature 为 null |
+| `GetPlanckianLocus(observer = Degree2)` | 1000–25000 K 普朗克轨迹，只读、未舍入的温度 / 1960 uv / xy 坐标 |
+| `GetPlanckianChromaticity(temperature, observer = Degree2)` | 指定 1000–25000 K 温度的未舍入普朗克轨迹点 |
 | `SPDToCRI(spectrum / illuminantId / illuminant)` | 光源光谱 → CIE 13.3-1995 显色指数 Ra、R1–R14 与参考光源信息 |
 | `xyYToWavelengths(color, observer, whitePoint / illuminant)` | xyY → 主波长、补色波长（nm，两位小数） |
 | `LuvToWavelengths(color, observer, whitePoint / illuminant)` | L*u*v* → 主波长、补色波长（使用同一参考白点） |
@@ -112,6 +114,8 @@ HSL/HSV 基于编码后的 sRGB 通道，不先做线性化，返回值保留中
 `xyToLuv1960` 沿用所请求的函数名，输出实际为 CIE 1960 **uv 色度**，没有 L* 分量；与 CIE 1976 L*u*v* 不同。公式为 u = 4x / (−2x + 12y + 3)、v = 6y / (−2x + 12y + 3)，因此 u = u′、v = 2v′/3。中间坐标不舍入，现有 `xyTouv` 和 `xyToCCT` 算法不变。
 
 1960 UCS CCT 按 [CIE 的最近普朗克轨迹定义](https://cie.co.at/eilv/258) 数值求解，在 360–830 nm / 1 nm 上积分，c₂ = 0.014388 m·K，支持 1000–25000 K。|Duv| > 0.05 或最近温度超出范围时不返回有效 CCT。标准结果采用 1931 2° 观察者；可显式传入 Degree10，得到同一观察者普朗克轨迹下的 10° 扩展估算，不应标为标准 2° CCT。
+
+`Cct1960Result.NearestPoint` 保留此次求解的未舍入最近轨迹点，包含 `Temperature`、`U/V`（1960 UCS）和 `X/Y`。即使 CCT 不适用也可用它绘制连线；`IsInTemperatureRange=false` 时它是搜索区间端点附近的受约束最近点，不能将该点温度作为有效 CCT。`GetPlanckianLocus` 使用与普通 UCS CCT 相同的观察者和 360–830 nm 积分，按倒数温度从 25000 K 排列到 1000 K；CRI 内部仍使用其原有 380–780 nm 积分。
 
 CRI 依据 [CIE 13.3-1995](https://cie.co.at/publications/method-measuring-and-specifying-colour-rendering-properties-light-sources)，固定使用 1931 2° 观察者、1960 uv 色适应及 1964 UVW 色差。需要光源相对 SPD 覆盖 380–780 nm；SPD、14 个官方 TCS 和日光基函数均线性插值到 1 nm，积分固定使用此波段、每个白点独立归一化 Y = 100。低于 5000 K 使用普朗克参考光源，否则使用同温度 CIE 日光参考光源，日光 M1/M2 系数保留三位小数。Ra 是 R1–R8 平均值，负 Ri 不裁剪。CCT 不适用或测试/参考白点 uv 距离 > 0.0054 时 Ra 为 null、Ri 列表为空。反射率或 xy 坐标不能单独决定 CRI。此相对 SPD 算法不改变旧 `SPDToXYZ` 的尺度约定。
 

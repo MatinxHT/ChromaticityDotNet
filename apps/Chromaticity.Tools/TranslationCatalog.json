@@ -1,4 +1,10 @@
 {
+  "普朗克轨迹覆盖 1000–25000 K。T 为 CIE 1960 uv 中的最近轨迹点；点线连接光源或样品与 T。Duv 按 1960 uv 计算，图中投影连线的长度不代表 Duv。": "The Planckian locus covers 1000–25000 K. T is the nearest locus point in CIE 1960 uv; the dotted line connects the light source or sample to T. Duv is calculated in 1960 uv; the projected line length in these diagrams does not represent Duv.",
+  "CCT 不适用时仍显示搜索范围内的最近点；若求解超出温度范围，连线指向轨迹端点。10° 轨迹与 CCT 为观察者相关估算，标准 CCT 使用 1931 2°。": "When CCT is inapplicable, the nearest point within the search range is still shown; if the solution is outside the temperature range, the line ends at a locus endpoint. The 10° locus and CCT are observer-specific estimates; standard CCT uses 1931 2°.",
+  "S 为所选光源的积分白点，实线为普朗克轨迹，标记温度单位为 K。": "S is the integrated white point of the selected light source. The solid curve is the Planckian locus; temperature labels are in K.",
+  "当前波段的光源色度未定义，仅显示普朗克轨迹。": "The light-source chromaticity is undefined for the current wavelength range; only the Planckian locus is shown.",
+  "T CCT 不适用": "T CCT inapplicable",
+  "T 轨迹端点": "T Locus endpoint",
   "光谱计算": "Spectrum calculation",
   "色差计算": "Color difference",
   "颜色转换": "Color conversion",

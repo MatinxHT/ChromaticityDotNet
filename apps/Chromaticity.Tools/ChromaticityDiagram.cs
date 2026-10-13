@@ -7,12 +7,13 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Chromaticity.Tools.Services;
+using ChromaticityDotNet.Controller;
 using ChromaticityDotNet.Model;
 using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
 namespace Chromaticity.Tools;
 
-/// <summary>Observer-specific xy or u'v' diagram, with an illustrative sRGB background and ray intersections.</summary>
+/// <summary>Observer-specific xy or u'v' diagram, with a Planckian locus, UCS nearest point and optional wavelength rays.</summary>
 public sealed class ChromaticityDiagram : Control
 {
     private static readonly Lazy<byte[]> Background2 = new(() => ChromaticityDiagramBackground.Create(StandardObserver.Degree2));
@@ -21,8 +22,11 @@ public sealed class ChromaticityDiagram : Control
     private static readonly Lazy<byte[]> UvBackground10 = new(() => ChromaticityDiagramBackground.Create(StandardObserver.Degree10, ChromaticityDiagramSpace.UvPrime));
     private StandardObserver _observer = StandardObserver.Degree2;
     private WavelengthCalculation? _calculation;
+    private PlanckianDiagramData? _planckian;
+    private string? _lightName;
     private WriteableBitmap? _background;
     public ChromaticityDiagramSpace Space { get; init; }
+    public bool ShowTemperatureLabels { get; init; }
     private ChromaticityDiagramProjection Projection => new(Space);
 
     public ChromaticityDiagram()
@@ -34,12 +38,17 @@ public sealed class ChromaticityDiagram : Control
     public void Clear(StandardObserver observer)
     {
         if (_observer != observer) { _background?.Dispose(); _background = null; }
-        _observer = observer; _calculation = null; InvalidateVisual();
+        _observer = observer; _calculation = null; _planckian = null; _lightName = null; InvalidateVisual();
     }
 
     public void SetData(WavelengthCalculation calculation)
     {
-        Clear(calculation.Observer); _calculation = calculation; InvalidateVisual();
+        Clear(calculation.Observer); _calculation = calculation; _planckian = calculation.Planckian; InvalidateVisual();
+    }
+
+    public void SetLightData(PlanckianDiagramData data, string lightName)
+    {
+        Clear(data.Observer); _planckian = data; _lightName = lightName; InvalidateVisual();
     }
 
     protected override void OnAttachedToLogicalTree(Avalonia.LogicalTree.LogicalTreeAttachmentEventArgs e)
@@ -95,6 +104,11 @@ public sealed class ChromaticityDiagram : Control
             FlowDirection.LeftToRight, font, 11, brush ?? Brush.Parse("#555555"));
         void Label(string text, double x, double y) => context.DrawText(Caption(text), new Point(x, y));
         var annotations = new List<Rect>();
+        if (_planckian is { } markerData)
+        {
+            foreach (var point in new[] { FromXy(markerData.Sample.X, markerData.Sample.Y), FromXy(markerData.Cct.NearestPoint.X, markerData.Cct.NearestPoint.Y) })
+                annotations.Add(new Rect(point.X - 8, point.Y - 8, 16, 16));
+        }
         void Tag(string text, Point at, Point anchor)
         {
             var caption = Caption(text, Brushes.Black);
@@ -103,8 +117,12 @@ public sealed class ChromaticityDiagram : Control
                 Math.Clamp(at.Y + dy, 1, Math.Max(1, Bounds.Height - caption.Height - 6)),
                 caption.Width + 8, caption.Height + 4);
             var rectangle = Position(0, 0);
-            foreach (var offset in new[] { (0.0, 0.0), (0.0, -24.0), (0.0, 24.0),
-                (-caption.Width - 16, 0.0), (0.0, -48.0), (0.0, 48.0), (-caption.Width - 16, -24.0), (-caption.Width - 16, 24.0) })
+            var offsets = new[] { (0.0, 0.0), (0.0, -24.0), (0.0, 24.0),
+                (-caption.Width - 16, 0.0), (0.0, -48.0), (0.0, 48.0), (-caption.Width - 16, -24.0), (-caption.Width - 16, 24.0) }
+                .Concat(from dy in new[] { -72.0, 72.0, -96.0, 96.0, -120.0, 120.0, -144.0, 144.0 }
+                    from dx in new[] { 0.0, -caption.Width - 16, caption.Width + 16 }
+                    select (dx, dy));
+            foreach (var offset in offsets)
             {
                 var candidate = Position(offset.Item1, offset.Item2);
                 if (annotations.Any(existing => existing.Intersects(candidate))) continue;
@@ -144,6 +162,52 @@ public sealed class ChromaticityDiagram : Control
             path.EndFigure(true);
         }
         context.DrawGeometry(null, new Pen(Brush.Parse("#333333"), 1.7), geometry);
+        var planckLocus = ChromaticityConversion.GetPlanckianLocus(_observer);
+        var planckGeometry = new StreamGeometry();
+        using (var path = planckGeometry.Open())
+        {
+            path.BeginFigure(FromXy(planckLocus[0].X, planckLocus[0].Y), false);
+            foreach (var point in planckLocus.Skip(1)) path.LineTo(FromXy(point.X, point.Y));
+            path.EndFigure(false);
+        }
+        context.DrawGeometry(null, new Pen(Brushes.White, 3.5), planckGeometry);
+        context.DrawGeometry(null, new Pen(Brushes.Black, 1.5), planckGeometry);
+        void TemperatureLabels()
+        {
+            if (!ShowTemperatureLabels) return;
+            int[] temperatures = Bounds.Width < 400 ? [2000, 4000, 6500, 25000] : [2000, 3000, 4000, 6500, 10000, 25000];
+            foreach (int temperature in temperatures)
+            {
+                var point = ChromaticityConversion.GetPlanckianChromaticity(temperature, _observer);
+                var position = FromXy(point.X, point.Y);
+                context.DrawEllipse(Brushes.White, new Pen(Brushes.Black), position, 2.5, 2.5);
+                Tag($"{temperature} K", new Point(position.X - 12, position.Y + (temperature >= 6500 ? 20 : -28)), position);
+            }
+        }
+        void PlanckianConnection()
+        {
+            if (_planckian is not { } data) return;
+            var sample = FromXy(data.Sample.X, data.Sample.Y);
+            var nearest = FromXy(data.Cct.NearestPoint.X, data.Cct.NearestPoint.Y);
+            using (context.PushGeometryClip(geometry))
+            {
+                context.DrawLine(new Pen(Brushes.White, 3.5), sample, nearest);
+                context.DrawLine(new Pen(Brushes.Black, 1.7, new DashStyle([2, 3], 0)), sample, nearest);
+            }
+            context.DrawRectangle(Brushes.White, new Pen(Brushes.Black, 1.5), new Rect(nearest.X - 3.5, nearest.Y - 3.5, 7, 7));
+            string nearestLabel = data.Cct.Temperature is { } temperature
+                ? $"T {temperature.ToString("0", CultureInfo.InvariantCulture)} K"
+                : data.Cct.IsInTemperatureRange ? "T CCT 不适用" : "T 轨迹端点";
+            Tag(nearestLabel, new Point(nearest.X - 12, nearest.Y + 12), nearest);
+            var middle = new Point((sample.X + nearest.X) / 2, (sample.Y + nearest.Y) / 2);
+            Tag($"Duv {data.Cct.Duv.ToString("+0.000000;-0.000000;0.000000", CultureInfo.InvariantCulture)}",
+                new Point(middle.X + 12, middle.Y + 34), middle);
+            if (_lightName is not null)
+            {
+                context.DrawEllipse(Brushes.Black, new Pen(Brushes.White, 2), sample, 5, 5);
+                Tag($"S {_lightName}", new Point(sample.X + 10, sample.Y - 24), sample);
+            }
+        }
         var locus = CieSpectralData.GetSpectralLocus(_observer);
         foreach (int wavelength in new[] { 400, 450, 500, 550, 600, 650 })
         {
@@ -160,7 +224,10 @@ public sealed class ChromaticityDiagram : Control
             };
             Tag($"{wavelength} nm", label, position);
         }
-        if (_calculation is null) return;
+        if (_calculation is null)
+        {
+            PlanckianConnection(); TemperatureLabels(); return;
+        }
         var w = FromXy(_calculation.White.X, _calculation.White.Y);
         var p = FromXy(_calculation.Sample.X, _calculation.Sample.Y);
         annotations.Add(new Rect(w.X - 8, w.Y - 8, 16, 16));
@@ -186,9 +253,11 @@ public sealed class ChromaticityDiagram : Control
             Intersection("D", forward, _calculation.Wavelengths.DominantWavelength, -25);
             Intersection("C", reverse, _calculation.Wavelengths.ComplementaryWavelength, 8);
         }
+        PlanckianConnection();
         context.DrawEllipse(Brushes.White, new Pen(Brushes.Black, 2), w, 6, 6);
         context.DrawEllipse(Brushes.Black, new Pen(Brushes.White, 2), p, 5, 5);
         Tag("W 白点", new Point(w.X + 10, w.Y + 7), w);
         Tag("P 样品", new Point(p.X + 10, p.Y - 24), p);
+        TemperatureLabels();
     }
 }

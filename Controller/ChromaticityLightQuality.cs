@@ -38,6 +38,25 @@ namespace ChromaticityDotNet.Controller
             return FindCct(uv, observer, 360, 830, locus);
         }
 
+        /// <summary>Read-only 1000–25000 K Planckian locus for diagrams. Uses the same
+        /// observer, 360–830 nm integration and reciprocal-temperature grid as UCS CCT.</summary>
+        public static IReadOnlyList<PlanckianChromaticityPoint> GetPlanckianLocus(StandardObserver observer = StandardObserver.Degree2) =>
+            observer switch
+            {
+                StandardObserver.Degree2 => PlanckDiagram2.Value,
+                StandardObserver.Degree10 => PlanckDiagram10.Value,
+                _ => throw new ArgumentOutOfRangeException(nameof(observer))
+            };
+
+        /// <summary>Unrounded locus point at a specified 1000–25000 K temperature.</summary>
+        public static PlanckianChromaticityPoint GetPlanckianChromaticity(double temperature, StandardObserver observer = StandardObserver.Degree2)
+        {
+            if (double.IsNaN(temperature) || double.IsInfinity(temperature) || temperature < 1000 || temperature > 25000)
+                throw new ArgumentOutOfRangeException(nameof(temperature), "Temperature must be finite and within 1000–25000 K.");
+            var uv = PlanckUv(temperature, observer, 360, 830);
+            return new PlanckianChromaticityPoint(temperature, uv.CIEu, uv.CIEv);
+        }
+
         /// <summary>CIE 13.3-1995 CRI for a relative light-source spectrum.
         /// Requires coverage of 380–780 nm; linearly resamples SPD and all 14 official TCS
         /// reflectances to 1 nm. Scale cancels, each white has Y=100. No extrapolation.</summary>
@@ -104,6 +123,11 @@ namespace ChromaticityDotNet.Controller
         private static readonly Lazy<CIEuv1960[]> PlanckLocus2 = new(() => CreatePlanckLocus(StandardObserver.Degree2, 360, 830));
         private static readonly Lazy<CIEuv1960[]> PlanckLocus10 = new(() => CreatePlanckLocus(StandardObserver.Degree10, 360, 830));
         private static readonly Lazy<CIEuv1960[]> PlanckLocusCri = new(() => CreatePlanckLocus(StandardObserver.Degree2, 380, 780));
+        private static readonly Lazy<IReadOnlyList<PlanckianChromaticityPoint>> PlanckDiagram2 = new(() => DiagramLocus(PlanckLocus2.Value));
+        private static readonly Lazy<IReadOnlyList<PlanckianChromaticityPoint>> PlanckDiagram10 = new(() => DiagramLocus(PlanckLocus10.Value));
+
+        private static IReadOnlyList<PlanckianChromaticityPoint> DiagramLocus(CIEuv1960[] locus) =>
+            Array.AsReadOnly(locus.Select((uv, i) => new PlanckianChromaticityPoint(1e6 / (40 + i), uv.CIEu, uv.CIEv)).ToArray());
 
         private static void ValidateUv1960(CIEuv1960 uv)
         {
@@ -146,7 +170,7 @@ namespace ChromaticityDotNet.Controller
             // A minimum clipped by a search endpoint does not define an in-range CCT.
             bool inRange = (m > 40 + 1e-6 && m < 1000 - 1e-6) || distance < 1e-8;
             return new Cct1960Result(inRange && distance <= 0.05 ? NumericPrecision.Round(temperature) : (double?)null,
-                duv, inRange);
+                duv, inRange, new PlanckianChromaticityPoint(temperature, nearest.CIEu, nearest.CIEv));
         }
 
         private static CIEuv1960 PlanckUv(double temperature, StandardObserver observer, int start, int end)
