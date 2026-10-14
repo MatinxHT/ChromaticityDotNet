@@ -24,6 +24,11 @@ uv.SetData(data);
 support `UpdateXyPoints`, `SetObserver`, `ClearMeasurements` and `SetLightData`.
 Create one instance per PlotView; models and mutable series are not shared.
 
+Each measurement or observer update invalidates its host once, after the complete
+state is ready. Changes to series and `ItemsSource` request a data refresh, so WPF
+hosts do not need an extra `PlotModel.InvalidatePlot(true)` call. This also avoids
+drawing cleared markers and intermediate observer states during live acquisition.
+
 The static series remain in QuantumSpect's original order: Planckian locus,
 then CIE boundary. Observer changes update both curves and the sRGB background
 and clear old measurements. Backgrounds are generated from the shared library

@@ -34,12 +34,49 @@ public class ChromaticityPlot
     private PlanckianDiagramData? _measurementPlanckian;
     private bool _showWavelengthLabels = true, _showTemperatureLabels, _showPlanckianLocus = true;
     private double? _axisMaximumX, _axisMaximumY;
+    private int _updateDepth;
+    private bool _invalidatePending, _updateDataPending;
 
     public PlotModel PlotModel { get; }
     /// <summary>Bind this controller to the host PlotView.Controller for left-button snap tracking.</summary>
     public PlotController Controller { get; }
     public ChromaticityDiagramSpace Space => _projection.Space;
     public StandardObserver Observer { get; private set; }
+
+    private IDisposable BeginUpdate()
+    {
+        _updateDepth++;
+        return new UpdateScope(this);
+    }
+
+    private void InvalidatePlot(bool updateData = false)
+    {
+        if (_updateDepth == 0) { PlotModel.InvalidatePlot(updateData); return; }
+        _invalidatePending = true;
+        _updateDataPending |= updateData;
+    }
+
+    private void EndUpdate()
+    {
+        if (--_updateDepth != 0 || !_invalidatePending) return;
+        bool updateData = _updateDataPending;
+        _invalidatePending = _updateDataPending = false;
+        PlotModel.InvalidatePlot(updateData);
+    }
+
+    // WPF renders synchronously when a model is invalidated on the UI thread.
+    // Nested operations must publish only the complete state, with refreshed ItemsSource data.
+    private sealed class UpdateScope : IDisposable
+    {
+        private ChromaticityPlot? _owner;
+        public UpdateScope(ChromaticityPlot owner) => _owner = owner;
+        public void Dispose()
+        {
+            var owner = _owner;
+            _owner = null;
+            owner?.EndUpdate();
+        }
+    }
 
     public double? AxisMaximumX
     {
@@ -57,7 +94,7 @@ public class ChromaticityPlot
         var viewport = new ChromaticityDiagramViewport(Space, maximumX, maximumY);
         PlotModel.Axes[0].Maximum = viewport.MaximumX; PlotModel.Axes[0].Reset();
         PlotModel.Axes[1].Maximum = viewport.MaximumY; PlotModel.Axes[1].Reset();
-        PlotModel.InvalidatePlot(false);
+        InvalidatePlot();
     }
 
     public bool ShowWavelengthLabels
@@ -72,6 +109,7 @@ public class ChromaticityPlot
         get => _showPlanckianLocus;
         set
         {
+            using var update = BeginUpdate();
             _showPlanckianLocus = value; _hiddenLegendItems.Remove(_planckian);
             _planckian.RenderInLegend = value;
             RefreshLegendVisibility(); UpdateReferenceLabels();
@@ -90,6 +128,7 @@ public class ChromaticityPlot
 
     private void ToggleLegendSeries(global::OxyPlot.Series.Series series)
     {
+        using var update = BeginUpdate();
         if (!_hiddenLegendItems.Remove(series)) _hiddenLegendItems.Add(series);
         RefreshLegendVisibility();
         if (series == _planckian) UpdateReferenceLabels();
@@ -110,7 +149,7 @@ public class ChromaticityPlot
                 PlotModel.Annotations.Remove(label);
                 if (pair.Key.IsVisible) PlotModel.Annotations.Add(label);
             }
-        PlotModel.InvalidatePlot(false);
+        InvalidatePlot();
     }
 
     /// <summary>Show reference temperatures and the measured CCT. Reference temperatures are independent of the curve.</summary>
@@ -130,7 +169,7 @@ public class ChromaticityPlot
     public bool ShowLegend
     {
         get => PlotModel.IsLegendVisible;
-        set { PlotModel.IsLegendVisible = value; PlotModel.InvalidatePlot(false); }
+        set { PlotModel.IsLegendVisible = value; InvalidatePlot(); }
     }
 
     public double BackgroundOpacity
@@ -139,7 +178,7 @@ public class ChromaticityPlot
         set
         {
             if (double.IsNaN(value) || value < 0 || value > 1) throw new ArgumentOutOfRangeException(nameof(value));
-            _background.Opacity = value; PlotModel.InvalidatePlot(false);
+            _background.Opacity = value; InvalidatePlot();
         }
     }
 
@@ -186,6 +225,7 @@ public class ChromaticityPlot
     /// <summary>Replace the observer-specific background and curves, clearing old measurement markers.</summary>
     public void SetObserver(StandardObserver observer)
     {
+        using var update = BeginUpdate();
         var boundary = CieSpectralData.GetChromaticityBoundary(observer).Select(point =>
             new ChromaticityDiagramTarget("Chromaticity boundary", Space, _projection.Project(point.X, point.Y), point.Wavelength)).ToArray();
         var planckian = ChromaticityConversion.GetPlanckianLocus(observer).Select(point =>
@@ -206,7 +246,7 @@ public class ChromaticityPlot
             ? (observer == StandardObserver.Degree2 ? Xy2.Value : Xy10.Value)
             : (observer == StandardObserver.Degree2 ? Uv2.Value : Uv10.Value);
         UpdateReferenceLabels();
-        PlotModel.InvalidatePlot(false);
+        InvalidatePlot(true);
     }
 
     private void UpdateReferenceLabels()
@@ -247,11 +287,12 @@ public class ChromaticityPlot
                 };
                 Reference(point.X, point.Y, $"{temperature} K", offset);
             }
-        PlotModel.InvalidatePlot(false);
+        InvalidatePlot();
     }
 
     public void ClearMeasurements()
     {
+        using var update = BeginUpdate();
         foreach (var series in _measurements) PlotModel.Series.Remove(series);
         foreach (var label in _labels) PlotModel.Annotations.Remove(label);
         _measurements.Clear(); _labels.Clear(); _measurementPlanckian = null;
@@ -259,6 +300,7 @@ public class ChromaticityPlot
         _markerLabels.Clear();
         _hiddenLegendItems.RemoveWhere(series => series != _planckian);
         RefreshLegendVisibility();
+        InvalidatePlot(true);
     }
 
     /// <summary>Replace measurements with named xy samples, projecting into this plot's coordinate space.</summary>
@@ -270,6 +312,7 @@ public class ChromaticityPlot
             if (sample is null) throw new ArgumentException("A sample cannot be null.", nameof(samples));
             return (Sample: sample, Point: _projection.Project(sample.Coordinates.X, sample.Coordinates.Y));
         }).ToArray();
+        using var update = BeginUpdate();
         ClearMeasurements();
         foreach (var item in snapshot)
         {
@@ -277,7 +320,7 @@ public class ChromaticityPlot
             Marker(item.Sample.Name, item.Point, MarkerType.Circle, 4,
                 OxyColor.FromArgb((byte)(argb >> 24), (byte)(argb >> 16), (byte)(argb >> 8), (byte)argb));
         }
-        PlotModel.InvalidatePlot(false);
+        InvalidatePlot(true);
     }
 
     public void UpdateXyPoints(IEnumerable<CIExyY> points)
@@ -294,16 +337,18 @@ public class ChromaticityPlot
         foreach (var point in snapshot)
             if (double.IsNaN(point.X) || double.IsInfinity(point.X) || double.IsNaN(point.Y) || double.IsInfinity(point.Y))
                 throw new ArgumentException("Finite chromaticity coordinates are required.", nameof(points));
+        using var update = BeginUpdate();
         ClearMeasurements();
         for (int i = 0; i < snapshot.Length; i++)
             Marker(snapshot.Length == 1 ? "Sample" : $"Sample {i + 1}", snapshot[i], MarkerType.Circle, 2);
-        PlotModel.InvalidatePlot(false);
+        InvalidatePlot(true);
     }
 
     public void SetData(WavelengthDiagramData data)
     {
         if (data is null) throw new ArgumentNullException(nameof(data));
         var hits = _projection.Intersections(data);
+        using var update = BeginUpdate();
         SetObserver(data.Observer);
         var white = _projection.Project(data.White.X, data.White.Y);
         var sample = _projection.Project(data.Sample.X, data.Sample.Y);
@@ -319,16 +364,17 @@ public class ChromaticityPlot
         PlanckianConnection(data.Planckian, sample);
         Marker("White", white, MarkerType.Cross, 4);
         Marker("Sample", sample, MarkerType.Circle, 3);
-        PlotModel.InvalidatePlot(false);
+        InvalidatePlot(true);
     }
 
     public void SetLightData(PlanckianDiagramData data, string name = "Light")
     {
         if (data is null) throw new ArgumentNullException(nameof(data));
+        using var update = BeginUpdate();
         SetObserver(data.Observer);
         var sample = _projection.Project(data.Sample.X, data.Sample.Y);
         PlanckianConnection(data, sample); Marker(name, sample, MarkerType.Circle, 3, temperature: data.Cct.Temperature, duv: data.Cct.Duv);
-        PlotModel.InvalidatePlot(false);
+        InvalidatePlot(true);
     }
 
     private void PlanckianConnection(PlanckianDiagramData data, ChromaticityDiagramPoint sample)
