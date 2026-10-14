@@ -4,6 +4,8 @@ set -euo pipefail
 # Run from the repository root, even when invoked from another directory.
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 repo_root="$PWD"
+browser_dir="$repo_root/apps/Chromaticity.Tools.Browser"
+browser_project="$browser_dir/Chromaticity.Tools.Browser.csproj"
 sdk_dir="$repo_root/artifacts/cloudflare-dotnet"
 mkdir -p "$sdk_dir"
 
@@ -17,8 +19,16 @@ export DOTNET_NOLOGO=1
 
 dotnet --version
 dotnet workload install wasm-tools
-dotnet publish apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj \
-  -c Release -p:GeneratePackageOnBuild=false
+
+# Clean the current project-reference graph, including the libraries under src/.
+dotnet clean "$browser_project" -c Release -p:GeneratePackageOnBuild=false
+# An SDK/workload change can leave native WASM tables and published assets that
+# dotnet clean cannot find in the current SDK's intermediate file list.
+rm -rf "$browser_dir/bin" "$browser_dir/obj"
+
+dotnet restore "$browser_project" -p:GeneratePackageOnBuild=false
+dotnet publish "$browser_project" \
+  -c Release --no-restore -p:GeneratePackageOnBuild=false
 
 # Cache policy regressions must stop the deployment before staging the site.
 python3 -m unittest discover -s apps -p test_prepare_site.py

@@ -83,7 +83,7 @@ python3 -m http.server 8080 --directory artifacts/site
 
 3. 保存并部署。之后推送到 `master` 时由 Cloudflare 自动拉取、构建和发布。
 
-`build_cloudflare.sh` 在忽略的 `artifacts/cloudflare-dotnet` 目录安装 .NET 10 SDK 和 `wasm-tools`，仅发布 Browser 项目，运行缓存与发布校验测试后，再运行 `prepare_site.py` 整理站点。重复构建只替换生成的 `artifacts/site` 目录。构建命令通过 Bash 调用，无需设置脚本执行权限。Cloudflare 构建不运行 .NET 算法测试；修改计算或输入处理代码时，先按上面的本地命令运行测试。
+`build_cloudflare.sh` 在忽略的 `artifacts/cloudflare-dotnet` 目录安装 .NET 10 SDK 和 `wasm-tools`，按 Browser 的项目引用清理应用及 `src/` 中的依赖库，再删除 Browser 的 `bin/obj`，避免沿用旧 SDK 或工作负载生成的原生 WASM 调用表和发布资源。脚本重新还原依赖后发布 Browser 项目，运行缓存与发布校验测试，再运行 `prepare_site.py` 整理站点。重复构建会替换生成的 `artifacts/site` 目录。构建命令通过 Bash 调用，无需设置脚本执行权限。Cloudflare 构建不运行 .NET 算法测试；修改计算或输入处理代码时，先按上面的本地命令运行测试。
 
 `prepare_site.py` 根据 .NET 发布端点清单生成精确的缓存响应头，仅对文件名包含 SDK 内容指纹且 SHA-256 完整性校验通过的 WASM、JS 设置 `public, max-age=31536000, immutable`。HTML（包括 Pages 去掉 `.html` 后的 URL 和目录入口）与固定名称的脚本使用 `no-cache`，每次访问先确认版本，未变化时可返回 304。新版本 HTML 引用新哈希文件，未变化的运行组件继续复用浏览器缓存；各标签页仍分别初始化自己的运行实例。通配规则不设置 Cache-Control，避免 Pages 合并规则造成冲突；清单与文件不一致或响应头超出 Pages 限制时，构建中止，避免发布错误的缓存策略。
 
