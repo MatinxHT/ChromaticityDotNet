@@ -2,31 +2,120 @@
 import base64
 import hashlib
 import json
+import os
 from pathlib import Path
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
-from unittest.mock import patch
 
-from prepare_site import IMMUTABLE, REVALIDATE, build_headers, cache_policies, publish_manifest
+from prepare_site import IMMUTABLE, REVALIDATE, build_headers, cache_policies
 
 
-class PublishManifestTests(unittest.TestCase):
-    @patch("prepare_site.subprocess.run")
-    def test_manifest_follows_the_active_sdk_instead_of_the_legacy_directory(self, run):
-        project = Path("apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj")
-        for sdk in ("10.0.401", "10.0.402"):
-            with self.subTest(sdk=sdk):
-                intermediate = Path(f"obj/sdk-{sdk}/Release/net10.0-browser")
-                run.return_value.stdout = str(intermediate) + "\n"
-                self.assertEqual(publish_manifest(project),
-                                 project.parent / intermediate / "staticwebassets.publish.endpoints.json")
+class SitePreparationTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.repo = (Path(self.temp.name) / "repository with spaces").resolve()
+        apps = self.repo / "apps"
+        apps.mkdir(parents=True)
+        self.script = apps / "prepare_site.py"
+        shutil.copy2(Path(__file__).with_name("prepare_site.py"), self.script)
+        for relative, content in {
+            "apps/site/_headers": "/*\n  X-Content-Type-Options: nosniff\n",
+            "CIE-DATA-NOTICE.md": "Data notice",
+            "LICENSE": "Library license",
+            "apps/Chromaticity.Tools/Assets/OFL.txt": "Font license",
+        }.items():
+            path = self.repo / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+        # Neither a stale SDK manifest nor a RID-specific directory may be used.
+        for intermediate in ("obj/sdk-10.0.401/Release/net10.0-browser",
+                             "obj/sdk-10.0.402/Release/net10.0-browser/browser-wasm"):
+            stale = apps / "Chromaticity.Tools.Browser" / intermediate / "staticwebassets.publish.endpoints.json"
+            stale.parent.mkdir(parents=True, exist_ok=True)
+            stale.write_text("invalid stale manifest", encoding="utf-8")
+        self.publish = self.repo / "artifacts/publish with spaces"
+        self.default_publish = apps / "Chromaticity.Tools.Browser/bin/Release/net10.0-browser/publish"
+        self.output = self.repo / "artifacts/site"
+        self.create_publish(self.publish)
 
-    @patch("prepare_site.subprocess.run")
-    def test_absolute_intermediate_output_is_supported(self, run):
-        project = Path("apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj")
-        intermediate = Path(tempfile.gettempdir()).resolve() / "browser-review"
-        run.return_value.stdout = str(intermediate) + "\n"
-        self.assertEqual(publish_manifest(project), intermediate / "staticwebassets.publish.endpoints.json")
+    def create_publish(self, publish):
+        bundle = publish / "wwwroot"
+        (bundle / "_framework").mkdir(parents=True)
+        (bundle / "tools").mkdir()
+        (bundle / "index.html").write_text("home", encoding="utf-8")
+        (bundle / "tools/index.html").write_text("tools", encoding="utf-8")
+        asset = bundle / "_framework/core.abc123.wasm"
+        asset.write_bytes(b"core")
+        integrity = "sha256-" + base64.b64encode(hashlib.sha256(asset.read_bytes()).digest()).decode("ascii")
+        manifest = {
+            "Version": 1, "ManifestType": "Publish", "Endpoints": [{
+                "Route": "_framework/core.abc123.wasm", "AssetFile": "_framework/core.abc123.wasm",
+                "Selectors": [],
+                "ResponseHeaders": [{"Name": "Cache-Control", "Value": "max-age=31536000, immutable"}],
+                "EndpointProperties": [{"Name": "fingerprint", "Value": "abc123"},
+                                       {"Name": "integrity", "Value": integrity}],
+            }],
+        }
+        (publish / "Chromaticity.Tools.Browser.staticwebassets.endpoints.json").write_text(
+            json.dumps(manifest), encoding="utf-8")
+
+    def prepare(self, *arguments):
+        # Staging a completed publish must work from any cwd, without a .NET SDK.
+        return subprocess.run([sys.executable, str(self.script), *map(str, arguments)],
+                              cwd=self.repo.parent, env=dict(os.environ, PATH=""),
+                              capture_output=True, text=True)
+
+    def test_custom_publish_uses_its_copied_manifest_without_querying_msbuild(self):
+        result = self.prepare(self.output, "--publish-dir", self.publish)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.output / "_framework/core.abc123.wasm").read_bytes(), b"core")
+        self.assertEqual((self.output / "tools/LICENSE.txt").read_text(), "Library license")
+        headers = (self.output / "_headers").read_bytes()
+        self.assertIn(f"/_framework/core.abc123.wasm\n  Cache-Control: {IMMUTABLE}".encode(), headers)
+        self.assertNotIn(b"\r", headers)
+
+    def test_default_local_publish_and_output_remain_supported(self):
+        self.create_publish(self.default_publish)
+        result = self.prepare()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.output / "index.html").read_text(), "home")
+
+    def test_missing_published_manifest_does_not_fall_back_to_obj(self):
+        manifest = self.publish / "Chromaticity.Tools.Browser.staticwebassets.endpoints.json"
+        manifest.unlink()
+        result = self.prepare("--publish-dir", self.publish)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(f"Published Browser endpoints manifest is missing: {manifest}", result.stderr)
+        self.assertFalse(self.output.exists())
+
+    def test_missing_entry_page_reports_the_exact_path(self):
+        entry = self.publish / "wwwroot/index.html"
+        entry.unlink()
+        result = self.prepare("--publish-dir", self.publish)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(f"Published Browser entry page is missing: {entry}", result.stderr)
+        self.assertFalse(self.output.exists())
+
+    def test_corrupt_publish_does_not_stage_a_site(self):
+        (self.publish / "wwwroot/_framework/core.abc123.wasm").write_bytes(b"corrupt")
+        result = self.prepare("--publish-dir", self.publish)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("integrity mismatch", result.stderr)
+        self.assertFalse(self.output.exists())
+
+    def test_existing_site_is_not_overwritten(self):
+        self.output.mkdir()
+        sentinel = self.output / "keep.txt"
+        sentinel.write_text("keep", encoding="utf-8")
+        result = self.prepare("--publish-dir", self.publish)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Output already exists", result.stderr)
+        self.assertEqual(sentinel.read_text(), "keep")
+        self.assertFalse((self.output / "index.html").exists())
 
 
 class CachePolicyTests(unittest.TestCase):

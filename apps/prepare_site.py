@@ -1,25 +1,13 @@
 """Stage the published Browser bundle and landing page for Cloudflare Pages."""
+import argparse
 import base64
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import shutil
-import subprocess
-import sys
 
 REVALIDATE = "no-cache"
 IMMUTABLE = "public, max-age=31536000, immutable"
-
-
-def publish_manifest(project: Path) -> Path:
-    """Resolve the active SDK's output rather than selecting a stale manifest."""
-    result = subprocess.run(
-        ["dotnet", "msbuild", str(project), "-nologo", "-p:Configuration=Release",
-         "-getProperty:IntermediateOutputPath"],
-        check=True, capture_output=True, text=True,
-    )
-    intermediate = Path(result.stdout.strip())
-    return project.parent / intermediate / "staticwebassets.publish.endpoints.json"
 
 
 def cache_policies(bundle: Path, manifest_path: Path) -> dict[str, str]:
@@ -96,14 +84,23 @@ def build_headers(bundle: Path, manifest_path: Path, template: str) -> str:
 def main() -> None:
     apps = Path(__file__).resolve().parent
     repo = apps.parent
-    bundle = apps / "Chromaticity.Tools.Browser/bin/Release/net10.0-browser/publish/wwwroot"
-    try:
-        manifest = publish_manifest(apps / "Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj")
-    except (OSError, subprocess.CalledProcessError) as error:
-        raise SystemExit(f"Cannot resolve the Browser publish manifest: {error}") from error
-    output = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else repo / "artifacts/site"
-    if not (bundle / "index.html").is_file() or not manifest.is_file():
-        raise SystemExit(f"Publish the Browser project first: missing bundle or endpoints manifest in {bundle}")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("output", nargs="?", type=Path, default=repo / "artifacts/site",
+                        help="Fresh output directory (default: artifacts/site).")
+    parser.add_argument("--publish-dir", type=Path,
+                        default=apps / "Chromaticity.Tools.Browser/bin/Release/net10.0-browser/publish",
+                        help="Browser publish directory containing wwwroot and the endpoints manifest.")
+    args = parser.parse_args()
+    publish_dir = args.publish_dir.resolve()
+    bundle = publish_dir / "wwwroot"
+    # Use the manifest copied by dotnet publish, alongside this exact bundle.
+    # MSBuild property evaluation can differ from paths finalized by WASM targets.
+    manifest = publish_dir / "Chromaticity.Tools.Browser.staticwebassets.endpoints.json"
+    output = args.output.resolve()
+    if not (bundle / "index.html").is_file():
+        raise SystemExit(f"Published Browser entry page is missing: {bundle / 'index.html'}")
+    if not manifest.is_file():
+        raise SystemExit(f"Published Browser endpoints manifest is missing: {manifest}")
     if output.exists():
         raise SystemExit(f"Output already exists; use a fresh directory: {output}")
     # Validate before staging so a bad manifest cannot produce a deployable site.
@@ -113,7 +110,8 @@ def main() -> None:
         raise SystemExit(f"Cannot prepare cache rules: {error}") from error
     shutil.copytree(apps / "site", output)
     shutil.copytree(bundle, output, dirs_exist_ok=True)
-    (output / "_headers").write_text(headers, encoding="utf-8", newline="\n")
+    with (output / "_headers").open("w", encoding="utf-8", newline="\n") as headers_file:
+        headers_file.write(headers)
     for source, target in [(repo / "CIE-DATA-NOTICE.md", "CIE-DATA-NOTICE.md"),
                            (repo / "LICENSE", "LICENSE.txt"),
                            (apps / "Chromaticity.Tools/Assets/OFL.txt", "FONT-LICENSE.txt")]:

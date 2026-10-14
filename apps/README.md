@@ -39,7 +39,7 @@ dotnet run --project apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.
 
 `wasm-tools` 必须安装在**实际运行构建的 SDK** 中。在 VS Code 终端运行 `dotnet --info` 和 `dotnet workload list` 确认；其他目录中的临时 SDK 即使已安装工作负载，也不会补齐系统 SDK。macOS/Linux 的系统 SDK 若提示权限不足，使用 `sudo dotnet workload install wasm-tools` 安装。项目显式启用原生链接，并在缺少工作负载时中止构建，避免生成启动后报 `DllNotFoundException: libSkiaSharp` 的页面。安装完成后停止旧服务，执行 `dotnet clean apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj`，再重新启动。
 
-Browser 工程的中间产物按 SDK 版本存放在 `obj/sdk-<版本>/<配置>/net10.0-browser/`，Debug 构建和 Release 发布都使用这一隔离目录。SDK 升级后会重新生成原生 WASM 调用表，避免复用旧表导致启动时报 `function signature mismatch`。站点整理脚本通过 MSBuild 查询实际目录，使用当前 SDK 的发布清单生成缓存规则。若只更新同一 SDK 的 `wasm-tools` 工作负载，仍需停止旧服务并执行上述 clean 命令后重建。更新构建产物后重新加载浏览器页面。
+Browser 工程的中间产物按 SDK 版本存放在 `obj/sdk-<版本>/<配置>/net10.0-browser/`，Debug 构建和 Release 发布都使用这一隔离目录。SDK 升级后会重新生成原生 WASM 调用表，避免复用旧表导致启动时报 `function signature mismatch`。站点整理脚本直接读取发布目录中的 `Chromaticity.Tools.Browser.staticwebassets.endpoints.json`，使用与 `wwwroot` 同次发布的清单生成缓存规则，不再通过 MSBuild 推断中间目录。若只更新同一 SDK 的 `wasm-tools` 工作负载，仍需停止旧服务并执行上述 clean 命令后重建。更新构建产物后重新加载浏览器页面。
 
 生产站点首页位于 `/`，六个工具分别位于 `/tools/spectrum.html`、`/tools/difference.html`、`/tools/conversion.html`、`/tools/illuminant.html`、`/tools/grades.html`、`/tools/wavelength.html`。每个 URL 都有独立 HTML 入口，支持直接访问、刷新及在多个标签页同时计算；首页和工具导航均使用普通链接，点击即在新标签页打开，保留当前输入与结果。各入口共用根目录下的 WASM 与静态资源。`/tools/` 同样显示工具选择首页。
 
@@ -52,7 +52,7 @@ python3 apps/prepare_site.py
 python3 -m http.server 8080 --directory artifacts/site
 ```
 
-打开 `http://localhost:8080`。再次暂存站点时传入新的输出目录，例如 `python3 apps/prepare_site.py artifacts/site-preview`；脚本拒绝覆盖已有目录。
+打开 `http://localhost:8080`。再次暂存站点时传入新的输出目录，例如 `python3 apps/prepare_site.py artifacts/site-preview`；脚本拒绝覆盖已有目录。如使用 `dotnet publish --output artifacts/browser-publish` 自定义发布目录，整理时同时传入 `--publish-dir artifacts/browser-publish`。整理脚本支持 Python 3.9 及以上版本，无需再次运行 .NET。
 
 缓存与发布校验测试：`python3 -m unittest discover -s apps -p test_prepare_site.py`。普通 Python 静态预览不应用 Pages 的 `_headers`；响应头与跨标签页缓存应在 Pages 预览部署中检查。
 
@@ -83,7 +83,7 @@ python3 -m http.server 8080 --directory artifacts/site
 
 3. 保存并部署。之后推送到 `master` 时由 Cloudflare 自动拉取、构建和发布。
 
-`build_cloudflare.sh` 在忽略的 `artifacts/cloudflare-dotnet` 目录安装 .NET 10 SDK 和 `wasm-tools`，按 Browser 的项目引用清理应用及 `src/` 中的依赖库，再删除 Browser 的 `bin/obj`，避免沿用旧 SDK 或工作负载生成的原生 WASM 调用表和发布资源。脚本重新还原依赖后发布 Browser 项目，运行缓存与发布校验测试，再运行 `prepare_site.py` 整理站点。重复构建会替换生成的 `artifacts/site` 目录。构建命令通过 Bash 调用，无需设置脚本执行权限。Cloudflare 构建不运行 .NET 算法测试；修改计算或输入处理代码时，先按上面的本地命令运行测试。
+`build_cloudflare.sh` 在忽略的 `artifacts/cloudflare-dotnet` 目录安装 .NET 10 SDK 和 `wasm-tools`，按 Browser 的项目引用清理应用及 `src/` 中的依赖库，再删除 Browser 的 `bin/obj` 和 `artifacts/cloudflare-publish`，避免沿用旧 SDK 或工作负载生成的原生 WASM 调用表和发布资源。脚本重新还原依赖后将 Browser 显式发布到 `artifacts/cloudflare-publish`，运行缓存与发布校验测试，再将同一发布目录传给 `prepare_site.py --publish-dir` 整理站点。重复构建会替换生成的 `artifacts/site` 目录。构建命令通过 Bash 调用，无需设置脚本执行权限。Cloudflare 构建不运行 .NET 算法测试；修改计算或输入处理代码时，先按上面的本地命令运行测试。
 
 `prepare_site.py` 根据 .NET 发布端点清单生成精确的缓存响应头，仅对文件名包含 SDK 内容指纹且 SHA-256 完整性校验通过的 WASM、JS 设置 `public, max-age=31536000, immutable`。HTML（包括 Pages 去掉 `.html` 后的 URL 和目录入口）与固定名称的脚本使用 `no-cache`，每次访问先确认版本，未变化时可返回 304。新版本 HTML 引用新哈希文件，未变化的运行组件继续复用浏览器缓存；各标签页仍分别初始化自己的运行实例。通配规则不设置 Cache-Control，避免 Pages 合并规则造成冲突；清单与文件不一致或响应头超出 Pages 限制时，构建中止，避免发布错误的缓存策略。
 
