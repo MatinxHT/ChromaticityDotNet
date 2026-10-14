@@ -132,6 +132,9 @@ public class DiagramControlTests
             Assert.Equal("ChromaticityDotNet.AvaloniaDiagram", plot.GetType().Assembly.GetName().Name);
             var navigator = page.GetVisualDescendants().OfType<SpectrumNavigator>().Single();
             Assert.Same(plot, navigator.Plot); Assert.True(navigator.IsVisible);
+            Assert.Equal(HorizontalAlignment.Right, navigator.HorizontalAlignment);
+            Assert.True(navigator.TranslatePoint(new Point(0, navigator.Bounds.Height), page)!.Value.Y <=
+                plot.TranslatePoint(new Point(0, 0), page)!.Value.Y);
             var previous = navigator.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "PreviousWavelengthButton");
             var next = navigator.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "NextWavelengthButton");
             var readout = navigator.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Name == "SpectrumPointReadout");
@@ -160,7 +163,7 @@ public class DiagramControlTests
             if (directory is not null)
             {
                 var scroll = (ScrollViewer)page.Content!;
-                scroll.Offset = new Vector(0, plot.TranslatePoint(new Point(0, 0), scroll)!.Value.Y - 15);
+                scroll.Offset = new Vector(0, navigator.TranslatePoint(new Point(0, 0), scroll)!.Value.Y - 15);
                 using var frame = window.CaptureRenderedFrame();
                 Directory.CreateDirectory(directory); frame!.Save(Path.Combine(directory, "app04-spectrum-buttons-xy-uv.png"), PngBitmapEncoderOptions.Default);
             }
@@ -202,6 +205,8 @@ public class DiagramControlTests
             Assert.NotNull(plot.Data); Assert.True(plot.IsVisible);
             var navigator = page.GetVisualDescendants().OfType<SpectrumNavigator>().Single();
             Assert.True(navigator.IsVisible); Assert.Same(plot, navigator.Plot); Assert.Equal(380, plot.SelectedWavelength);
+            Assert.True(navigator.TranslatePoint(new Point(0, navigator.Bounds.Height), page)!.Value.Y <=
+                plot.TranslatePoint(new Point(0, 0), page)!.Value.Y);
             navigator.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "NextWavelengthButton")
                 .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert.Equal(390, plot.SelectedWavelength); Assert.Equal(18, plot.SelectedValue);
@@ -277,5 +282,203 @@ public class DiagramControlTests
             Assert.Null(xy.WavelengthData); Assert.Equal(StandardObserver.Degree10, xy.Observer);
         }
         finally { window.Close(); }
+    }
+
+    [AvaloniaFact]
+    public void NamedSamplesAndIndependentReferenceOptionsRenderInBothSpaces()
+    {
+        var samples = new[]
+        {
+            new ChromaticityDiagramSample("Reference A", new ChromaticityCoordinates(0.3127123456789, 0.329), 0xFF2563EB),
+            new ChromaticityDiagramSample("Measurement B", new ChromaticityCoordinates(0.4, 0.2), 0xFFE11D48)
+        };
+        var xy = new ChromaticityDiagram { Width = 400, Height = 400, ShowWavelengthLabels = false, ShowPlanckianLocus = false };
+        var uv = new ChromaticityDiagram { Width = 400, Height = 400, Space = ChromaticityDiagramSpace.UvPrime,
+            ShowWavelengthLabels = false, ShowPlanckianLocus = false };
+        xy.SetSamples(samples); uv.SetSamples(samples);
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        row.Children.Add(xy); row.Children.Add(uv);
+        var window = new Window { Width = 800, Height = 400, Background = Brushes.White, Content = row };
+        window.Show();
+        try
+        {
+            byte[] Pixels()
+            {
+                using var frame = window.CaptureRenderedFrame();
+                Assert.NotNull(frame);
+                using var buffer = frame.Lock();
+                var pixels = new byte[buffer.RowBytes * buffer.Size.Height];
+                Marshal.Copy(buffer.Address, pixels, 0, pixels.Length);
+                return pixels;
+            }
+            var baseline = Pixels();
+            foreach (var diagram in new[] { xy, uv })
+            {
+                Assert.Same(samples[0], diagram.Samples[0]);
+                Assert.Throws<ArgumentException>(() => diagram.SetSamples(new[] { samples[0], null! }));
+                Assert.Equal(2, diagram.Samples.Count);
+                foreach (var property in new[] { ChromaticityDiagram.ShowWavelengthLabelsProperty,
+                    ChromaticityDiagram.ShowPlanckianLocusProperty, ChromaticityDiagram.ShowTemperatureLabelsProperty,
+                    ChromaticityDiagram.ShowLegendProperty })
+                {
+                    bool before = diagram.GetValue(property);
+                    diagram.SetValue(property, !before);
+                    Assert.False(baseline.SequenceEqual(Pixels()));
+                    diagram.SetValue(property, before);
+                    Assert.Equal(baseline, Pixels());
+                }
+            }
+            string? directory = Environment.GetEnvironmentVariable("CHROMATICITY_DIAGRAM_ARTIFACTS");
+            if (directory is not null)
+            {
+                Directory.CreateDirectory(directory);
+                using var frame = window.CaptureRenderedFrame();
+                frame!.Save(Path.Combine(directory, "named-samples-xy-uv.png"), PngBitmapEncoderOptions.Default);
+            }
+            samples[0] = samples[1]; // The controls retain their snapshots.
+            Assert.Equal("Reference A", xy.Samples[0].Name); Assert.Equal("Reference A", uv.Samples[0].Name);
+            xy.SetSamples(samples.Take(1)); Assert.Single(xy.Samples); Assert.Null(xy.LightData); Assert.Null(xy.WavelengthData);
+            uv.Space = ChromaticityDiagramSpace.Xy;
+            Assert.False(baseline.SequenceEqual(Pixels()));
+            xy.Clear(StandardObserver.Degree10);
+            Assert.Empty(xy.Samples); Assert.False(xy.ShowWavelengthLabels); Assert.False(xy.ShowPlanckianLocus); Assert.True(xy.ShowLegend);
+            var many = new ChromaticityDiagram { Width = 400, ShowWavelengthLabels = false, ShowPlanckianLocus = false };
+            many.SetSamples(Enumerable.Range(0, 20).Select(i => new ChromaticityDiagramSample(
+                $"Measurement {i + 1} with a descriptive name", new ChromaticityCoordinates(0.3 + i * 0.001, 0.3))));
+            many.Measure(new Size(400, double.PositiveInfinity));
+            Assert.Equal(400, many.DesiredSize.Height);
+            many.Arrange(new Rect(0, 0, 400, 400));
+            Assert.True(many.PlotArea.Contains(many.LegendArea));
+            many.ShowLegend = false; many.Measure(new Size(400, double.PositiveInfinity));
+            Assert.Equal(400, many.DesiredSize.Height); Assert.Equal(20, many.Samples.Count);
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaFact]
+    public void InsideLegendsAndLeftClickReadoutsUseTheSameFullPrecisionCoordinates()
+    {
+        foreach (var space in new[] { ChromaticityDiagramSpace.Xy, ChromaticityDiagramSpace.UvPrime })
+        {
+            var diagram = new ChromaticityDiagram { Width = 500, Height = 500, Space = space };
+            var sample = new ChromaticityDiagramSample("Sample {A}", new ChromaticityCoordinates(0.40123456789, 0.2));
+            diagram.SetSamples(new[] { sample });
+            var window = new Window { Width = 500, Height = 500, Background = Brushes.White, Content = diagram };
+            window.Show();
+            try
+            {
+                var projected = new ChromaticityDiagramProjection(space).Project(sample.Coordinates.X, sample.Coordinates.Y);
+                var position = diagram.PlotPoint(projected);
+                Assert.True(diagram.PlotArea.Contains(diagram.LegendArea));
+                Assert.True(diagram.LegendArea.Center.X > diagram.PlotArea.Center.X);
+                Assert.True(space == ChromaticityDiagramSpace.Xy
+                    ? diagram.LegendArea.Center.Y < diagram.PlotArea.Center.Y
+                    : diagram.LegendArea.Center.Y > diagram.PlotArea.Center.Y);
+                int notifications = 0;
+                diagram.SelectionChanged += (_, _) => notifications++;
+                var click = diagram.TranslatePoint(position, window)!.Value;
+                window.MouseDown(click, MouseButton.Left); window.MouseMove(click); window.MouseUp(click, MouseButton.Left);
+                Assert.NotNull(diagram.SelectedTarget); Assert.Equal("Sample {A}", diagram.SelectedTarget.Name);
+                Assert.Equal(projected, diagram.SelectedTarget.Point); Assert.Equal(1, notifications);
+                Assert.Contains(space == ChromaticityDiagramSpace.Xy ? "CIE x:" : "CIE u′:", diagram.SelectedTarget.TrackerText);
+                string? directory = Environment.GetEnvironmentVariable("CHROMATICITY_DIAGRAM_ARTIFACTS");
+                if (directory is not null)
+                {
+                    Directory.CreateDirectory(directory);
+                    using var frame = window.CaptureRenderedFrame();
+                    frame!.Save(Path.Combine(directory, $"inside-legend-tracker-{space}.png"), PngBitmapEncoderOptions.Default);
+                }
+                Assert.Null(diagram.HitTestTarget(diagram.LegendArea.Center));
+                var boundary = CieSpectralData.GetChromaticityBoundary(StandardObserver.Degree2).Single(point => point.Wavelength == 550);
+                var hit = diagram.HitTestTarget(diagram.PlotPoint(new ChromaticityDiagramProjection(space).Project(boundary.X, boundary.Y)));
+                Assert.NotNull(hit!.Wavelength); Assert.Contains(" nm", hit.TrackerText);
+                var blackbody = ChromaticityDotNet.Controller.ChromaticityConversion.GetPlanckianLocus(StandardObserver.Degree2)[0];
+                hit = diagram.HitTestTarget(diagram.PlotPoint(new ChromaticityDiagramProjection(space).Project(blackbody.X, blackbody.Y)));
+                Assert.NotNull(hit!.Temperature); Assert.Contains(" K", hit.TrackerText);
+                diagram.AxisMaximumX = 1.2; diagram.AxisMaximumY = 1.1;
+                Assert.Equal(projected, diagram.HitTestTarget(diagram.PlotPoint(projected))!.Point);
+                Assert.Equal(projected, diagram.SelectedTarget.Point);
+                diagram.SetSamples(Array.Empty<ChromaticityDiagramSample>());
+                Assert.Null(diagram.SelectedTarget); Assert.Equal(2, notifications);
+                Assert.True(diagram.IsLegendItemVisible(0)); // The static blackbody item remains.
+                Assert.Throws<ArgumentOutOfRangeException>(() => diagram.GetLegendItemArea(1));
+            }
+            finally { window.Close(); }
+        }
+    }
+
+    [AvaloniaFact]
+    public void LegendClicksHideOverlappingSamplesAndRestoreWithoutChangingData()
+    {
+        foreach (var space in new[] { ChromaticityDiagramSpace.Xy, ChromaticityDiagramSpace.UvPrime })
+        {
+            var diagram = new ChromaticityDiagram { Width = 500, Height = 500, Space = space, ShowTemperatureLabels = true };
+            var samples = new[]
+            {
+                new ChromaticityDiagramSample("Reference A", new ChromaticityCoordinates(0.4, 0.2), 0xFF2563EB),
+                new ChromaticityDiagramSample("Sample B", new ChromaticityCoordinates(0.4, 0.2), 0xFFE11D48)
+            };
+            diagram.SetSamples(samples);
+            var window = new Window { Width = 500, Height = 500, Background = Brushes.White, Content = diagram };
+            window.Show();
+            try
+            {
+                void ClickLegend(int index)
+                {
+                    var position = diagram.TranslatePoint(diagram.GetLegendItemArea(index).Center, window)!.Value;
+                    window.MouseDown(position, MouseButton.Left); window.MouseUp(position, MouseButton.Left);
+                }
+                var point = diagram.PlotPoint(new ChromaticityDiagramProjection(space).Project(0.4, 0.2));
+                Assert.Equal("Reference A", diagram.HitTestTarget(point)!.Name);
+                ClickLegend(1);
+                Assert.False(diagram.IsLegendItemVisible(1)); Assert.Equal("Sample B", diagram.HitTestTarget(point)!.Name);
+                ClickLegend(2);
+                Assert.Null(diagram.HitTestTarget(point)); Assert.Equal(2, diagram.Samples.Count);
+                ClickLegend(1);
+                Assert.True(diagram.IsLegendItemVisible(1)); Assert.Equal("Reference A", diagram.HitTestTarget(point)!.Name);
+                ClickLegend(0);
+                Assert.False(diagram.IsLegendItemVisible(0)); Assert.True(diagram.ShowPlanckianLocus); Assert.True(diagram.ShowTemperatureLabels);
+                var blackbody = ChromaticityDotNet.Controller.ChromaticityConversion.GetPlanckianLocus(StandardObserver.Degree2)[0];
+                var curvePoint = diagram.PlotPoint(new ChromaticityDiagramProjection(space).Project(blackbody.X, blackbody.Y));
+                Assert.Null(diagram.HitTestTarget(curvePoint)?.Temperature);
+                string? directory = Environment.GetEnvironmentVariable("CHROMATICITY_DIAGRAM_ARTIFACTS");
+                if (directory is not null)
+                {
+                    Directory.CreateDirectory(directory);
+                    using var frame = window.CaptureRenderedFrame();
+                    frame!.Save(Path.Combine(directory, $"legend-hidden-{space}.png"), PngBitmapEncoderOptions.Default);
+                }
+                diagram.SetSamples(samples.Take(1));
+                Assert.False(diagram.IsLegendItemVisible(0)); Assert.True(diagram.IsLegendItemVisible(1));
+                diagram.ShowPlanckianLocus = true;
+                Assert.True(diagram.IsLegendItemVisible(0)); Assert.NotNull(diagram.HitTestTarget(curvePoint)?.Temperature);
+                Assert.Same(samples[0], diagram.Samples[0]);
+            }
+            finally { window.Close(); }
+        }
+    }
+
+    [AvaloniaFact]
+    public void SpectrumAxisRoundsOutwardToTensAndPreservesSelectedValues()
+    {
+        var plot = new SpectrumPlot { MinimumMaximum = 1 };
+        plot.SetData(new[] { double.NaN, 0.1, 117.86301234 }, 400, 10);
+        plot.SelectWavelength(420);
+        Assert.Equal(0, plot.YAxisMinimum); Assert.Equal(120, plot.YAxisMaximum);
+        Assert.Equal(117.86301234, plot.SelectedValue);
+        plot.SetData(new[] { -13.125, 117.0, double.PositiveInfinity }, 400, 10);
+        plot.SelectWavelength(400);
+        Assert.Equal(-20, plot.YAxisMinimum); Assert.Equal(120, plot.YAxisMaximum); Assert.Equal(-13.125, plot.SelectedValue);
+        plot.SetData(new[] { 0.0, 120.0 }, 400, 10);
+        Assert.Equal(120, plot.YAxisMaximum);
+        plot.SetData(new[] { 0.0, 120.0001 }, 400, 10);
+        Assert.Equal(130, plot.YAxisMaximum);
+        plot.MinimumMaximum = 135;
+        Assert.Equal(140, plot.YAxisMaximum);
+        plot.SetData(new[] { double.NaN, double.NegativeInfinity }, 400, 10);
+        Assert.Equal(0, plot.YAxisMinimum); Assert.Equal(140, plot.YAxisMaximum);
+        plot.MinimumMaximum = 1;
+        Assert.Equal(10, plot.YAxisMaximum);
+        plot.Clear(); Assert.Equal(0, plot.YAxisMinimum); Assert.Equal(10, plot.YAxisMaximum);
     }
 }

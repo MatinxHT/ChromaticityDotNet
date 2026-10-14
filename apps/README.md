@@ -39,6 +39,8 @@ dotnet run --project apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.
 
 `wasm-tools` 必须安装在**实际运行构建的 SDK** 中。在 VS Code 终端运行 `dotnet --info` 和 `dotnet workload list` 确认；其他目录中的临时 SDK 即使已安装工作负载，也不会补齐系统 SDK。macOS/Linux 的系统 SDK 若提示权限不足，使用 `sudo dotnet workload install wasm-tools` 安装。项目显式启用原生链接，并在缺少工作负载时中止构建，避免生成启动后报 `DllNotFoundException: libSkiaSharp` 的页面。安装完成后停止旧服务，执行 `dotnet clean apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj`，再重新启动。
 
+Browser 工程的中间产物按 SDK 版本存放在 `obj/sdk-<版本>/<配置>/net10.0-browser/`，Debug 构建和 Release 发布都使用这一隔离目录。SDK 升级后会重新生成原生 WASM 调用表，避免复用旧表导致启动时报 `function signature mismatch`。站点整理脚本通过 MSBuild 查询实际目录，使用当前 SDK 的发布清单生成缓存规则。若只更新同一 SDK 的 `wasm-tools` 工作负载，仍需停止旧服务并执行上述 clean 命令后重建。更新构建产物后重新加载浏览器页面。
+
 生产站点首页位于 `/`，六个工具分别位于 `/tools/spectrum.html`、`/tools/difference.html`、`/tools/conversion.html`、`/tools/illuminant.html`、`/tools/grades.html`、`/tools/wavelength.html`。每个 URL 都有独立 HTML 入口，支持直接访问、刷新及在多个标签页同时计算；首页和工具导航均使用普通链接，点击即在新标签页打开，保留当前输入与结果。各入口共用根目录下的 WASM 与静态资源。`/tools/` 同样显示工具选择首页。
 
 工具页脚从实际加载的 ChromaticityDotNet 程序集读取版本号，不手工维护版本字符串。

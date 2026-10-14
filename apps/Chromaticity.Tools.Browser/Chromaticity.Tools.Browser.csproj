@@ -6,6 +6,8 @@
     <WasmEnableThreads>false</WasmEnableThreads>
     <WasmBuildNative>true</WasmBuildNative>
     <RunAOTCompilation>false</RunAOTCompilation>
+    <!-- SDK upgrades must regenerate the native WASM call tables. -->
+    <IntermediateOutputPath Condition="'$(IntermediateOutputPath)' == '' and '$(NETCoreSdkVersion)' != ''">$(BaseIntermediateOutputPath)sdk-$(NETCoreSdkVersion)/$(Configuration)/</IntermediateOutputPath>
     <_SharedBrandingDirectory>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../assets/branding/'))</_SharedBrandingDirectory>
   </PropertyGroup>
   <ItemGroup>

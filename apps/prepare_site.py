@@ -4,10 +4,22 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import shutil
+import subprocess
 import sys
 
 REVALIDATE = "no-cache"
 IMMUTABLE = "public, max-age=31536000, immutable"
+
+
+def publish_manifest(project: Path) -> Path:
+    """Resolve the active SDK's output rather than selecting a stale manifest."""
+    result = subprocess.run(
+        ["dotnet", "msbuild", str(project), "-nologo", "-p:Configuration=Release",
+         "-getProperty:IntermediateOutputPath"],
+        check=True, capture_output=True, text=True,
+    )
+    intermediate = Path(result.stdout.strip())
+    return project.parent / intermediate / "staticwebassets.publish.endpoints.json"
 
 
 def cache_policies(bundle: Path, manifest_path: Path) -> dict[str, str]:
@@ -85,7 +97,10 @@ def main() -> None:
     apps = Path(__file__).resolve().parent
     repo = apps.parent
     bundle = apps / "Chromaticity.Tools.Browser/bin/Release/net10.0-browser/publish/wwwroot"
-    manifest = apps / "Chromaticity.Tools.Browser/obj/Release/net10.0-browser/staticwebassets.publish.endpoints.json"
+    try:
+        manifest = publish_manifest(apps / "Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj")
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise SystemExit(f"Cannot resolve the Browser publish manifest: {error}") from error
     output = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else repo / "artifacts/site"
     if not (bundle / "index.html").is_file() or not manifest.is_file():
         raise SystemExit(f"Publish the Browser project first: missing bundle or endpoints manifest in {bundle}")

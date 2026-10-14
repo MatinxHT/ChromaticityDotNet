@@ -37,6 +37,7 @@ public sealed class SpectrumNavigator : UserControl
 
     public SpectrumNavigator()
     {
+        HorizontalAlignment = HorizontalAlignment.Right;
         SetArrow(_previous, forward: false); SetArrow(_next, forward: true);
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = 8 };
         Grid.SetColumn(_next, 1); Grid.SetColumn(_readout, 2);

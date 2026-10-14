@@ -73,7 +73,7 @@ public sealed partial class MainView : UserControl
                 plot.SetData(data.Values, data.Start, data.Step); plot.IsVisible = true; navigation.IsVisible = true;
                 return data.Table;
             }))),
-            Note("参考照明体包含全部 50 条 CIE 光源，白点由光谱与所选观察者积分计算。\nLab / Luv 使用与反射光谱相同波段的积分白点。sRGB 预览在 D65 下显示，会裁剪超色域颜色。\n曲线淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"), plot, navigation);
+            Note("参考照明体包含全部 50 条 CIE 光源，白点由光谱与所选观察者积分计算。\nLab / Luv 使用与反射光谱相同波段的积分白点。sRGB 预览在 D65 下显示，会裁剪超色域颜色。\n曲线淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"), Stack(navigation, plot));
         form.Children.Add(Note("使用左右按钮逐点查看波长与数据，首尾循环；也可点击或拖动光谱图选点，选中图表后可用方向键查看。"));
         Watch(result, () => { plot.Clear(); plot.IsVisible = false; navigation.IsVisible = false; }, input, start, end, step, light, observer, units);
         return Stack(Card(form), result);
@@ -216,7 +216,7 @@ public sealed partial class MainView : UserControl
         return Stack(Card(Stack(Text("标准光源查询", 24, true),
             Note($"共 {catalog.Length} 条 CIE 光源光谱。选择光源、观察者或间隔后自动更新；修改波段后点击“更新波段”，同步更新光谱和白点。"),
             Fields(("标准光源", light), ("观察者", observer), ("波长间隔", interval)),
-            Fields(("起始波长 / nm", start), ("结束波长 / nm", end)), Actions(Primary("更新波段", Update)), conditions, plot, navigation,
+            Fields(("起始波长 / nm", start), ("结束波长 / nm", end)), Actions(Primary("更新波段", Update)), conditions, Stack(navigation, plot),
             Note("使用左右按钮逐点查看波长与数据，首尾循环；也可点击或拖动光谱图选点，选中图表后可用方向键查看。"),
             Note("保持原始相对光谱功率尺度；必要时线性插值，不向源数据范围外推。淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"))), diagramCard, whiteResult, result);
     }

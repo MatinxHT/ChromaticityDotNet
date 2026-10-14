@@ -5,8 +5,28 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from prepare_site import IMMUTABLE, REVALIDATE, build_headers, cache_policies
+from prepare_site import IMMUTABLE, REVALIDATE, build_headers, cache_policies, publish_manifest
+
+
+class PublishManifestTests(unittest.TestCase):
+    @patch("prepare_site.subprocess.run")
+    def test_manifest_follows_the_active_sdk_instead_of_the_legacy_directory(self, run):
+        project = Path("apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj")
+        for sdk in ("10.0.401", "10.0.402"):
+            with self.subTest(sdk=sdk):
+                intermediate = Path(f"obj/sdk-{sdk}/Release/net10.0-browser")
+                run.return_value.stdout = str(intermediate) + "\n"
+                self.assertEqual(publish_manifest(project),
+                                 project.parent / intermediate / "staticwebassets.publish.endpoints.json")
+
+    @patch("prepare_site.subprocess.run")
+    def test_absolute_intermediate_output_is_supported(self, run):
+        project = Path("apps/Chromaticity.Tools.Browser/Chromaticity.Tools.Browser.csproj")
+        intermediate = Path(tempfile.gettempdir()).resolve() / "browser-review"
+        run.return_value.stdout = str(intermediate) + "\n"
+        self.assertEqual(publish_manifest(project), intermediate / "staticwebassets.publish.endpoints.json")
 
 
 class CachePolicyTests(unittest.TestCase):
