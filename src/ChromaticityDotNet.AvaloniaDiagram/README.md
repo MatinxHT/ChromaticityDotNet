@@ -149,6 +149,15 @@ The C*/h° plane preserves unrounded a*/b* and scales to include both colors.
 and label translation. The library has no Chromaticity.Tools resources, global
 language events or Colorimeter services. Hosts should invalidate controls when
 their language changes.
+
+`ChromaticityDiagram.BackgroundColor` defaults to white. Set it to the host
+surface color for a dark theme; labels, axes, grid, and legend automatically use
+a readable palette.
+
+```csharp
+diagram.BackgroundColor = Avalonia.Media.Color.Parse("#202020");
+```
+
 Call `SpectrumNavigator.RefreshLabels()` when the host language changes; it
 uses its plot's translation and label font.
 

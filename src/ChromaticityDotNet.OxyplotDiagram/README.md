@@ -35,6 +35,14 @@ and clear old measurements. Backgrounds are generated from the shared library
 data, without WPF pack URIs or application bitmap resources. `BackgroundOpacity`
 controls the background independently of curves and markers.
 
+`BackgroundColor` defaults to white. Set it to the host surface color for a dark
+theme; the plot area, axes, labels, grid, and legend automatically use a readable
+palette.
+
+```csharp
+xy.BackgroundColor = OxyPlot.OxyColor.FromRgb(32, 32, 32);
+```
+
 `ShowWavelengthLabels` controls edge wavelength captions (visible by default).
 `ShowPlanckianLocus` controls the curve and measurement connection to its nearest
 point (visible by default). `ShowTemperatureLabels` controls reference temperatures

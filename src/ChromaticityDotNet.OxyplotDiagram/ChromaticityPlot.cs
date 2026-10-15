@@ -23,7 +23,10 @@ public class ChromaticityPlot
     private readonly LineSeries _planckian = new() { Title = "Planckian locus", Color = OxyColors.DarkGray, StrokeThickness = 2, RenderInLegend = false };
     private readonly LineSeries _boundary = new() { Color = OxyColors.Gray, StrokeThickness = 1, RenderInLegend = false };
     private readonly ImageAnnotation _background;
+    private readonly InteractiveLegend _legend;
     private readonly List<global::OxyPlot.Series.Series> _measurements = new();
+    private readonly HashSet<ScatterSeries> _automaticMarkerColors = new();
+    private readonly HashSet<LineSeries> _automaticLineColors = new();
     private readonly List<Annotation> _labels = new();
     private readonly List<Annotation> _referenceLabels = new();
     private readonly List<global::OxyPlot.Series.Series> _planckianMeasurements = new();
@@ -33,6 +36,7 @@ public class ChromaticityPlot
     private readonly ChromaticityDiagramProjection _projection;
     private PlanckianDiagramData? _measurementPlanckian;
     private bool _showWavelengthLabels = true, _showTemperatureLabels, _showPlanckianLocus = true;
+    private OxyColor _backgroundColor = OxyColors.White;
     private double? _axisMaximumX, _axisMaximumY;
     private int _updateDepth;
     private bool _invalidatePending, _updateDataPending;
@@ -42,6 +46,51 @@ public class ChromaticityPlot
     public PlotController Controller { get; }
     public ChromaticityDiagramSpace Space => _projection.Space;
     public StandardObserver Observer { get; private set; }
+
+    /// <summary>Plot and legend background. Defaults to white; darker colors automatically use light text and grid lines.</summary>
+    public OxyColor BackgroundColor
+    {
+        get => _backgroundColor;
+        set
+        {
+            if (_backgroundColor == value) return;
+            using var update = BeginUpdate();
+            _backgroundColor = value;
+            ApplyThemeColors();
+            UpdateReferenceLabels();
+            foreach (var label in _labels.Concat(_planckianLabels).OfType<TextAnnotation>()) label.TextColor = ForegroundColor;
+            foreach (var marker in _automaticMarkerColors)
+            {
+                marker.MarkerFill = ForegroundColor;
+                marker.MarkerStroke = MutedForegroundColor;
+            }
+            foreach (var line in _automaticLineColors) line.Color = ForegroundColor;
+        }
+    }
+
+    /// <summary>The text color selected automatically to keep labels readable on <see cref="BackgroundColor"/>.</summary>
+    public OxyColor ForegroundColor => IsDarkBackground ? OxyColors.White : OxyColors.Black;
+    private bool IsDarkBackground => _backgroundColor.R * 0.2126 + _backgroundColor.G * 0.7152 + _backgroundColor.B * 0.0722 < 128;
+    private OxyColor MutedForegroundColor => IsDarkBackground ? OxyColor.FromRgb(210, 210, 210) : OxyColor.FromRgb(50, 50, 50);
+    private OxyColor GridColor => IsDarkBackground ? OxyColor.FromRgb(90, 90, 90) : OxyColor.FromRgb(190, 190, 190);
+
+    private void ApplyThemeColors()
+    {
+        PlotModel.Background = PlotModel.PlotAreaBackground = _backgroundColor;
+        PlotModel.TextColor = ForegroundColor;
+        PlotModel.PlotAreaBorderColor = MutedForegroundColor;
+        _planckian.Color = MutedForegroundColor;
+        _boundary.Color = IsDarkBackground ? OxyColor.FromRgb(175, 175, 175) : OxyColors.Gray;
+        foreach (var axis in PlotModel.Axes)
+        {
+            axis.TextColor = axis.TitleColor = axis.AxislineColor = axis.TicklineColor = axis.MinorTicklineColor = ForegroundColor;
+            axis.MajorGridlineColor = axis.MinorGridlineColor = GridColor;
+        }
+        _legend.LegendBackground = OxyColor.FromAColor(242, _backgroundColor);
+        _legend.LegendBorder = GridColor;
+        _legend.LegendTextColor = _legend.LegendTitleColor = ForegroundColor;
+        _legend.SeriesInvisibleTextColor = OxyColor.FromRgb(145, 145, 145);
+    }
 
     private IDisposable BeginUpdate()
     {
@@ -188,19 +237,19 @@ public class ChromaticityPlot
         var viewport = new ChromaticityDiagramViewport(space);
         Controller = new PlotController();
         Controller.BindMouseDown(OxyMouseButton.Left, PlotCommands.SnapTrack);
-        PlotModel = new PlotModel { PlotType = PlotType.Cartesian, PlotAreaBackground = OxyColors.White };
+        PlotModel = new PlotModel { PlotType = PlotType.Cartesian };
         PlotModel.Axes.Add(Axis(AxisPosition.Bottom, space == ChromaticityDiagramSpace.Xy ? "CIE x" : "CIE u′",
             viewport.MaximumX));
         PlotModel.Axes.Add(Axis(AxisPosition.Left, space == ChromaticityDiagramSpace.Xy ? "CIE y" : "CIE v′",
             viewport.MaximumY));
-        var legend = new InteractiveLegend(ToggleLegendSeries)
+        _legend = new InteractiveLegend(ToggleLegendSeries)
         {
-            LegendBackground = OxyColor.FromAColor(242, OxyColors.White), LegendBorder = OxyColors.Gray,
             LegendBorderThickness = 1, LegendPlacement = LegendPlacement.Inside,
             LegendPosition = viewport.LegendAtTop ? LegendPosition.TopRight : LegendPosition.BottomRight, LegendItemSpacing = 3,
             LegendSymbolMargin = 3, LegendSymbolLength = 18, LegendMaxWidth = 200, FontSize = 10, ShowInvisibleSeries = true
         };
-        PlotModel.Legends.Add(legend);
+        PlotModel.Legends.Add(_legend);
+        ApplyThemeColors();
         _planckian.RenderInLegend = true;
         _background = new ImageAnnotation
         {
@@ -259,7 +308,7 @@ public class ChromaticityPlot
             var label = new TextAnnotation
             {
                 TextPosition = new DataPoint(point.X, point.Y), Text = text, Offset = offset,
-                TextColor = OxyColors.Black, Stroke = OxyColors.Undefined, FontSize = 10
+                TextColor = ForegroundColor, Stroke = OxyColors.Undefined, FontSize = 10
             };
             _referenceLabels.Add(label); PlotModel.Annotations.Add(label);
         }
@@ -297,6 +346,7 @@ public class ChromaticityPlot
         foreach (var label in _labels) PlotModel.Annotations.Remove(label);
         _measurements.Clear(); _labels.Clear(); _measurementPlanckian = null;
         _planckianMeasurements.Clear(); _planckianLabels.Clear();
+        _automaticMarkerColors.Clear(); _automaticLineColors.Clear();
         _markerLabels.Clear();
         _hiddenLegendItems.RemoveWhere(series => series != _planckian);
         RefreshLegendVisibility();
@@ -407,7 +457,7 @@ public class ChromaticityPlot
         double? wavelength = null, double? temperature = null, double? duv = null)
     {
         var series = new ScatterSeries { Title = title, MarkerType = type, MarkerSize = size,
-            MarkerFill = color ?? OxyColors.Black, MarkerStroke = OxyColors.Gray };
+            MarkerFill = color ?? ForegroundColor, MarkerStroke = MutedForegroundColor };
         series.Points.Add(new ScatterPoint(point.X, point.Y));
         var target = new ChromaticityDiagramTarget(title, Space, point, wavelength, temperature, duv);
         series.ItemsSource = new[] { target };
@@ -416,14 +466,16 @@ public class ChromaticityPlot
         // would interpret braces in a name as format placeholders.
         series.TrackerFormatString = "{0}" + target.TrackerText.Substring(title.Length);
         PlotModel.Series.Add(series); _measurements.Add(series);
+        if (color is null) _automaticMarkerColors.Add(series);
         return series;
     }
 
     private LineSeries Line(ChromaticityDiagramPoint a, ChromaticityDiagramPoint b, LineStyle style, double thickness)
     {
-        var series = new ConnectionSeries { Color = OxyColors.Black, LineStyle = style, StrokeThickness = thickness };
+        var series = new ConnectionSeries { Color = ForegroundColor, LineStyle = style, StrokeThickness = thickness };
         series.Points.Add(new DataPoint(a.X, a.Y)); series.Points.Add(new DataPoint(b.X, b.Y));
         PlotModel.Series.Add(series); _measurements.Add(series);
+        _automaticLineColors.Add(series);
         return series;
     }
 
@@ -465,7 +517,7 @@ public class ChromaticityPlot
     private TextAnnotation Label(ChromaticityDiagramPoint point, string text)
     {
         var label = new TextAnnotation { TextPosition = new DataPoint(point.X, point.Y), Text = text,
-            TextColor = OxyColors.Black, Stroke = OxyColors.Undefined, FontSize = 10 };
+            TextColor = ForegroundColor, Stroke = OxyColors.Undefined, FontSize = 10 };
         PlotModel.Annotations.Add(label); _labels.Add(label);
         return label;
     }

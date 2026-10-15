@@ -22,6 +22,30 @@ namespace Chromaticity.Tools.Tests.AvaloniaDiagram;
 public class DiagramControlTests
 {
     [AvaloniaFact]
+    public void ChromaticityDiagramBackgroundColorDefaultsToWhiteAndRendersCustomDarkColor()
+    {
+        var diagram = new ChromaticityDiagram { Width = 500, Height = 500 };
+        Assert.Equal(Colors.White, diagram.BackgroundColor);
+        diagram.BackgroundColor = Color.FromRgb(32, 32, 32);
+        var window = new Window { Width = 500, Height = 500, Background = Brushes.White, Content = diagram };
+        window.Show();
+        try
+        {
+            using var frame = window.CaptureRenderedFrame();
+            Assert.NotNull(frame);
+            using var png = new MemoryStream();
+            frame.Save(png, PngBitmapEncoderOptions.Default);
+            using var bitmap = SkiaSharp.SKBitmap.Decode(png.ToArray());
+            var point = diagram.PlotArea.TopRight + new Vector(-3, 3);
+            var pixel = bitmap.GetPixel((int)Math.Round(point.X), (int)Math.Round(point.Y));
+            Assert.Equal((byte)32, pixel.Red);
+            Assert.Equal((byte)32, pixel.Green);
+            Assert.Equal((byte)32, pixel.Blue);
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaFact]
     public void SpectrumSupportsPointerDraggingKeyboardAndSourceValues()
     {
         var plot = new SpectrumPlot();

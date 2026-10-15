@@ -33,6 +33,9 @@ public sealed class ChromaticityDiagram : DiagramControl
         AvaloniaProperty.Register<ChromaticityDiagram, bool>(nameof(ShowLegend), true);
     public static readonly StyledProperty<bool> ShowObserverLabelProperty =
         AvaloniaProperty.Register<ChromaticityDiagram, bool>(nameof(ShowObserverLabel), true);
+    /// <summary>Plot background. Defaults to white; dark colors automatically use light text, grid lines and legend text.</summary>
+    public static readonly StyledProperty<Color> BackgroundColorProperty =
+        AvaloniaProperty.Register<ChromaticityDiagram, Color>(nameof(BackgroundColor), Colors.White);
     public static readonly StyledProperty<double?> AxisMaximumXProperty =
         AvaloniaProperty.Register<ChromaticityDiagram, double?>(nameof(AxisMaximumX), validate: ValidMaximum);
     public static readonly StyledProperty<double?> AxisMaximumYProperty =
@@ -75,6 +78,7 @@ public sealed class ChromaticityDiagram : DiagramControl
     public bool ShowLegend { get => GetValue(ShowLegendProperty); set => SetValue(ShowLegendProperty, value); }
     /// <summary>Show the observer/standard caption above the axes. Hiding it reclaims its margin without changing Observer.</summary>
     public bool ShowObserverLabel { get => GetValue(ShowObserverLabelProperty); set => SetValue(ShowObserverLabelProperty, value); }
+    public Color BackgroundColor { get => GetValue(BackgroundColorProperty); set => SetValue(BackgroundColorProperty, value); }
     /// <summary>Null uses the shared default: xy 1.0 × 1.0, u′v′ 0.8 × 0.7.</summary>
     public double? AxisMaximumX { get => GetValue(AxisMaximumXProperty); set => SetValue(AxisMaximumXProperty, value); }
     public double? AxisMaximumY { get => GetValue(AxisMaximumYProperty); set => SetValue(AxisMaximumYProperty, value); }
@@ -115,7 +119,7 @@ public sealed class ChromaticityDiagram : DiagramControl
     static ChromaticityDiagram()
     {
         AffectsRender<ChromaticityDiagram>(SpaceProperty, ObserverProperty,
-            ShowTemperatureLabelsProperty, ShowWavelengthLabelsProperty, ShowPlanckianLocusProperty, ShowLegendProperty, ShowObserverLabelProperty,
+            ShowTemperatureLabelsProperty, ShowWavelengthLabelsProperty, ShowPlanckianLocusProperty, ShowLegendProperty, ShowObserverLabelProperty, BackgroundColorProperty,
             AxisMaximumXProperty, AxisMaximumYProperty, SelectedTargetProperty,
             SamplesProperty, WavelengthDataProperty, LightDataProperty, LightNameProperty);
     }
@@ -126,6 +130,14 @@ public sealed class ChromaticityDiagram : DiagramControl
         HorizontalAlignment = HorizontalAlignment.Center;
         Focusable = true; ClipToBounds = true;
     }
+
+    private bool IsDarkBackground => BackgroundColor.R * 0.2126 + BackgroundColor.G * 0.7152 + BackgroundColor.B * 0.0722 < 128;
+    private IBrush BackgroundBrush => new SolidColorBrush(BackgroundColor);
+    private IBrush ForegroundBrush => IsDarkBackground ? Brushes.White : Brushes.Black;
+    private IBrush MutedForegroundBrush => new SolidColorBrush(IsDarkBackground ? Color.FromRgb(210, 210, 210) : Color.FromRgb(85, 85, 85));
+    private IBrush GridBrush => new SolidColorBrush(IsDarkBackground ? Color.FromArgb(128, 150, 150, 150) : Color.FromArgb(128, 144, 144, 144));
+    private IBrush BorderBrush => new SolidColorBrush(IsDarkBackground ? Color.FromRgb(175, 175, 175) : Color.FromRgb(153, 153, 153));
+    private IBrush OverlayBrush => new SolidColorBrush(Color.FromArgb(242, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B));
 
     public void Clear(StandardObserver observer)
     {
@@ -178,7 +190,7 @@ public sealed class ChromaticityDiagram : DiagramControl
         var legend = new List<LegendItem>();
         if (ShowLegend)
         {
-            if (ShowPlanckianLocus) legend.Add(new(PlanckianKey, "黑体辐射", Brushes.Black, Line: true));
+            if (ShowPlanckianLocus) legend.Add(new(PlanckianKey, "黑体辐射", ForegroundBrush, Line: true));
             if (WavelengthData is { } calculation)
             {
                 legend.Add(new(WhiteKey, "W 白点", Brushes.White));
@@ -189,7 +201,7 @@ public sealed class ChromaticityDiagram : DiagramControl
                     legend.Add(new(ComplementaryKey, "C 补色波长", Brushes.White));
                 }
             }
-            else if (LightData is not null && LightName is not null) legend.Add(new(LightKey, $"S {LightName}", Brushes.Black));
+            else if (LightData is not null && LightName is not null) legend.Add(new(LightKey, $"S {LightName}", ForegroundBrush));
             if ((WavelengthData?.Planckian ?? LightData) is not null && ShowPlanckianLocus)
                 legend.Add(new(NearestKey, "T 黑体轨迹最近点", Brushes.White, Square: true));
             for (int i = 0; i < Samples.Count; i++) legend.Add(new(NamedSampleKey(i), Samples[i].Name, SampleBrush(Samples[i])));
@@ -214,7 +226,7 @@ public sealed class ChromaticityDiagram : DiagramControl
         {
             var item = legend[i];
             var caption = new FormattedText(LabelText(item.Name), CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight, LabelTypeface, 11, Brush.Parse(Visible(item.Key) ? "#555555" : "#AAAAAA"))
+                FlowDirection.LeftToRight, LabelTypeface, 11, Visible(item.Key) ? MutedForegroundBrush : Brush.Parse("#AAAAAA"))
             {
                 MaxTextWidth = Math.Max(1, width - 28), MaxLineCount = 1, Trimming = TextTrimming.CharacterEllipsis
             };
@@ -275,7 +287,7 @@ public sealed class ChromaticityDiagram : DiagramControl
         var observer = EffectiveObserver;
         var projection = Projection;
         FormattedText Caption(string text, IBrush? brush = null) => new(LabelText(text), CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight, LabelTypeface, 11, brush ?? Brush.Parse("#555555"));
+            FlowDirection.LeftToRight, LabelTypeface, 11, brush ?? MutedForegroundBrush);
         var plot = PlotArea;
         if (plot.Width <= 0 || plot.Height <= 0) return;
         var (legendPositions, legendArea) = LayoutLegend(plot);
@@ -307,7 +319,7 @@ public sealed class ChromaticityDiagram : DiagramControl
         }
         void Tag(string text, Point at, Point anchor)
         {
-            var caption = Caption(text, Brushes.Black);
+            var caption = Caption(text, ForegroundBrush);
             Rect Position(double dx, double dy) => new(
                 Math.Clamp(at.X + dx, 1, Math.Max(1, Bounds.Width - caption.Width - 9)),
                 Math.Clamp(at.Y + dy, 1, Math.Max(1, Bounds.Height - caption.Height - 6)),
@@ -326,15 +338,15 @@ public sealed class ChromaticityDiagram : DiagramControl
             }
             annotations.Add(new Rect(rectangle.X - 2, rectangle.Y - 2, rectangle.Width + 4, rectangle.Height + 4));
             var edge = new Point(Math.Clamp(anchor.X, rectangle.Left, rectangle.Right), Math.Clamp(anchor.Y, rectangle.Top, rectangle.Bottom));
-            context.DrawLine(new Pen(Brush.Parse("#666666"), 0.8), anchor, edge);
-            context.DrawRectangle(Brush.Parse("#EFFFFFFF"), null, rectangle, 3, 3);
+            context.DrawLine(new Pen(MutedForegroundBrush, 0.8), anchor, edge);
+            context.DrawRectangle(OverlayBrush, null, rectangle, 3, 3);
             context.DrawText(caption, new Point(rectangle.X + 4, rectangle.Y + 2));
         }
-        context.DrawRectangle(Brushes.White, null, plot);
+        context.DrawRectangle(BackgroundBrush, null, plot);
         using (context.PushClip(plot))
             context.DrawImage(_background!, new Rect(At(0, projection.MaxY), At(projection.MaxX, 0)));
         context.DrawRectangle(Brushes.Transparent, null, new Rect(Bounds.Size));
-        var grid = new Pen(Brush.Parse("#80909090"), 0.6);
+        var grid = new Pen(GridBrush, 0.6);
         double TickStep(double maximum, double pixels)
         {
             double minimumStep = Math.Max(0.1, maximum / pixels * 32);
@@ -354,7 +366,7 @@ public sealed class ChromaticityDiagram : DiagramControl
             context.DrawLine(grid, At(0, y), At(maxX, y));
             Label(y.ToString("0.0", CultureInfo.InvariantCulture), plot.Left - 28, At(0, y).Y - 7);
         }
-        context.DrawRectangle(null, new Pen(Brush.Parse("#999999")), plot);
+        context.DrawRectangle(null, new Pen(BorderBrush), plot);
         Label(Space == ChromaticityDiagramSpace.Xy ? "x" : "u′", plot.Right - 12, plot.Bottom + 28);
         Label(Space == ChromaticityDiagramSpace.Xy ? "y" : "v′", plot.Left - 28, top - 19);
         if (ShowObserverLabel)
@@ -367,7 +379,7 @@ public sealed class ChromaticityDiagram : DiagramControl
             foreach (var point in boundary.Skip(1)) path.LineTo(FromXy(point.X, point.Y));
             path.EndFigure(true);
         }
-        context.DrawGeometry(null, new Pen(Brush.Parse("#333333"), 1.7), geometry);
+        context.DrawGeometry(null, new Pen(ForegroundBrush, 1.7), geometry);
         if (PlanckianVisible)
         {
             var planckLocus = ChromaticityConversion.GetPlanckianLocus(observer);
@@ -379,7 +391,7 @@ public sealed class ChromaticityDiagram : DiagramControl
                 path.EndFigure(false);
             }
             context.DrawGeometry(null, new Pen(Brushes.White, 3.5), planckGeometry);
-            context.DrawGeometry(null, new Pen(Brushes.Black, 1.5), planckGeometry);
+            context.DrawGeometry(null, new Pen(ForegroundBrush, 1.5), planckGeometry);
         }
         void TemperatureLabels()
         {
@@ -388,7 +400,7 @@ public sealed class ChromaticityDiagram : DiagramControl
             {
                 var point = ChromaticityConversion.GetPlanckianChromaticity(temperature, observer);
                 var position = FromXy(point.X, point.Y);
-                context.DrawEllipse(Brushes.White, new Pen(Brushes.Black), position, 2.5, 2.5);
+                context.DrawEllipse(Brushes.White, new Pen(ForegroundBrush), position, 2.5, 2.5);
                 Tag($"{temperature} K", new Point(position.X - 12, position.Y + (temperature >= 6500 ? 20 : -28)), position);
             }
         }
@@ -398,7 +410,7 @@ public sealed class ChromaticityDiagram : DiagramControl
             var sample = FromXy(data.Sample.X, data.Sample.Y);
             if (LightName is not null && calculation is null && Visible(LightKey))
             {
-                context.DrawEllipse(Brushes.Black, new Pen(Brushes.White, 2), sample, 5, 5);
+                context.DrawEllipse(ForegroundBrush, new Pen(Brushes.White, 2), sample, 5, 5);
                 Tag($"S {LightName}", new Point(sample.X + 10, sample.Y - 24), sample);
             }
             if (!PlanckianVisible || !Visible(NearestKey)) return;
@@ -406,9 +418,9 @@ public sealed class ChromaticityDiagram : DiagramControl
             using (context.PushGeometryClip(geometry))
             {
                 context.DrawLine(new Pen(Brushes.White, 3.5), sample, nearest);
-                context.DrawLine(new Pen(Brushes.Black, 1.7, new DashStyle([2, 3], 0)), sample, nearest);
+                context.DrawLine(new Pen(ForegroundBrush, 1.7, new DashStyle([2, 3], 0)), sample, nearest);
             }
-            context.DrawRectangle(Brushes.White, new Pen(Brushes.Black, 1.5), new Rect(nearest.X - 3.5, nearest.Y - 3.5, 7, 7));
+            context.DrawRectangle(Brushes.White, new Pen(ForegroundBrush, 1.5), new Rect(nearest.X - 3.5, nearest.Y - 3.5, 7, 7));
             string nearestLabel = data.Cct.Temperature is { } temperature
                 ? $"T {temperature.ToString("0", CultureInfo.InvariantCulture)} K"
                 : data.Cct.IsInTemperatureRange ? "T CCT 不适用" : "T 轨迹端点";
@@ -422,7 +434,7 @@ public sealed class ChromaticityDiagram : DiagramControl
         {
             var point = locus[wavelength - 360];
             var position = FromXy(point.X, point.Y);
-            context.DrawEllipse(Brushes.White, new Pen(Brush.Parse("#555555")), position, 2, 2);
+            context.DrawEllipse(Brushes.White, new Pen(MutedForegroundBrush), position, 2, 2);
             // Violet wavelengths cluster near the bottom of the diagram; offset their
             // captions separately so 400 and 450 nm remain readable on narrow screens.
             var label = wavelength switch
@@ -440,12 +452,12 @@ public sealed class ChromaticityDiagram : DiagramControl
                     context.DrawEllipse(SampleBrush(Samples[i]), new Pen(Brushes.White, 2),
                         FromXy(Samples[i].Coordinates.X, Samples[i].Coordinates.Y), Samples[i].MarkerRadius, Samples[i].MarkerRadius);
             if (legendPositions.Count > 0)
-                context.DrawRectangle(Brush.Parse("#F2FFFFFF"), new Pen(Brush.Parse("#999999")), legendArea, 3, 3);
+                context.DrawRectangle(OverlayBrush, new Pen(BorderBrush), legendArea, 3, 3);
             foreach (var item in legendPositions)
             {
                 var position = new Point(legendArea.Left + item.Offset.X, legendArea.Top + item.Offset.Y);
                 var center = new Point(position.X + 5, position.Y + item.Caption.Height / 2);
-                var pen = new Pen(Visible(item.Item.Key) ? Brushes.Black : Brush.Parse("#AAAAAA"));
+                var pen = new Pen(Visible(item.Item.Key) ? ForegroundBrush : Brush.Parse("#AAAAAA"));
                 var fill = Visible(item.Item.Key) ? item.Item.Fill : Brush.Parse("#DDDDDD");
                 if (item.Item.Line) context.DrawLine(pen, new Point(center.X - 4, center.Y), new Point(center.X + 6, center.Y));
                 else if (item.Item.Square) context.DrawRectangle(fill, pen, new Rect(center.X - 4, center.Y - 4, 8, 8));
@@ -471,13 +483,13 @@ public sealed class ChromaticityDiagram : DiagramControl
             using (context.PushGeometryClip(geometry))
             {
                 context.DrawLine(new Pen(Brushes.White, 3), reverse, forward);
-                context.DrawLine(new Pen(Brush.Parse("#444444"), 1.3, new DashStyle([5, 4], 0)), reverse, forward);
-                context.DrawLine(new Pen(Brushes.Black, 2), w, p);
+                context.DrawLine(new Pen(MutedForegroundBrush, 1.3, new DashStyle([5, 4], 0)), reverse, forward);
+                context.DrawLine(new Pen(ForegroundBrush, 2), w, p);
             }
             void Intersection(string name, Point at, double? wavelength, double offsetY)
             {
                 if (!Visible(name == "D" ? DominantKey : ComplementaryKey)) return;
-                context.DrawEllipse(Brushes.White, new Pen(Brushes.Black, 1.5), at, 4, 4);
+                context.DrawEllipse(Brushes.White, new Pen(ForegroundBrush, 1.5), at, 4, 4);
                 Tag(wavelength.HasValue ? $"{name} {wavelength.Value.ToString("F2", CultureInfo.InvariantCulture)} nm" : $"{name} 紫边",
                     new Point(at.X + 8, at.Y + offsetY), at);
             }
@@ -487,12 +499,12 @@ public sealed class ChromaticityDiagram : DiagramControl
         PlanckianConnection();
         if (Visible(WhiteKey))
         {
-            context.DrawEllipse(Brushes.White, new Pen(Brushes.Black, 2), w, 6, 6);
+            context.DrawEllipse(Brushes.White, new Pen(ForegroundBrush, 2), w, 6, 6);
             Tag("W 白点", new Point(w.X + 10, w.Y + 7), w);
         }
         if (Visible(SampleKey))
         {
-            context.DrawEllipse(Brushes.Black, new Pen(Brushes.White, 2), p, 5, 5);
+            context.DrawEllipse(ForegroundBrush, new Pen(Brushes.White, 2), p, 5, 5);
             Tag("P 样品", new Point(p.X + 10, p.Y - 24), p);
         }
         TemperatureLabels();
@@ -627,7 +639,7 @@ public sealed class ChromaticityDiagram : DiagramControl
         if (SelectedTarget is not { } target) return;
         var point = PlotPoint(target.Point);
         var caption = new FormattedText(LabelText(target.TrackerText), CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight, LabelTypeface, 12, Brushes.Black)
+            FlowDirection.LeftToRight, LabelTypeface, 12, ForegroundBrush)
         {
             MaxTextWidth = Math.Max(1, Bounds.Width - 24)
         };
@@ -635,9 +647,9 @@ public sealed class ChromaticityDiagram : DiagramControl
         double x = Math.Clamp(point.X + 12, 2, Math.Max(2, Bounds.Width - width - 2));
         double y = Math.Clamp(point.Y - height - 12, 2, Math.Max(2, Bounds.Height - height - 2));
         var rectangle = new Rect(x, y, width, height);
-        context.DrawLine(new Pen(Brushes.Black), point, new Point(Math.Clamp(point.X, rectangle.Left, rectangle.Right), rectangle.Bottom));
-        context.DrawRectangle(Brush.Parse("#FFFDEDB0"), new Pen(Brushes.Black), rectangle, 3, 3);
+        context.DrawLine(new Pen(ForegroundBrush), point, new Point(Math.Clamp(point.X, rectangle.Left, rectangle.Right), rectangle.Bottom));
+        context.DrawRectangle(OverlayBrush, new Pen(ForegroundBrush), rectangle, 3, 3);
         context.DrawText(caption, new Point(x + 8, y + 6));
-        context.DrawEllipse(null, new Pen(Brushes.Black, 2), point, 7, 7);
+        context.DrawEllipse(null, new Pen(ForegroundBrush, 2), point, 7, 7);
     }
 }

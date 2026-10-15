@@ -13,6 +13,31 @@ namespace ChromaticityDotNet.Tests.OxyplotDiagram;
 
 public class ChromaticityPlotTests
 {
+    [Fact]
+    public void BackgroundColorDefaultsToWhiteAndKeepsTheOxyPlotPaletteReadable()
+    {
+        var chart = new Cie1931Plot();
+
+        Assert.Equal(OxyColors.White, chart.BackgroundColor);
+        Assert.Equal(OxyColors.White, chart.PlotModel.Background);
+        Assert.Equal(OxyColors.Black, chart.ForegroundColor);
+
+        chart.UpdatePoint(new CIExyY { CIEx = 0.3, CIEy = 0.4 });
+        var dark = OxyColor.FromRgb(32, 32, 32);
+        chart.BackgroundColor = dark;
+
+        Assert.Equal(dark, chart.PlotModel.Background);
+        Assert.Equal(dark, chart.PlotModel.PlotAreaBackground);
+        Assert.Equal(OxyColors.White, chart.ForegroundColor);
+        Assert.Equal(OxyColors.White, chart.PlotModel.TextColor);
+        Assert.All(chart.PlotModel.Axes, axis => Assert.Equal(OxyColors.White, axis.TextColor));
+        var legend = Assert.Single(chart.PlotModel.Legends);
+        Assert.Equal(OxyColors.White, legend.LegendTextColor);
+        Assert.Contains(chart.PlotModel.Annotations.OfType<TextAnnotation>(), label => label.TextColor == OxyColors.White);
+        var sample = Assert.IsType<ScatterSeries>(chart.PlotModel.Series[2]);
+        Assert.Equal(OxyColors.White, sample.MarkerFill);
+    }
+
     [Theory]
     [InlineData(ChromaticityDiagramSpace.Xy, StandardObserver.Degree2)]
     [InlineData(ChromaticityDiagramSpace.Xy, StandardObserver.Degree10)]
