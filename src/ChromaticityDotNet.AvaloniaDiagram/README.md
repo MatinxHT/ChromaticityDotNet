@@ -87,6 +87,14 @@ snapshot and replaces wavelength/light measurements. `Samples` is also bindable;
 replace the list when changing points. `Clear` and `SetData` / `SetLightData` clear
 named samples; changing display options preserves them.
 
+The four-argument `ChromaticityDiagramSample(name, coordinates, argb, markerRadius)`
+constructor customizes the circle radius in device-independent pixels. The existing
+constructor retains its 5-pixel default. Draw a standard with radius 8 before a
+sample with radius 4 to keep both colors visible when their coordinates coincide.
+Axis tick spacing adapts to the available plot size so small side-by-side diagrams
+retain readable labels. Set `ShowLegend`, `ShowPlanckianLocus`,
+`ShowTemperatureLabels` and `ShowWavelengthLabels` to false for a points-only view.
+
 `SpectrumPlot.Data` accepts immutable `SpectrumDiagramData`. `SelectedIndex`
 supports two-way binding; `SelectedWavelength` and `SelectedValue` are observable
 read-only properties. `SelectionChanged` reports changes. Click, touch or drag

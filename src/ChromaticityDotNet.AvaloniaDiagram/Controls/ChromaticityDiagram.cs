@@ -286,7 +286,8 @@ public sealed class ChromaticityDiagram : DiagramControl
         foreach (var sample in Samples)
         {
             var point = FromXy(sample.Coordinates.X, sample.Coordinates.Y);
-            annotations.Add(new Rect(point.X - 8, point.Y - 8, 16, 16));
+            double radius = Math.Max(8, sample.MarkerRadius + 2);
+            annotations.Add(new Rect(point.X - radius, point.Y - radius, radius * 2, radius * 2));
         }
         if (planckian is { } markerData)
         {
@@ -328,15 +329,22 @@ public sealed class ChromaticityDiagram : DiagramControl
             context.DrawImage(_background!, new Rect(At(0, projection.MaxY), At(projection.MaxX, 0)));
         context.DrawRectangle(Brushes.Transparent, null, new Rect(Bounds.Size));
         var grid = new Pen(Brush.Parse("#80909090"), 0.6);
-        for (int i = 0; i <= (int)Math.Round(maxX * 10); i++)
+        double TickStep(double maximum, double pixels)
         {
-            double x = i / 10.0;
+            double minimumStep = Math.Max(0.1, maximum / pixels * 32);
+            double magnitude = Math.Pow(10, Math.Floor(Math.Log10(minimumStep)));
+            return new[] { 1.0, 2, 5, 10 }.First(factor => factor * magnitude >= minimumStep) * magnitude;
+        }
+        double xStep = TickStep(maxX, plot.Width), yStep = TickStep(maxY, plot.Height);
+        for (int i = 0; i <= (int)Math.Floor(maxX / xStep + 1e-9); i++)
+        {
+            double x = i * xStep;
             context.DrawLine(grid, At(x, 0), At(x, maxY));
             Label(x.ToString("0.0", CultureInfo.InvariantCulture), At(x, 0).X - 8, plot.Bottom + 8);
         }
-        for (int i = 0; i <= (int)Math.Round(maxY * 10); i++)
+        for (int i = 0; i <= (int)Math.Floor(maxY / yStep + 1e-9); i++)
         {
-            double y = i / 10.0;
+            double y = i * yStep;
             context.DrawLine(grid, At(0, y), At(maxX, y));
             Label(y.ToString("0.0", CultureInfo.InvariantCulture), plot.Left - 28, At(0, y).Y - 7);
         }
@@ -423,7 +431,7 @@ public sealed class ChromaticityDiagram : DiagramControl
             for (int i = 0; i < Samples.Count; i++)
                 if (Visible(NamedSampleKey(i)))
                     context.DrawEllipse(SampleBrush(Samples[i]), new Pen(Brushes.White, 2),
-                        FromXy(Samples[i].Coordinates.X, Samples[i].Coordinates.Y), 5, 5);
+                        FromXy(Samples[i].Coordinates.X, Samples[i].Coordinates.Y), Samples[i].MarkerRadius, Samples[i].MarkerRadius);
             if (legendPositions.Count > 0)
                 context.DrawRectangle(Brush.Parse("#F2FFFFFF"), new Pen(Brush.Parse("#999999")), legendArea, 3, 3);
             foreach (var item in legendPositions)
