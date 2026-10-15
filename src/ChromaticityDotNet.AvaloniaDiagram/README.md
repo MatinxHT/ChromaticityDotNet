@@ -98,6 +98,30 @@ uses 0–120, and a minimum of −13 uses −20. `MinimumMaximum` remains a conf
 floor for the upper limit (default 100 for percentage plots). `YAxisMinimum` /
 `YAxisMaximum` expose the displayed limits; source values are unchanged.
 
+For standard/sample comparison, bind `StandardData` alongside sample `Data`.
+Both curves use a shared wavelength range and Y-axis range, including negative
+values and peaks from either curve. `XAxisMinimum` / `XAxisMaximum` expose the
+combined wavelength range. `CurveColor` defaults to dark gray;
+`StandardCurveColor` defaults to orange. The thicker standard curve and larger
+selection ring remain visible when curves or selected points coincide.
+Selection follows the sample's actual grid, falling back to the standard's grid
+when `Data` is null. `SelectedValue` remains the selected curve's source value;
+`SelectedStandardValue` is the standard's measured value at that wavelength,
+or null for a missing/different-grid point. No comparison values are interpolated.
+Replacing either curve clears selection; `Clear()` clears both curves.
+`SpectrumDiagramData.ValueAt(wavelength)` exposes the same measured-value lookup.
+An attached `SpectrumNavigator` selects the first valid point after either curve
+changes and labels both values in its comparison readout.
+
+```csharp
+var comparison = new SpectrumPlot
+{
+    Data = SpectrumDiagramData.FromUniform(new[] { 12.0, 18, 22 }, 400, 10),
+    StandardData = SpectrumDiagramData.FromUniform(new[] { 15.0, 20, 25 }, 400, 10),
+    CurveColor = Avalonia.Media.Color.Parse("#1778B5")
+};
+```
+
 When attached, `SpectrumNavigator` selects the first valid point on load and when
 data changes. Its buttons move one actual sample at a time, wrap at either end,
 and skip gaps. The readout stays in the source units (reflectance % or relative

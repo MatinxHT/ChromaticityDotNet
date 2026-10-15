@@ -102,15 +102,15 @@ public sealed class SpectrumNavigator : UserControl
     private void OnSelectionChanged(object? sender, EventArgs e) => RefreshLabels();
     private void OnPlotChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property == SpectrumPlot.DataProperty) SelectInitialPoint();
-        if (e.Property == SpectrumPlot.DataProperty || e.Property == SpectrumPlot.AxisLabelProperty ||
+        if (e.Property == SpectrumPlot.DataProperty || e.Property == SpectrumPlot.StandardDataProperty) SelectInitialPoint();
+        if (e.Property == SpectrumPlot.DataProperty || e.Property == SpectrumPlot.StandardDataProperty || e.Property == SpectrumPlot.AxisLabelProperty ||
             e.Property == DiagramControl.TranslateProperty || e.Property == DiagramControl.LabelTypefaceProperty)
             RefreshLabels();
     }
 
     private void SelectInitialPoint()
     {
-        if (Plot is { Data: { } data, SelectedWavelength: null } plot) plot.SelectWavelength(data.Start);
+        if (Plot is { SelectionData: { } data, SelectedWavelength: null } plot) plot.SelectWavelength(data.Start);
     }
 
     /// <summary>Call when the host language changes. Font and translation are taken from the associated plot.</summary>
@@ -126,5 +126,13 @@ public sealed class SpectrumNavigator : UserControl
         _readout.Text = Plot is { SelectedWavelength: { } wavelength, SelectedValue: { } value } selectedPlot
             ? $"{wavelength.ToString("0.##", CultureInfo.InvariantCulture)} nm · {value.ToString("F4", CultureInfo.InvariantCulture)} {Translate(selectedPlot.AxisLabel)}"
             : Translate("未选择波长");
+        if (Plot is { StandardData: not null, SelectedWavelength: { } selectedWavelength } comparison)
+        {
+            var values = new List<string>(2);
+            string UnitValue(double source) => $"{source.ToString("F4", CultureInfo.InvariantCulture)} {Translate(comparison.AxisLabel)}";
+            if (comparison.SelectedStandardValue is { } standard) values.Add($"{Translate("标样")} {UnitValue(standard)}");
+            if (comparison.Data is not null && comparison.SelectedValue is { } sample) values.Add($"{Translate("样本")} {UnitValue(sample)}");
+            _readout.Text = $"{selectedWavelength.ToString("0.##", CultureInfo.InvariantCulture)} nm · {string.Join(" · ", values)}";
+        }
     }
 }

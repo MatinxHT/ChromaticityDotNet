@@ -61,4 +61,11 @@ public sealed class SpectrumDiagramData
         }
         return nearest;
     }
+
+    /// <summary>Returns only a measured finite value at this wavelength (within 0.000001 nm), never an interpolation.</summary>
+    public double? ValueAt(double wavelength)
+    {
+        int index = FindNearestIndex(wavelength);
+        return index >= 0 && Math.Abs(Wavelengths[index] - wavelength) <= 0.000001 ? Values[index] : null;
+    }
 }
