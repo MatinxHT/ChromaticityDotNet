@@ -94,6 +94,8 @@ sample with radius 4 to keep both colors visible when their coordinates coincide
 Axis tick spacing adapts to the available plot size so small side-by-side diagrams
 retain readable labels. Set `ShowLegend`, `ShowPlanckianLocus`,
 `ShowTemperatureLabels` and `ShowWavelengthLabels` to false for a points-only view.
+Set `ShowObserverLabel` to false to hide the observer/standard caption and reclaim
+its top margin. The selected observer, background and sample coordinates are preserved.
 
 `SpectrumPlot.Data` accepts immutable `SpectrumDiagramData`. `SelectedIndex`
 supports two-way binding; `SelectedWavelength` and `SelectedValue` are observable

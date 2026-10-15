@@ -31,6 +31,8 @@ public sealed class ChromaticityDiagram : DiagramControl
         AvaloniaProperty.Register<ChromaticityDiagram, bool>(nameof(ShowPlanckianLocus), true);
     public static readonly StyledProperty<bool> ShowLegendProperty =
         AvaloniaProperty.Register<ChromaticityDiagram, bool>(nameof(ShowLegend), true);
+    public static readonly StyledProperty<bool> ShowObserverLabelProperty =
+        AvaloniaProperty.Register<ChromaticityDiagram, bool>(nameof(ShowObserverLabel), true);
     public static readonly StyledProperty<double?> AxisMaximumXProperty =
         AvaloniaProperty.Register<ChromaticityDiagram, double?>(nameof(AxisMaximumX), validate: ValidMaximum);
     public static readonly StyledProperty<double?> AxisMaximumYProperty =
@@ -71,6 +73,8 @@ public sealed class ChromaticityDiagram : DiagramControl
         set { _hiddenLegendItems.Remove(PlanckianKey); SetValue(ShowPlanckianLocusProperty, value); InvalidateVisual(); }
     }
     public bool ShowLegend { get => GetValue(ShowLegendProperty); set => SetValue(ShowLegendProperty, value); }
+    /// <summary>Show the observer/standard caption above the axes. Hiding it reclaims its margin without changing Observer.</summary>
+    public bool ShowObserverLabel { get => GetValue(ShowObserverLabelProperty); set => SetValue(ShowObserverLabelProperty, value); }
     /// <summary>Null uses the shared default: xy 1.0 × 1.0, u′v′ 0.8 × 0.7.</summary>
     public double? AxisMaximumX { get => GetValue(AxisMaximumXProperty); set => SetValue(AxisMaximumXProperty, value); }
     public double? AxisMaximumY { get => GetValue(AxisMaximumYProperty); set => SetValue(AxisMaximumYProperty, value); }
@@ -91,8 +95,10 @@ public sealed class ChromaticityDiagram : DiagramControl
         get
         {
             var viewport = Viewport;
-            double scale = Math.Max(0, Math.Min((Bounds.Width - 72) / viewport.MaximumX, (Bounds.Height - 84) / viewport.MaximumY));
-            return new Rect((Bounds.Width - viewport.MaximumX * scale + 40) / 2, 30,
+            double top = ShowObserverLabel ? 30 : 20;
+            double bottom = ShowObserverLabel ? 54 : 44;
+            double scale = Math.Max(0, Math.Min((Bounds.Width - 72) / viewport.MaximumX, (Bounds.Height - top - bottom) / viewport.MaximumY));
+            return new Rect((Bounds.Width - viewport.MaximumX * scale + 40) / 2, top,
                 viewport.MaximumX * scale, viewport.MaximumY * scale);
         }
     }
@@ -109,7 +115,7 @@ public sealed class ChromaticityDiagram : DiagramControl
     static ChromaticityDiagram()
     {
         AffectsRender<ChromaticityDiagram>(SpaceProperty, ObserverProperty,
-            ShowTemperatureLabelsProperty, ShowWavelengthLabelsProperty, ShowPlanckianLocusProperty, ShowLegendProperty,
+            ShowTemperatureLabelsProperty, ShowWavelengthLabelsProperty, ShowPlanckianLocusProperty, ShowLegendProperty, ShowObserverLabelProperty,
             AxisMaximumXProperty, AxisMaximumYProperty, SelectedTargetProperty,
             SamplesProperty, WavelengthDataProperty, LightDataProperty, LightNameProperty);
     }
@@ -351,7 +357,8 @@ public sealed class ChromaticityDiagram : DiagramControl
         context.DrawRectangle(null, new Pen(Brush.Parse("#999999")), plot);
         Label(Space == ChromaticityDiagramSpace.Xy ? "x" : "u′", plot.Right - 12, plot.Bottom + 28);
         Label(Space == ChromaticityDiagramSpace.Xy ? "y" : "v′", plot.Left - 28, top - 19);
-        Label(observer == StandardObserver.Degree2 ? "2° · CIE 1931" : "10° · CIE 1964", plot.Left + 4, 4);
+        if (ShowObserverLabel)
+            Label(observer == StandardObserver.Degree2 ? "2° · CIE 1931" : "10° · CIE 1964", plot.Left + 4, 4);
         var boundary = CieSpectralData.GetChromaticityBoundary(observer);
         var geometry = new StreamGeometry();
         using (var path = geometry.Open())

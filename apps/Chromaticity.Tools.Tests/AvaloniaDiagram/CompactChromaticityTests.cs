@@ -7,11 +7,45 @@ using global::Avalonia.Media.Imaging;
 using ChromaticityDotNet.AvaloniaDiagram.Controls;
 using ChromaticityDotNet.Diagrams;
 using Xunit;
+using static ChromaticityDotNet.Model.StandardChromaticityModel.StandardilluminantClass;
 
 namespace Chromaticity.Tools.Tests.AvaloniaDiagram;
 
 public class CompactChromaticityTests
 {
+    [AvaloniaTheory]
+    [InlineData(ChromaticityDiagramSpace.Xy)]
+    [InlineData(ChromaticityDiagramSpace.UvPrime)]
+    public void ObserverCaptionCanBeHiddenWithoutChangingMeasurementCoordinates(ChromaticityDiagramSpace space)
+    {
+        var captions = new List<string>();
+        var sample = new ChromaticityDiagramSample("Sample", new ChromaticityCoordinates(0.3127, 0.3290));
+        var diagram = new ChromaticityDiagram
+        {
+            Space = space, Observer = StandardObserver.Degree10,
+            ShowLegend = false, ShowPlanckianLocus = false, ShowWavelengthLabels = false,
+            Samples = new[] { sample }, Translate = text => { captions.Add(text); return text; }
+        };
+        var window = new Window { Width = 300, Height = 300, Background = Brushes.White, Content = diagram };
+        window.Show();
+        try
+        {
+            using var before = window.CaptureRenderedFrame(); Assert.NotNull(before);
+            Assert.Contains("10° · CIE 1964", captions);
+            var previousArea = diagram.PlotArea;
+            captions.Clear(); diagram.ShowObserverLabel = false;
+            using var after = window.CaptureRenderedFrame(); Assert.NotNull(after);
+            Assert.DoesNotContain("10° · CIE 1964", captions);
+            Assert.DoesNotContain(captions, text => text.Contains('°'));
+            Assert.Equal(StandardObserver.Degree10, diagram.Observer); Assert.Same(sample, diagram.Samples[0]);
+            Assert.True(diagram.PlotArea.Top < previousArea.Top);
+            Assert.True(diagram.PlotArea.Height >= previousArea.Height);
+            var point = new ChromaticityDiagramProjection(space).Project(sample.Coordinates.X, sample.Coordinates.Y);
+            Assert.Equal("Sample", diagram.HitTestTarget(diagram.PlotPoint(point))!.Name);
+        }
+        finally { window.Close(); }
+    }
+
     [AvaloniaTheory]
     [InlineData(ChromaticityDiagramSpace.Xy, 150)]
     [InlineData(ChromaticityDiagramSpace.UvPrime, 150)]
