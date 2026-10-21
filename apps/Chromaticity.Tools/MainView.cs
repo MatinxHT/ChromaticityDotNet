@@ -147,7 +147,7 @@ public sealed partial class MainView : UserControl
                     ToolCalculations.Positive(kl.Text ?? "", "kL"), ToolCalculations.Positive(kc.Text ?? "", "kC"), ToolCalculations.Positive(kh.Text ?? "", "kH"),
                     cmc.SelectedIndex == 0 ? 1 : 2, 1, options.AchromaticLightnessThreshold, options.AchromaticChromaThreshold);
                 }))),
-            Note("先显示标样与样品的 sRGB 屏幕预览，随后显示标样 L*、a*、b* 和样品 L*、a*、b* 六列输入值，再显示 ΔL*、Δa*、Δb*、ΔC*、Δh° 及 ΔE76、CMC、ΔE00。\n差值方向为样品减标样，Δh° 为 Lab 色相角的最短有符号差；预览按 D65 / 10° 计算并裁剪超色域值。公式参数显示在列名中；一次最多 10,000 行。"));
+            Note("先显示标样 HEX、相邻的对比色块和样品 HEX，色块左侧为标样、右侧为样品。随后显示标样 L*、a*、b* 和样品 L*、a*、b* 六列输入值，再显示 ΔL*、Δa*、Δb*、ΔC*、Δh° 及 ΔE76、CMC、ΔE00。\n差值方向为样品减标样，Δh° 为 Lab 色相角的最短有符号差；预览按 D65 / 10° 计算并裁剪超色域值。公式参数显示在列名中；一次最多 10,000 行。"));
         Watch(result, null, standard, sample, kl, kc, kh, cmc, evaluationInputs.Lightness, evaluationInputs.Chroma);
         return Stack(Card(form), result);
     }
@@ -517,7 +517,7 @@ public sealed partial class MainView : UserControl
             _differencePreviews = differencePreviews;
             _renderResult = renderResult;
             _successMessage = successMessage;
-            if (differencePreviews) { _grid.RowHeight = 56; _grid.FrozenColumnCount = 1; }
+            if (differencePreviews) { _grid.Name = "DifferenceResultsTable"; _grid.RowHeight = 56; _grid.FrozenColumnCount = 1; }
             if (allowExport)
             {
                 _copy = Button("复制结果", () => { }); _save = Button("下载 CSV", () => { });
@@ -603,40 +603,30 @@ public sealed partial class MainView : UserControl
                     _grid.Columns.Clear();
                     for (var i = 0; i < table.Headers.Length; i++)
                     {
+                        if (_differencePreviews && i == 2)
+                            _grid.Columns.Add(new DataGridTemplateColumn
+                            {
+                                Header = Text("对比色块", 12, true), Width = new DataGridLength(140),
+                                CellTemplate = new FuncDataTemplate<string[]>((row, _) =>
+                                {
+                                    if (row is null) return Text("");
+                                    var preview = PairedColorSwatches(row[1], row[2], "Difference", height: 40);
+                                    preview.Margin = new Thickness(6); preview.VerticalAlignment = VerticalAlignment.Center;
+                                    return preview;
+                                })
+                            });
                         var column = i;
                         var header = Text(table.Headers[i], 12, true);
-                        header.TextWrapping = TextWrapping.NoWrap;
+                        header.TextWrapping = _differencePreviews ? TextWrapping.Wrap : TextWrapping.NoWrap;
                         _grid.Columns.Add(new DataGridTemplateColumn
                         {
                             Header = header,
                             Width = new DataGridLength(_differencePreviews
-                                ? i switch { 0 => 64, 1 or 2 => 116, >= 3 and <= 8 => 100, 15 => 108, 16 => 160, 17 or 18 => 140, 19 => 130, 20 => 190, _ => 82 }
+                                ? i switch { 0 => 80, 1 or 2 => 140, >= 3 and <= 8 => 100, 15 => 108, 16 => 160, 17 or 18 => 140, 19 => 130, 20 => 190, _ => 82 }
                                 : i == 0 ? 160 : 260),
                             CellTemplate = new FuncDataTemplate<string[]>((row, _) =>
                             {
                                 var value = row?[column] ?? "";
-                                if (_differencePreviews && column is 1 or 2)
-                                {
-                                    var preview = new StackPanel
-                                    {
-                                        Orientation = Orientation.Horizontal,
-                                        Spacing = 6,
-                                        Margin = new Thickness(6),
-                                        VerticalAlignment = VerticalAlignment.Center
-                                    };
-                                    preview.Children.Add(new Border
-                                    {
-                                        Width = 30,
-                                        Height = 30,
-                                        CornerRadius = new CornerRadius(5),
-                                        Background = Brush.Parse(value),
-                                        BorderBrush = Brush.Parse("#DDDDDD"),
-                                        BorderThickness = new Thickness(1)
-                                    });
-                                    var hex = Text(value, 11); hex.VerticalAlignment = VerticalAlignment.Center;
-                                    preview.Children.Add(hex);
-                                    return preview;
-                                }
                                 var cell = Text(value); cell.TextWrapping = TextWrapping.NoWrap;
                                 cell.Margin = new Thickness(8); cell.VerticalAlignment = VerticalAlignment.Center;
                                 return cell;

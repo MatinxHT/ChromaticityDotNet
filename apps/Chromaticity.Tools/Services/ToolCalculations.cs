@@ -210,7 +210,7 @@ public static class ToolCalculations
                 F(comparison.DeltaE1976), F(comparison.DeltaECmc), F(comparison.DeltaE2000) }
                 .Concat(ColorEvaluationPresentation.Comments(comparison)).ToArray();
         }).ToArray();
-        return new(["序号", "标样 sRGB", "样品 sRGB", "标样 L*", "标样 a*", "标样 b*", "样品 L*", "样品 a*", "样品 b*",
+        return new(["序号", "标样 HEX", "样品 HEX", "标样 L*", "标样 a*", "标样 b*", "样品 L*", "样品 a*", "样品 b*",
             "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE76",
             FormattableString.Invariant($"CMC\nl:c = {cmcL}:{cmcC}"),
             FormattableString.Invariant($"ΔE00\nkL:kC:kH = {kl}:{kc}:{kh}"), ..ColorEvaluationPresentation.Headers], result, conditions);

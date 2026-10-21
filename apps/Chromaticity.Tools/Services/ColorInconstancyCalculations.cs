@@ -55,6 +55,7 @@ public static class ColorInconstancyCalculations
         };
         var observer = reference.Observer == StandardObserver.Degree2 ? "2° · CIE 1931" : "10° · CIE 1964";
         var standard = reference.Lab;
+        var standardHex = ScreenPreview(standard);
         var conditions = $"标样参考：{reference.Illuminant} / {observer} · L* {F(standard.CIEL)} · a* {F(standard.CIEA)} · b* {F(standard.CIEB)}\n" +
             $"同一反射光谱 · {reference.Start}–{reference.End} nm / {reference.Step} nm · {settings.FormulaName}\n" +
             "各光源使用原波段的积分白点（Y = 100），与原照明条件的 Lab 直接计算色差。";
@@ -90,7 +91,9 @@ public static class ColorInconstancyCalculations
                 catch (Exception ex) when (ex is ArgumentException or ArithmeticException)
                 { reason = $"无法计算：{ex.Message}"; }
             }
-            var rowConditions = conditions.Replace("\n", "; ") + "; achromatic: L* < 10 OR C* < 5; " + IlluminantReferenceNotice;
+            var sampleHex = lab is null ? null : ScreenPreview(lab);
+            var rowConditions = conditions.Replace("\n", "; ") + "; achromatic: L* < 10 OR C* < 5; " +
+                "preview: D65 / 10°, clipped sRGB; standard on left, sample on right; " + IlluminantReferenceNotice;
             if (reason is not null)
             {
                 var explanation = $"光源 {light.Name}：{reason}";
@@ -102,14 +105,26 @@ public static class ColorInconstancyCalculations
                 delta.HasValue ? F(delta.Value) : "—", ..comments, light.Id,
                 reference.Illuminant, F(standard.CIEL), F(standard.CIEA), F(standard.CIEB), observer,
                 reference.Start.ToString(CultureInfo.InvariantCulture), reference.End.ToString(CultureInfo.InvariantCulture),
-                reference.Step.ToString(CultureInfo.InvariantCulture), settings.FormulaName,
+                reference.Step.ToString(CultureInfo.InvariantCulture), settings.FormulaName, standardHex ?? "—", sampleHex ?? "—",
                 rowConditions
             ];
             return row;
         }).ToArray();
         if (unavailable.Count > 0) conditions += "\n" + string.Join('\n', unavailable);
         return new(["照明体", "照明体参考", "L*", "a*", "b*", settings.FormulaName, ..ColorEvaluationPresentation.Headers[..3], "光源数据 ID", "标样照明体",
-            "标样 L*", "标样 a*", "标样 b*", "观察者", "起始波长 / nm", "结束波长 / nm", "间隔 / nm", "色差公式", "计算条件"], rows, conditions);
+            "标样 L*", "标样 a*", "标样 b*", "观察者", "起始波长 / nm", "结束波长 / nm", "间隔 / nm", "色差公式", "标样 sRGB", "样品 sRGB", "计算条件"], rows, conditions);
+    }
+
+    private static string? ScreenPreview(CIELAB lab)
+    {
+        // Use the same Lab-to-screen mapping as tool 05; preview limits must not discard valid color measurements.
+        try
+        {
+            var xyz = ChromaticityConversion.LabToXYZ(lab, "D65", ToolCalculations.DefaultObserver);
+            if (!double.IsFinite(xyz.CIEX) || !double.IsFinite(xyz.CIEY) || !double.IsFinite(xyz.CIEZ)) return null;
+            return ChromaticityConversion.RGBToHex(ChromaticityConversion.XYZToRGB(xyz));
+        }
+        catch (Exception ex) when (ex is ArgumentException or ArithmeticException) { return null; }
     }
 
     private static string F(double value) => ToolCalculations.F(value);

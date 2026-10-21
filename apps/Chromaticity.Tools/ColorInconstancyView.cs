@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Chromaticity.Tools.Services;
 using ChromaticityDotNet.Model;
@@ -59,17 +60,24 @@ public sealed partial class MainView
 
     private static Control InconstancyResults(CalculationTable table)
     {
-        var grid = new Grid { ColumnDefinitions = new("80,210,84,84,84,160,110,110,*"), MinWidth = 1090, Name = "InconstancyTable" };
+        var grid = new Grid { ColumnDefinitions = new("70,180,140,78,78,78,140,90,90,*"), MinWidth = 1090, Name = "InconstancyTable" };
+        var standardHex = Array.IndexOf(table.Headers, "标样 sRGB");
+        var sampleHex = Array.IndexOf(table.Headers, "样品 sRGB");
         var rows = new[] { table.Headers }.Concat(table.Rows).ToArray();
         for (var row = 0; row < rows.Length; row++)
         {
             grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-            for (var column = 0; column < 9; column++)
+            for (var column = 0; column < 10; column++)
             {
-                var text = Text(rows[row][column], row == 0 ? 12 : 14, row == 0 || column == 5);
+                var sourceColumn = column > 2 ? column - 1 : column;
+                Control content = column == 2 && row > 0
+                    ? PairedColorSwatches(rows[row][standardHex], rows[row][sampleHex], "Inconstancy", rows[row][0])
+                    : Text(column == 2 ? "sRGB 对比\n左标样 / 右样品" : rows[row][sourceColumn],
+                        row == 0 ? 12 : 14, row == 0 || sourceColumn == 5);
+                content.VerticalAlignment = VerticalAlignment.Center;
                 var cell = new Border
                 {
-                    Child = text, Padding = new Thickness(10, 12),
+                    Child = content, Padding = new Thickness(10, 12),
                     Background = row == 0 ? Brush.Parse("#F5F5F5") : Brushes.White,
                     BorderBrush = Brush.Parse("#EEEEEE"), BorderThickness = new Thickness(0, 0, 0, 1)
                 };
@@ -80,6 +88,8 @@ public sealed partial class MainView
         {
             Content = grid, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled
-        }, Note(ColorInconstancyCalculations.IlluminantReferenceNotice));
+        }, Note("色块左侧为原照明标样，右侧为该行光源样品；按 D65 / 10° 将 Lab 转为 sRGB，超出色域会裁剪。"),
+            Note(ColorInconstancyCalculations.IlluminantReferenceNotice));
     }
+
 }

@@ -50,6 +50,8 @@ public class ColorInconstancyTests
                 };
                 Assert.Equal(ToolCalculations.F(expected), row[5]);
                 Assert.Equal(ColorEvaluationPresentation.Comments(ChromaticityMatch.CompareColors(reference.Lab, sample))[..3], row[6..9]);
+                var existingPreview = ToolCalculations.DifferenceAuto(string.Join(',', row[11..14]), string.Join(',', row[2..5]), 1, 1, 1, 2, 1);
+                Assert.Equal(existingPreview.Rows[0][1..3], row[^3..^1]);
                 if (row[9] == original) Assert.Equal("0.0000", row[5]);
             }
         }
@@ -83,6 +85,7 @@ public class ColorInconstancyTests
             Assert.All(row[2..9], value => Assert.Equal("—", value));
             Assert.Contains("380–780 nm", row[^1]);
             Assert.Contains($"光源 {row[0]}：光源仅覆盖 380–780 nm", analysis.Conditions);
+            Assert.Equal("—", row[^2]); // Unavailable samples must not get a fabricated swatch.
             Assert.Equal("360", row[15]); Assert.Equal("830", row[16]);
         }
         Assert.DoesNotMatch(@"\p{IsCJKUnifiedIdeographs}", UiLanguage.TranslateTable(analysis, UiLanguage.English).ToCsv());
@@ -109,6 +112,7 @@ public class ColorInconstancyTests
         {
             Assert.Equal(normal.Rows[i][2..5], weighted.Rows[i][2..5]);
             Assert.Equal(normal.Rows[i][6..9], weighted.Rows[i][6..9]);
+            Assert.Equal(normal.Rows[i][^3..^1], weighted.Rows[i][^3..^1]);
             Assert.True(Number(weighted.Rows[i][5]) <= Number(normal.Rows[i][5]));
             if (formula == ComparisonFormula.Ciede2000)
                 Assert.InRange(Math.Abs(Number(normal.Rows[i][5]) / 2 - Number(weighted.Rows[i][5])), 0, 0.0001);
@@ -152,6 +156,9 @@ public class ColorInconstancyTests
         {
             Assert.Equal(analysis.Rows[i][2..6], translated.Rows[i][2..6]);
             Assert.Equal(analysis.Rows[i][6..9].Select(value => UiLanguage.Translate(value, UiLanguage.English)), translated.Rows[i][6..9]);
+            Assert.Equal(analysis.Rows[i][^3..^1], translated.Rows[i][^3..^1]);
+            Assert.Matches("^#[0-9A-F]{6}$", translated.Rows[i][^3]);
+            Assert.Matches("^#[0-9A-F]{6}$", translated.Rows[i][^2]);
             Assert.Contains(ColorInconstancyCalculations.IlluminantReferenceNotice, analysis.Rows[i][^1]);
             Assert.Contains("LED-B1", translated.Rows[i][^1]);
             Assert.Contains("400–700 nm / 5 nm", translated.Rows[i][^1]);
