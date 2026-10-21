@@ -38,12 +38,20 @@ public sealed partial class MainView : UserControl
 
     private Control SpectrumPage()
     {
+        SpectrumResult? calculated = null;
         var result = new ResultPanel(_downloader, sampleCards: true);
+        result.Name = "SpectrumResult";
+        var analysis = CreateInconstancyAnalysis(() => calculated);
         var plot = DiagramControls.Localize(new SpectrumPlot { Name = "ReflectanceSpectrumPlot", Height = 200, IsVisible = false });
         var navigation = DiagramControls.Localize(new SpectrumNavigator { Name = "ReflectanceSpectrumNavigator", Plot = plot, IsVisible = false });
-        var input = Input("SpectrumInput", "380,18\n390,18\n…");
+        var example = string.Join('\n', Enumerable.Range(0, 41).Select(i =>
+            $"{380 + i * 10},{ToolCalculations.F(41.5 - 23.5 * Math.Cos(Math.PI * i / 20))}"));
+        var input = Input("SpectrumInput", "380,18\n390,18.2893\n…");
+        input.Text = example;
         var light = Light(); var observer = Observer();
+        light.Name = "SpectrumIlluminant"; observer.Name = "SpectrumObserver";
         var start = SmallInput("380"); var end = SmallInput("780"); var step = SmallInput("10");
+        start.Name = "SpectrumStart"; end.Name = "SpectrumEnd"; step.Name = "SpectrumStep";
         var coverage = Note("");
         void UpdateCoverage()
         {
@@ -53,15 +61,15 @@ public sealed partial class MainView : UserControl
         light.SelectionChanged += (_, _) => UpdateCoverage(); UpdateCoverage();
         var units = Select(["百分数（18 = 18%）", "比例（0.18 = 18%）"]);
         var form = Stack(
-            Text("光谱计算", 24, true),
+            Text("光谱颜色值计算及不恒常性分析", 24, true),
             Note("使用库内 CIE 光谱数据。输入一列反射率，或两列“波长、反射率”；每行一个采样点。仅导入 CSV，可有表头，列名不限。模板按当前波段和单位生成。"),
             Fields(("照明体", light), ("观察者", observer), ("输入单位", units)),
             Fields(("起始波长 / nm", start), ("结束波长 / nm", end), ("间隔 / nm", step)), coverage,
             input,
-            Actions(Button("载入 18% 灰示例", () =>
+            Actions(Button("载入默认示例光谱", () =>
             {
                 start.Text = "380"; end.Text = "780"; step.Text = "10"; units.SelectedIndex = 0;
-                input.Text = string.Join('\n', Enumerable.Range(0, 41).Select(i => $"{380 + i * 10},18"));
+                input.Text = example;
             }), TemplateButton(input, result, () => CsvDataFiles.SpectrumTemplate(
                 int.Parse(start.Text ?? "", CultureInfo.InvariantCulture), int.Parse(end.Text ?? "", CultureInfo.InvariantCulture),
                 int.Parse(step.Text ?? "", CultureInfo.InvariantCulture), units.SelectedIndex == 1)),
@@ -71,12 +79,17 @@ public sealed partial class MainView : UserControl
                 var data = ToolCalculations.Reflectance(input.Text ?? "", Integer(start), Integer(end), Integer(step), units.SelectedIndex == 1,
                     SelectedLight(light), SelectedObserver(observer));
                 plot.SetData(data.Values, data.Start, data.Step); plot.IsVisible = true; navigation.IsVisible = true;
+                calculated = data; analysis.Update();
                 return data.Table;
             }))),
             Note("参考照明体包含全部 50 条 CIE 光源，白点由光谱与所选观察者积分计算。\nLab / Luv 使用与反射光谱相同波段的积分白点。sRGB 预览在 D65 下显示，会裁剪超色域颜色。\n曲线淡色背景为 380–780 nm 可见光的屏幕近似，仅用于辨识波长位置。"), Stack(navigation, plot));
         form.Children.Add(Note("使用左右按钮逐点查看波长与数据，首尾循环；也可点击或拖动光谱图选点，选中图表后可用方向键查看。"));
-        Watch(result, () => { plot.Clear(); plot.IsVisible = false; navigation.IsVisible = false; }, input, start, end, step, light, observer, units);
-        return Stack(Card(form), result);
+        Watch(result, () =>
+        {
+            calculated = null; analysis.Panel.Invalidate();
+            plot.Clear(); plot.IsVisible = false; navigation.IsVisible = false;
+        }, input, start, end, step, light, observer, units);
+        return Stack(Card(form), result, analysis.Panel);
     }
 
     private Control DifferencePage()
@@ -498,7 +511,7 @@ public sealed partial class MainView : UserControl
         private readonly Button? _save;
 
         public ResultPanel(IResultDownloader? downloader, bool sampleCards = false, bool differencePreviews = false, string title = "计算结果",
-            Func<CalculationTable, Control>? renderResult = null, string? successMessage = null, bool allowExport = true)
+            Func<CalculationTable, Control>? renderResult = null, string? successMessage = null, bool allowExport = true, Control? settings = null)
         {
             _sampleCards = sampleCards;
             _differencePreviews = differencePreviews;
@@ -547,7 +560,9 @@ public sealed partial class MainView : UserControl
                     catch (Exception ex) { _status.Text = $"导出失败：{ex.Message}。也可使用复制结果。"; }
                 };
             }
-            var content = Stack(Text(title, 20, true), _status, _grid, _samples);
+            var content = Stack(Text(title, 20, true));
+            if (settings is not null) content.Children.Add(settings);
+            content.Children.Add(_status); content.Children.Add(_grid); content.Children.Add(_samples);
             if (_copy is not null && _save is not null) content.Children.Add(Actions(_copy, _save));
             Child = content;
             Background = Brushes.White; Padding = new Thickness(24); CornerRadius = new CornerRadius(8);

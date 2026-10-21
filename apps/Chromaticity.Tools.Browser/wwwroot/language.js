@@ -1,6 +1,6 @@
 const storageKey = 'chromaticity-language';
 const toolNames = {
-    spectrum: ['光谱计算', 'Spectrum calculation'],
+    spectrum: ['光谱颜色值计算及不恒常性分析', 'Spectral color calculation and color inconstancy analysis'],
     difference: ['色差计算', 'Color difference'],
     conversion: ['颜色转换', 'Color conversion'],
     illuminant: ['标准光源查询', 'Standard illuminants'],

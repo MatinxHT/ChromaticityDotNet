@@ -23,7 +23,11 @@ public sealed record CalculationTable(string[] Headers, string[][] Rows, string 
     }
 }
 
-public sealed record SpectrumResult(CalculationTable Table, double[] Values, int Start, int Step, string? Hex);
+public sealed record SpectrumResult(CalculationTable Table, double[] Values, int Start, int Step, string? Hex,
+    CIELAB Lab, string Illuminant, StandardObserver Observer)
+{
+    public int End => Start + (Values.Length - 1) * Step;
+}
 public sealed record IlluminantQueryResult(CalculationTable Table, double[] Values, int Start, int Step,
     CalculationTable WhitePointTable, PlanckianDiagramData? Diagram);
 public enum InputSpace { XYZ, Lab, Luv, xyY, sRGB, HEX }
@@ -242,7 +246,8 @@ public static class ToolCalculations
             WavelengthInterval = step, Spectrums = values }, light, observer);
         var conditions = $"Reflectance; {start}–{end} nm / {step} nm; {Condition(illuminant, observer)}; Lab/Luv: integrated spectral white {start}–{end} nm (Y=100)";
         var table = new CalculationTable(ColorHeaders, [ColorRow(1, xyz, illuminant, observer, white, conditions)], conditions);
-        return new(table, values, start, step, Preview(xyz, illuminant, observer));
+        return new(table, values, start, step, Preview(xyz, illuminant, observer),
+            ChromaticityConversion.XYZToLab(xyz, white), illuminant, observer);
     }
 
     public static CalculationTable ConvertColors(string text, InputSpace space,

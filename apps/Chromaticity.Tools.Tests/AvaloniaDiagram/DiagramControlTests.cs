@@ -222,7 +222,7 @@ public class DiagramControlTests
         {
             Button FindButton(string caption) => page.GetVisualDescendants().OfType<Button>()
                 .Single(button => button.Content is TextBlock text && text.Text == caption);
-            FindButton("载入 18% 灰示例").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            FindButton("载入默认示例光谱").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             FindButton("计算颜色值").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             using var updated = window.CaptureRenderedFrame();
             var plot = page.GetVisualDescendants().OfType<SpectrumPlot>().Single();
@@ -233,9 +233,9 @@ public class DiagramControlTests
                 plot.TranslatePoint(new Point(0, 0), page)!.Value.Y);
             navigator.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "NextWavelengthButton")
                 .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.Equal(390, plot.SelectedWavelength); Assert.Equal(18, plot.SelectedValue);
+            Assert.Equal(390, plot.SelectedWavelength); Assert.Equal(18.2893, plot.SelectedValue);
             plot.SelectWavelength(521);
-            Assert.Equal(520, plot.SelectedWavelength); Assert.Equal(18, plot.SelectedValue);
+            Assert.Equal(520, plot.SelectedWavelength); Assert.Equal(55.3130, plot.SelectedValue);
             page.GetVisualDescendants().OfType<TextBox>().Single(box => box.Name == "SpectrumInput").Text = "18";
             Assert.Null(plot.Data); Assert.Null(plot.SelectedValue); Assert.False(plot.IsVisible);
             Assert.False(navigator.IsVisible);
