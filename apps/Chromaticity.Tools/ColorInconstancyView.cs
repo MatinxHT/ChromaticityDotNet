@@ -12,7 +12,7 @@ public sealed partial class MainView
 {
     private (ResultPanel Panel, Action Update) CreateInconstancyAnalysis(Func<SpectrumResult?> reference)
     {
-        var formula = Select(["ΔE1976 / CIE76", "CMC (l:c)", "ΔE00 / CIEDE2000"]);
+        var formula = Select(DifferenceFormulaChoices);
         formula.Name = "InconstancyFormula"; formula.SelectedIndex = (int)ComparisonFormula.Ciede2000;
         var cmcL = SmallInput("2"); cmcL.Name = "InconstancyCmcL";
         var cmcC = SmallInput("1"); cmcC.Name = "InconstancyCmcC";
@@ -21,7 +21,7 @@ public sealed partial class MainView
         var kh = SmallInput("1"); kh.Name = "InconstancyKH";
         var cmcFields = Fields(("CMC l", cmcL), ("CMC c", cmcC));
         var e00Fields = Fields(("ΔE00 kL", kl), ("ΔE00 kC", kc), ("ΔE00 kH", kh));
-        var noWeights = Note("CIE76 无可调系数。");
+        var noWeights = Note("ΔE1976 无可调系数。");
         var fields = Fields(("色差公式", formula));
         fields.Children.Add(cmcFields); fields.Children.Add(e00Fields); fields.Children.Add(noWeights);
         var settings = Stack(
@@ -60,7 +60,7 @@ public sealed partial class MainView
 
     private static Control InconstancyResults(CalculationTable table)
     {
-        var grid = new Grid { ColumnDefinitions = new("70,180,140,78,78,78,140,90,90,*"), MinWidth = 1090, Name = "InconstancyTable" };
+        var grid = ComparisonTable("InconstancyTable", 6, 70, 180, 140, 78, 78, 78, ColorDifferenceColumnWidth, 90, 90, 146);
         var standardHex = Array.IndexOf(table.Headers, "标样 sRGB");
         var sampleHex = Array.IndexOf(table.Headers, "样品 sRGB");
         var rows = new[] { table.Headers }.Concat(table.Rows).ToArray();
@@ -72,6 +72,7 @@ public sealed partial class MainView
                 var sourceColumn = column > 2 ? column - 1 : column;
                 Control content = column == 2 && row > 0
                     ? PairedColorSwatches(rows[row][standardHex], rows[row][sampleHex], "Inconstancy", rows[row][0])
+                    : row == 0 && sourceColumn == 5 ? DifferenceHeader(rows[row][sourceColumn])
                     : Text(column == 2 ? "sRGB 对比\n左标样 / 右样品" : rows[row][sourceColumn],
                         row == 0 ? 12 : 14, row == 0 || sourceColumn == 5);
                 content.VerticalAlignment = VerticalAlignment.Center;
@@ -86,7 +87,7 @@ public sealed partial class MainView
         }
         return Stack(Note(table.Conditions), new ScrollViewer
         {
-            Content = grid, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Content = grid, HorizontalContentAlignment = HorizontalAlignment.Stretch, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled
         }, Note("色块左侧为原照明标样，右侧为该行光源样品；按 D65 / 10° 将 Lab 转为 sRGB，超出色域会裁剪。"),
             Note(ColorInconstancyCalculations.IlluminantReferenceNotice));

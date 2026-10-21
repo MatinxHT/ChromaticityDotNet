@@ -18,7 +18,7 @@ dotnet add package ChromaticityDotNet
 
 ## 浏览器在线评估工具
 
-[`apps/`](apps/README.md) 提供基于 Avalonia Browser 的反射光谱计算、批量色差计算、颜色空间转换、标准光源查询、一维色差分级色卡与复合色差色卡，以及主波长与补色波长工具，复用本库已有数据与算法。复合色卡以 C/h 等级展开平面，并用 L 等级切换明度层。网站采用独立 solution，由 Cloudflare Pages 拉取仓库构建部署，不向主 NuGet 包引入 Avalonia 依赖。欢迎使用 [ChromaticityDotNet](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME)。
+[`apps/`](apps/README.md) 提供基于 Avalonia Browser 的反射光谱计算、批量色差计算、颜色空间转换、标准光源查询、一维色差分级色卡与复合色差色卡、主波长与补色波长工具，以及纺织品同色异谱评价，复用本库已有数据与算法。07 通过标准品与样品的相对反射光谱比较五种光源下的颜色与色差，并提供可直接测试的示例。复合色卡以 C/h 等级展开平面，并用 L 等级切换明度层。网站采用独立 solution，由 Cloudflare Pages 拉取仓库构建部署，不向主 NuGet 包引入 Avalonia 依赖。欢迎使用 [ChromaticityDotNet](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME)。
 
 ## 项目目录与绘图适配
 

@@ -194,7 +194,7 @@ public static class ToolCalculations
         var test = ParseRows(samples).Select((r, i) => Lab(Triple(r, i + 1))).ToArray();
         if (paired ? reference.Length != test.Length : reference.Length != 1)
             throw new ArgumentException(paired ? "逐行配对时，标准和样品的行数必须相同。" : "一对多模式只允许一行标准色。");
-        var conditions = FormattableString.Invariant($"CMC l:c={cmcL}:{cmcC}; CIEDE2000 kL:kC:kH={kl}:{kc}:{kh}; achromatic: L* < {achromaticLightnessThreshold} OR C* < {achromaticChromaThreshold}; preview: D65 / 10°; differences: sample minus standard; hue: signed shortest Lab hue angle, skipped for achromatic colors");
+        var conditions = FormattableString.Invariant($"CMC l:c={cmcL}:{cmcC}; ΔE00 kL:kC:kH={kl}:{kc}:{kh}; achromatic: L* < {achromaticLightnessThreshold} OR C* < {achromaticChromaThreshold}; preview: D65 / 10°; differences: sample minus standard; hue: signed shortest Lab hue angle, skipped for achromatic colors");
         var result = test.Select((sample, i) =>
         {
             var standard = reference[paired ? i : 0];
@@ -211,7 +211,7 @@ public static class ToolCalculations
                 .Concat(ColorEvaluationPresentation.Comments(comparison)).ToArray();
         }).ToArray();
         return new(["序号", "标样 HEX", "样品 HEX", "标样 L*", "标样 a*", "标样 b*", "样品 L*", "样品 a*", "样品 b*",
-            "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE76",
+            "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE1976",
             FormattableString.Invariant($"CMC\nl:c = {cmcL}:{cmcC}"),
             FormattableString.Invariant($"ΔE00\nkL:kC:kH = {kl}:{kc}:{kh}"), ..ColorEvaluationPresentation.Headers], result, conditions);
     }
@@ -223,12 +223,22 @@ public static class ToolCalculations
     public static SpectrumResult Reflectance(string text, int start, int end, int step, bool fraction,
         string illuminant, StandardObserver observer)
     {
-        if (step <= 0 || start < 360 || end > 830 || end <= start || (end - start) % step != 0)
-            throw new ArgumentException("波长需在 360–830 nm 内，结束大于起始，且范围可被正整数间隔整除。");
+        var spectrum = ParseReflectance(text, start, end, step, fraction);
         var light = CieSpectralData.GetIlluminantSpectrum(illuminant);
         if (start < light.StartingWavelength || end > light.EndingWavelength)
             throw new ArgumentException($"所选光源 {illuminant} 可用波段：{Math.Max(360, light.StartingWavelength)}–{Math.Min(830, light.EndingWavelength)} nm。请调整输入波段。");
         var white = ChromaticityMatch.GetStandardWhitePoint(light, observer, start, end);
+        var xyz = ChromaticityConversion.REFToXYZ(spectrum, light, observer);
+        var conditions = $"Reflectance; {start}–{end} nm / {step} nm; {Condition(illuminant, observer)}; Lab/Luv: integrated spectral white {start}–{end} nm (Y=100)";
+        var table = new CalculationTable(ColorHeaders, [ColorRow(1, xyz, illuminant, observer, white, conditions)], conditions);
+        return new(table, spectrum.Spectrums!, start, step, Preview(xyz, illuminant, observer),
+            ChromaticityConversion.XYZToLab(xyz, white), illuminant, observer);
+    }
+
+    internal static Spectrum ParseReflectance(string text, int start, int end, int step, bool fraction)
+    {
+        if (step <= 0 || start < 360 || end > 830 || end <= start || (end - start) % step != 0)
+            throw new ArgumentException("波长需在 360–830 nm 内，结束大于起始，且范围可被正整数间隔整除。");
         var rows = ParseRows(text);
         if (rows.Length != (end - start) / step + 1) throw new ArgumentException($"当前波长设置需要 {(end - start) / step + 1} 个采样点，实际为 {rows.Length} 个。");
         var columns = rows[0].Length;
@@ -242,12 +252,8 @@ public static class ToolCalculations
             if (!double.IsFinite(value) || value < 0) throw new ArgumentException($"第 {i + 1} 行反射率必须有限且非负。");
             return value;
         }).ToArray();
-        var xyz = ChromaticityConversion.REFToXYZ(new Spectrum { StartingWavelength = start, EndingWavelength = end,
-            WavelengthInterval = step, Spectrums = values }, light, observer);
-        var conditions = $"Reflectance; {start}–{end} nm / {step} nm; {Condition(illuminant, observer)}; Lab/Luv: integrated spectral white {start}–{end} nm (Y=100)";
-        var table = new CalculationTable(ColorHeaders, [ColorRow(1, xyz, illuminant, observer, white, conditions)], conditions);
-        return new(table, values, start, step, Preview(xyz, illuminant, observer),
-            ChromaticityConversion.XYZToLab(xyz, white), illuminant, observer);
+        return new Spectrum { StartingWavelength = start, EndingWavelength = end,
+            WavelengthInterval = step, Spectrums = values };
     }
 
     public static CalculationTable ConvertColors(string text, InputSpace space,

@@ -18,7 +18,7 @@ dotnet add package ChromaticityDotNet
 
 ## Online evaluation tools
 
-[`apps/`](apps/README.md) provides browser-based tools built with Avalonia Browser for reflectance-spectrum calculations, batch color-difference calculations, color-space conversions, standard illuminant queries, one-dimensional and composite color difference charts, and dominant/complementary wavelengths. The composite chart lays out C/h grades in a plane and switches lightness layers by L grade. These tools reuse this library's existing data and algorithms. The website uses a separate solution and is built and deployed by Cloudflare Pages through Git integration, without adding Avalonia dependencies to the main NuGet package. Try [ChromaticityDotNet online](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME).
+[`apps/`](apps/README.md) provides browser-based tools built with Avalonia Browser for reflectance-spectrum calculations, batch color-difference calculations, color-space conversions, standard illuminant queries, one-dimensional and composite color difference charts, dominant/complementary wavelengths, and textile metamerism evaluation. Tool 07 compares standard and sample relative reflectance spectra under five illuminants and includes ready-to-test examples. The composite chart lays out C/h grades in a plane and switches lightness layers by L grade. These tools reuse this library's existing data and algorithms. The website uses a separate solution and is built and deployed by Cloudflare Pages through Git integration, without adding Avalonia dependencies to the main NuGet package. Try [ChromaticityDotNet online](https://chromaticitydotnet.martinphysics.club/?utm_source=GithubREADME).
 
 ## Source layout and diagram adapters
 

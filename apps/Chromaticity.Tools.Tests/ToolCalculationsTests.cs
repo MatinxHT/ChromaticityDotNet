@@ -84,7 +84,7 @@ public class ToolCalculationsTests
     {
         var table = ToolCalculations.Difference("50,10,1", "50,10,-1", false, 1.5, 2, 3, 2, 1);
         Assert.Equal(new[] { "序号", "标样 HEX", "样品 HEX", "标样 L*", "标样 a*", "标样 b*", "样品 L*", "样品 a*", "样品 b*",
-            "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE76" }, table.Headers[..15]);
+            "ΔL*", "Δa*", "Δb*", "ΔC*", "Δh°", "ΔE1976" }, table.Headers[..15]);
         Assert.Equal(new[] { "50.0000", "10.0000", "1.0000", "50.0000", "10.0000", "-1.0000" }, table.Rows[0][3..9]);
         Assert.Equal(new[] { "0.0000", "0.0000", "-2.0000", "0.0000", "-11.4212" }, table.Rows[0][9..14]);
         Assert.Equal("CMC\nl:c = 2:1", table.Headers[15]);
@@ -102,7 +102,7 @@ public class ToolCalculationsTests
         Assert.All(copied, line => Assert.Equal(21, line.Split('\t').Length));
         Assert.Equal(table.Rows[0][3..9], copied[1].Split('\t')[3..9]);
         Assert.DoesNotContain("ΔE94", copied[0]);
-        Assert.True(copied[0].IndexOf("ΔE76", StringComparison.Ordinal) < copied[0].IndexOf("CMC", StringComparison.Ordinal));
+        Assert.True(copied[0].IndexOf("ΔE1976", StringComparison.Ordinal) < copied[0].IndexOf("CMC", StringComparison.Ordinal));
         Assert.True(copied[0].IndexOf("CMC", StringComparison.Ordinal) < copied[0].IndexOf("ΔE00", StringComparison.Ordinal));
         Assert.Contains("1.5:2:3", copied[0]);
     }

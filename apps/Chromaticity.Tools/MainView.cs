@@ -22,7 +22,7 @@ public sealed partial class MainView : UserControl
     public MainView(IResultDownloader? downloader = null, string tool = "spectrum")
     {
         _downloader = downloader;
-        var content = new StackPanel { Spacing = 22, MaxWidth = 1240, Margin = new Thickness(28, 24), HorizontalAlignment = HorizontalAlignment.Stretch };
+        var content = new StackPanel { Name = "ToolPageContent", Spacing = 22, Margin = new Thickness(28, 24), HorizontalAlignment = HorizontalAlignment.Stretch };
         content.Children.Add(tool switch
         {
             "difference" => DifferencePage(),
@@ -30,10 +30,15 @@ public sealed partial class MainView : UserControl
             "illuminant" => IlluminantPage(),
             "grades" => ColorGradePage(),
             "wavelength" => WavelengthPage(),
+            "metamerism" => TextileMetamerismPage(),
             _ => SpectrumPage()
         });
         content.Children.Add(Note($"ChromaticityDotNet v{LibraryInfo.Version} · 代码 MIT · CIE 数据 CC BY-SA 4.0\n波长保留两位小数，Duv 保留六位小数，其他计算保留四位小数。参考白点由光源光谱与所选观察者积分得到。色块仅为屏幕近似，不能代替仪器测量。"));
-        Content = new ScrollViewer { Content = content, Background = Brush.Parse("#F5F5F5"), HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
+        Content = new ScrollViewer
+        {
+            Content = content, Background = Brush.Parse("#F5F5F5"), HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled
+        };
     }
 
     private Control SpectrumPage()
@@ -44,10 +49,8 @@ public sealed partial class MainView : UserControl
         var analysis = CreateInconstancyAnalysis(() => calculated);
         var plot = DiagramControls.Localize(new SpectrumPlot { Name = "ReflectanceSpectrumPlot", Height = 200, IsVisible = false });
         var navigation = DiagramControls.Localize(new SpectrumNavigator { Name = "ReflectanceSpectrumNavigator", Plot = plot, IsVisible = false });
-        var example = string.Join('\n', Enumerable.Range(0, 41).Select(i =>
-            $"{380 + i * 10},{ToolCalculations.F(41.5 - 23.5 * Math.Cos(Math.PI * i / 20))}"));
-        var input = Input("SpectrumInput", "380,18\n390,18.2893\n…");
-        input.Text = example;
+        var input = Input("SpectrumInput", "380,18.00\n390,18.29\n…");
+        input.Text = ReflectanceExamples.Default();
         var light = Light(); var observer = Observer();
         light.Name = "SpectrumIlluminant"; observer.Name = "SpectrumObserver";
         var start = SmallInput("380"); var end = SmallInput("780"); var step = SmallInput("10");
@@ -60,6 +63,7 @@ public sealed partial class MainView : UserControl
         }
         light.SelectionChanged += (_, _) => UpdateCoverage(); UpdateCoverage();
         var units = Select(["百分数（18 = 18%）", "比例（0.18 = 18%）"]);
+        units.Name = "SpectrumUnits";
         var form = Stack(
             Text("光谱颜色值计算及不恒常性分析", 24, true),
             Note("使用库内 CIE 光谱数据。输入一列反射率，或两列“波长、反射率”；每行一个采样点。仅导入 CSV，可有表头，列名不限。模板按当前波段和单位生成。"),
@@ -68,8 +72,8 @@ public sealed partial class MainView : UserControl
             input,
             Actions(Button("载入默认示例光谱", () =>
             {
-                start.Text = "380"; end.Text = "780"; step.Text = "10"; units.SelectedIndex = 0;
-                input.Text = example;
+                start.Text = "380"; end.Text = "780"; step.Text = "10";
+                input.Text = ReflectanceExamples.Default(units.SelectedIndex == 1);
             }), TemplateButton(input, result, () => CsvDataFiles.SpectrumTemplate(
                 int.Parse(start.Text ?? "", CultureInfo.InvariantCulture), int.Parse(end.Text ?? "", CultureInfo.InvariantCulture),
                 int.Parse(step.Text ?? "", CultureInfo.InvariantCulture), units.SelectedIndex == 1)),
@@ -147,7 +151,7 @@ public sealed partial class MainView : UserControl
                     ToolCalculations.Positive(kl.Text ?? "", "kL"), ToolCalculations.Positive(kc.Text ?? "", "kC"), ToolCalculations.Positive(kh.Text ?? "", "kH"),
                     cmc.SelectedIndex == 0 ? 1 : 2, 1, options.AchromaticLightnessThreshold, options.AchromaticChromaThreshold);
                 }))),
-            Note("先显示标样 HEX、相邻的对比色块和样品 HEX，色块左侧为标样、右侧为样品。随后显示标样 L*、a*、b* 和样品 L*、a*、b* 六列输入值，再显示 ΔL*、Δa*、Δb*、ΔC*、Δh° 及 ΔE76、CMC、ΔE00。\n差值方向为样品减标样，Δh° 为 Lab 色相角的最短有符号差；预览按 D65 / 10° 计算并裁剪超色域值。公式参数显示在列名中；一次最多 10,000 行。"));
+            Note("先显示标样 HEX、相邻的对比色块和样品 HEX，色块左侧为标样、右侧为样品。随后显示标样 L*、a*、b* 和样品 L*、a*、b* 六列输入值，再显示 ΔL*、Δa*、Δb*、ΔC*、Δh° 及 ΔE1976、CMC、ΔE00。\n差值方向为样品减标样，Δh° 为 Lab 色相角的最短有符号差；预览按 D65 / 10° 计算并裁剪超色域值。公式参数见输入设置和表头提示；一次最多 10,000 行。"));
         Watch(result, null, standard, sample, kl, kc, kh, cmc, evaluationInputs.Lightness, evaluationInputs.Chroma);
         return Stack(Card(form), result);
     }
@@ -461,7 +465,7 @@ public sealed partial class MainView : UserControl
             CornerRadius = new CornerRadius(8),
             Background = hex == "—" ? Brush.Parse("#EEEEEE") : Brush.Parse(hex)
         };
-        var values = new ResponsiveColumns();
+        var values = new ResponsiveColumns { MaximumColumns = 3 };
         values.Children.Add(Values("XYZ", "X", "Y", "Z"));
         values.Children.Add(Values("Lab", "L*", "a*", "b*"));
         values.Children.Add(Values("LCh", "C*", "h°"));
@@ -488,7 +492,7 @@ public sealed partial class MainView : UserControl
         if (includeCri)
         {
             content.Children.Add(Text("显色指数 · CIE 13.3-1995 / 1931 2°", 18, true));
-            var indices = new ResponsiveColumns { MaximumColumns = 3 };
+            var indices = new ResponsiveColumns { MaximumColumns = 5 };
             foreach (var header in LightQualityPresentation.CriHeaders.Take(15))
                 indices.Children.Add(Stack(Text(header, 15, true), Text(Value(header), header == "CRI Ra" ? 26 : 20, true)));
             content.Children.Add(indices);
@@ -616,13 +620,14 @@ public sealed partial class MainView : UserControl
                                 })
                             });
                         var column = i;
-                        var header = Text(table.Headers[i], 12, true);
+                        var header = _differencePreviews && i is >= 14 and <= 16
+                            ? DifferenceHeader(table.Headers[i]) : Text(table.Headers[i], 12, true);
                         header.TextWrapping = _differencePreviews ? TextWrapping.Wrap : TextWrapping.NoWrap;
                         _grid.Columns.Add(new DataGridTemplateColumn
                         {
                             Header = header,
                             Width = new DataGridLength(_differencePreviews
-                                ? i switch { 0 => 80, 1 or 2 => 140, >= 3 and <= 8 => 100, 15 => 108, 16 => 160, 17 or 18 => 140, 19 => 130, 20 => 190, _ => 82 }
+                                ? i switch { 0 => 80, 1 or 2 => 140, >= 3 and <= 8 => 100, >= 14 and <= 16 => ColorDifferenceColumnWidth, 17 or 18 => 140, 19 => 130, 20 => 190, _ => 82 }
                                 : i == 0 ? 160 : 260),
                             CellTemplate = new FuncDataTemplate<string[]>((row, _) =>
                             {
@@ -643,7 +648,7 @@ public sealed partial class MainView : UserControl
                     : _sampleCards
                     ? $"已完成 {table.Rows.Length} 个样品计算。导出包含全部颜色值与计算条件。"
                     : _differencePreviews
-                        ? $"已完成 {table.Rows.Length} 行计算。公式参数见列名，复制及导出保留参数和预览 HEX。"
+                        ? $"已完成 {table.Rows.Length} 行计算。公式参数见输入设置和表头提示，复制及导出保留参数和预览 HEX。"
                         : $"已显示 {table.Rows.Length} 行数据，可复制或下载 CSV。");
             }
             catch (Exception ex) when (ex is ArgumentException or ArithmeticException or InvalidOperationException)

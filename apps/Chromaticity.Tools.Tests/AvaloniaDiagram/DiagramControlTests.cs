@@ -233,9 +233,9 @@ public class DiagramControlTests
                 plot.TranslatePoint(new Point(0, 0), page)!.Value.Y);
             navigator.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "NextWavelengthButton")
                 .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.Equal(390, plot.SelectedWavelength); Assert.Equal(18.2893, plot.SelectedValue);
+            Assert.Equal(390, plot.SelectedWavelength); Assert.Equal(18.29, plot.SelectedValue);
             plot.SelectWavelength(521);
-            Assert.Equal(520, plot.SelectedWavelength); Assert.Equal(55.3130, plot.SelectedValue);
+            Assert.Equal(520, plot.SelectedWavelength); Assert.Equal(55.31, plot.SelectedValue);
             page.GetVisualDescendants().OfType<TextBox>().Single(box => box.Name == "SpectrumInput").Text = "18";
             Assert.Null(plot.Data); Assert.Null(plot.SelectedValue); Assert.False(plot.IsVisible);
             Assert.False(navigator.IsVisible);

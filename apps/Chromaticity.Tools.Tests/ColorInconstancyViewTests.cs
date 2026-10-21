@@ -101,7 +101,7 @@ public class ColorInconstancyViewTests
             var table = analysis.GetVisualDescendants().OfType<Grid>().Single(control => control.Name == "InconstancyTable");
             var tableScroll = table.GetVisualAncestors().OfType<ScrollViewer>().First();
             Assert.True(analysis.Bounds.Width <= width);
-            Assert.True(table.Bounds.Width >= 1090);
+            Assert.True(table.Bounds.Width >= 1050);
             if (width == 390) Assert.True(tableScroll.Extent.Width > tableScroll.Viewport.Width);
             Assert.Contains(analysis.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == (english ? "Color inconstancy analysis" : "颜色不恒常性分析"));
             var cells = table.Children.OfType<Border>().ToArray();

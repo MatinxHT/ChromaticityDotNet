@@ -9,6 +9,29 @@ namespace Chromaticity.Tools;
 
 public sealed partial class MainView
 {
+    private static readonly string[] DifferenceFormulaChoices = ["ΔE1976", "CMC", "ΔE00"];
+    private const int ColorDifferenceColumnWidth = 100;
+
+    private static Grid ComparisonTable(string name, int differenceColumn, params double[] minimumWidths)
+    {
+        var grid = new Grid { Name = name, MinWidth = minimumWidths.Sum(), HorizontalAlignment = HorizontalAlignment.Stretch };
+        for (var i = 0; i < minimumWidths.Length; i++)
+        {
+            // Keep illuminant names, swatches and delta-E compact; distribute extra width among the other columns.
+            var unit = i is 0 or 2 || i == differenceColumn ? GridUnitType.Pixel : GridUnitType.Star;
+            grid.ColumnDefinitions.Add(new ColumnDefinition(minimumWidths[i], unit) { MinWidth = minimumWidths[i] });
+        }
+        return grid;
+    }
+
+    private static TextBlock DifferenceHeader(string formulaAndParameters)
+    {
+        var name = formulaAndParameters.Split([' ', '\r', '\n'], 2)[0];
+        var header = Text(name, 12, true);
+        ToolTip.SetTip(header, Text(formulaAndParameters));
+        return header;
+    }
+
     private static Control PairedColorSwatches(string standardHex, string sampleHex, string namePrefix,
         string? sampleLabel = null, double height = 52)
     {

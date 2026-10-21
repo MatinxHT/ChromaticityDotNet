@@ -5,7 +5,8 @@ const toolNames = {
     conversion: ['颜色转换', 'Color conversion'],
     illuminant: ['标准光源查询', 'Standard illuminants'],
     grades: ['色差评级色卡', 'Color difference rating chart'],
-    wavelength: ['主波长与补色波长计算', 'Dominant and complementary wavelengths']
+    wavelength: ['主波长与补色波长计算', 'Dominant and complementary wavelengths'],
+    metamerism: ['纺织品同色异谱评价', 'Textile metamerism evaluation']
 };
 const listeners = new Set();
 const chineseText = new WeakMap();

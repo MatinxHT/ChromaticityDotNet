@@ -216,7 +216,7 @@ public static class CsvDataFiles
         if (step <= 0 || start < 360 || end > 830 || end <= start || (end - start) % step != 0)
             throw new ArgumentException("波长需在 360–830 nm 内，结束大于起始，且范围可被正整数间隔整除。荧光光源限 380–780 nm。");
         var rows = Enumerable.Range(0, (end - start) / step + 1)
-            .Select(i => new[] { (start + i * step).ToString(Invariant), fraction ? "0.18" : "18" }).ToArray();
+            .Select(i => new[] { (start + i * step).ToString(Invariant), ReflectanceExamples.Value(18, fraction) }).ToArray();
         return Template("spectrum", ["Wavelength_nm", fraction ? "Reflectance_fraction" : "Reflectance_percent"], rows);
     }
 

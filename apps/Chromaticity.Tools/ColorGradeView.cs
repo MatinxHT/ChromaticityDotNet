@@ -27,7 +27,7 @@ public sealed partial class MainView
         var l = SmallInput("50"); l.Name = "GradeL";
         var a = SmallInput("30"); a.Name = "GradeA";
         var b = SmallInput("20"); b.Name = "GradeB";
-        var formula = Select(["ΔE1976 / CIE76", "CMC (l:c)", "ΔE00 / CIEDE2000"]);
+        var formula = Select(DifferenceFormulaChoices);
         formula.SelectedIndex = (int)ColorGradeFormula.Cmc;
         formula.Name = "GradeFormula";
         var cmcRatio = Select(["2:1", "1:1", "自定义"]); cmcRatio.Name = "GradeCmcRatio";

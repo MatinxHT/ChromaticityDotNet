@@ -25,9 +25,9 @@ public sealed record ColorGradeSettings(ColorGradeFormula Formula, double StepDe
 {
     public string FormulaName => Formula switch
     {
-        ColorGradeFormula.Cie76 => "ΔE1976 / CIE76",
+        ColorGradeFormula.Cie76 => "ΔE1976",
         ColorGradeFormula.Cmc => FormattableString.Invariant($"CMC l:c={CmcL}:{CmcC}"),
-        _ => "ΔE00 / CIEDE2000 kL:kC:kH=1:1:1"
+        _ => "ΔE00 kL:kC:kH=1:1:1"
     };
 }
 public sealed record ColorGradeResult(string Formula, IReadOnlyList<ColorGradeScale> Scales, CalculationTable Table,

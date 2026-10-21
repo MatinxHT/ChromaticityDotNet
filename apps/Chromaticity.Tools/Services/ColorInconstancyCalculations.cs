@@ -11,9 +11,9 @@ public sealed record ColorInconstancySettings(ComparisonFormula Formula = Compar
 {
     public string FormulaName => Formula switch
     {
-        ComparisonFormula.Cie76 => "ΔE1976 / CIE76",
+        ComparisonFormula.Cie76 => "ΔE1976",
         ComparisonFormula.Cmc => FormattableString.Invariant($"CMC l:c = {CmcL}:{CmcC}"),
-        _ => FormattableString.Invariant($"ΔE00 / CIEDE2000 kL:kC:kH = {KL}:{KC}:{KH}")
+        _ => FormattableString.Invariant($"ΔE00 kL:kC:kH = {KL}:{KC}:{KH}")
     };
 }
 
@@ -21,7 +21,7 @@ public sealed record ColorInconstancySettings(ComparisonFormula Formula = Compar
 public static class ColorInconstancyCalculations
 {
     public const string IlluminantReferenceNotice = "光源以实测SPD数据为准，以上仅供参考";
-    private static readonly (string Name, string Id, string Reference)[] Lights =
+    internal static readonly (string Name, string Id, string Reference)[] Lights =
     [
         ("D65", "D65", "全球通用平均日光"),
         ("CWF", "FL2", "北美商业冷白荧光灯"),
@@ -30,7 +30,7 @@ public static class ColorInconstancyCalculations
         ("TL84", "FL11", "欧洲商业荧光灯")
     ];
 
-    public static CalculationTable Analyze(SpectrumResult reference, ColorInconstancySettings settings)
+    internal static ColorComparisonOptions ComparisonOptions(ColorInconstancySettings settings)
     {
         if (!Enum.IsDefined(settings.Formula)) throw new ArgumentException("请选择有效的色差公式。");
         var weights = settings.Formula switch
@@ -41,13 +41,17 @@ public static class ColorInconstancyCalculations
         };
         if (weights.Any(value => !double.IsFinite(value) || value <= 0))
             throw new ArgumentException("色差权重必须是有限正数。");
-        var comparisonOptions = new ColorComparisonOptions
+        return new ColorComparisonOptions
         {
             Cmc = settings.Formula == ComparisonFormula.Cmc ? new(settings.CmcL, settings.CmcC) : new(),
             Ciede2000 = settings.Formula == ComparisonFormula.Ciede2000 ? new(settings.KL, settings.KC, settings.KH) : new(),
             Evaluation = new() { Formula = settings.Formula }
         };
+    }
 
+    public static CalculationTable Analyze(SpectrumResult reference, ColorInconstancySettings settings)
+    {
+        var comparisonOptions = ComparisonOptions(settings);
         var spectrum = new Spectrum
         {
             StartingWavelength = reference.Start, EndingWavelength = reference.End,
@@ -115,7 +119,7 @@ public static class ColorInconstancyCalculations
             "标样 L*", "标样 a*", "标样 b*", "观察者", "起始波长 / nm", "结束波长 / nm", "间隔 / nm", "色差公式", "标样 sRGB", "样品 sRGB", "计算条件"], rows, conditions);
     }
 
-    private static string? ScreenPreview(CIELAB lab)
+    internal static string? ScreenPreview(CIELAB lab)
     {
         // Use the same Lab-to-screen mapping as tool 05; preview limits must not discard valid color measurements.
         try
